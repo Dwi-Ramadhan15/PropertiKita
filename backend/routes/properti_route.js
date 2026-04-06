@@ -2,16 +2,20 @@ const express = require('express');
 const router = express.Router();
 const propertiController = require('../controllers/properti_controller');
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
+// ===============================
 // Pastikan folder uploads ada
-const uploadPath = 'uploads/';
+// ===============================
+const uploadPath = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadPath)) {
-    fs.mkdirSync(uploadPath);
+    fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// --- Konfigurasi Penyimpanan Foto (Multer) ---
+// ===============================
+// Konfigurasi Multer
+// ===============================
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadPath);
@@ -26,8 +30,9 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-// --- Dokumentasi Swagger & Endpoints ---
-
+// ===============================
+// Swagger Schema
+// ===============================
 /**
  * @swagger
  * components:
@@ -39,26 +44,29 @@ const upload = multer({
  *           type: integer
  *         id_agen:
  *           type: integer
- *         judul:
- *           type: string
- *         deskripsi:
+ *         title:
  *           type: string
  *         harga:
  *           type: integer
  *         lokasi:
  *           type: string
+ *         tipe:
+ *           type: string
+ *         image_url:
+ *           type: string
  *         latitude:
  *           type: number
  *         longitude:
  *           type: number
- *         foto_path:
- *           type: string
  *         nama_agen:
  *           type: string
  *         no_whatsapp:
  *           type: string
  */
 
+// ===============================
+// [GET] Detail Properti
+// ===============================
 /**
  * @swagger
  * /api/properti/{id}:
@@ -84,6 +92,9 @@ const upload = multer({
  */
 router.get('/:id', propertiController.getPropertiDetail);
 
+// ===============================
+// [POST] Tambah Properti
+// ===============================
 /**
  * @swagger
  * /api/properti:
@@ -102,13 +113,13 @@ router.get('/:id', propertiController.getPropertiDetail);
  *                 format: binary
  *               id_agen:
  *                 type: integer
- *               judul:
- *                 type: string
- *               deskripsi:
+ *               title:
  *                 type: string
  *               harga:
  *                 type: integer
  *               lokasi:
+ *                 type: string
+ *               tipe:
  *                 type: string
  *               latitude:
  *                 type: number
@@ -122,6 +133,56 @@ router.get('/:id', propertiController.getPropertiDetail);
  */
 router.post('/', upload.single('foto'), propertiController.createProperti);
 
+// ===============================
+// [PUT] Update Properti
+// ===============================
+/**
+ * @swagger
+ * /api/properti/{id}:
+ *   put:
+ *     summary: Mengupdate data properti dan mengganti foto
+ *     tags: [Properti]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               foto:
+ *                 type: string
+ *                 format: binary
+ *               id_agen:
+ *                 type: integer
+ *               title:
+ *                 type: string
+ *               harga:
+ *                 type: integer
+ *               lokasi:
+ *                 type: string
+ *               tipe:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Data berhasil diperbarui
+ *       404:
+ *         description: Data tidak ditemukan
+ */
+router.put('/:id', upload.single('foto'), propertiController.updateProperti);
+
+// ===============================
+// [DELETE] Hapus Properti
+// ===============================
 /**
  * @swagger
  * /api/properti/{id}:
