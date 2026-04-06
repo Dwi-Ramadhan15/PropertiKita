@@ -2,15 +2,10 @@ const db = require('../utils/db');
 
 const getProperti = async(req, res) => {
     try {
-        // 1. Tangkap parameter query dari URL
         const { minHarga, maxHarga, lokasi } = req.query;
-
-        // 2. Setup dasar SQL Query
         let query = 'SELECT * FROM properties WHERE 1=1';
         const queryParams = [];
 
-        // 3. SQL Logic Dinamis & Data Sanitization (PostgreSQL)
-        // Jika ada minHarga dan maxHarga, gunakan BETWEEN
         if (minHarga && maxHarga) {
             queryParams.push(Number(minHarga), Number(maxHarga));
             query += ` AND harga BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
@@ -22,23 +17,19 @@ const getProperti = async(req, res) => {
             query += ` AND harga <= $${queryParams.length}`;
         }
 
-        // Jika ada filter lokasi, gunakan ILIKE agar tidak case-sensitive
         if (lokasi) {
             queryParams.push(`%${lokasi}%`);
             query += ` AND lokasi ILIKE $${queryParams.length}`;
         }
 
-        // Eksekusi query dengan parameter aman (Data Sanitization)
         const { rows } = await db.query(query, queryParams);
 
-        // 4. GeoJSON Formatter & Spatial Data Handling
         const geoJSON = {
             type: "FeatureCollection",
             features: rows.map(row => ({
                 type: "Feature",
                 geometry: {
                     type: "Point",
-                    // Wajib: [Longitude, Latitude] untuk format GeoJSON standar
                     coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)]
                 },
                 properties: {
@@ -52,7 +43,6 @@ const getProperti = async(req, res) => {
             }))
         };
 
-        // Kirim response ke client
         res.status(200).json({
             success: true,
             data: geoJSON
@@ -67,4 +57,31 @@ const getProperti = async(req, res) => {
     }
 };
 
-module.exports = { getProperti };
+const getPropertiById = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const query = 'SELECT * FROM properties WHERE id = $1';
+        const { rows } = await db.query(query, [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Data properti tidak ditemukan'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error di getPropertiById:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Terjadi kesalahan saat mengambil data properti berdasarkan ID'
+        });
+    }
+};
+
+module.exports = { getProperti, getPropertiById };
