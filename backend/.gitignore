@@ -5,3 +5,4 @@ node_modules/
 backend/minio.exe
 uploads/
 minio.exe
+data/
