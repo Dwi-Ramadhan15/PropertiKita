@@ -1,10 +1,65 @@
-const pool = require('../models/properti');
+const db = require('../utils/db');
 const minioClient = require('../utils/minio_client');
 const fs = require('fs');
-const path = require('path'); // Perbaikan: Menambahkan modul path agar tidak error "path is not defined"
+const path = require('path');
+const sharp = require('sharp');
+const getProperti = async(req, res) => {
+    try {
+        const { minHarga, maxHarga, lokasi, kamarTidur } = req.query;
+        let query = 'SELECT * FROM properties WHERE 1=1';
+        const queryParams = [];
 
-// --- 1. GET Individual Resource (Menampilkan detail properti + data agen) ---
-const getPropertiDetail = async (req, res) => {
+        if (minHarga && maxHarga) {
+            queryParams.push(Number(minHarga), Number(maxHarga));
+            query += ` AND harga BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
+        } else if (minHarga) {
+            queryParams.push(Number(minHarga));
+            query += ` AND harga >= $${queryParams.length}`;
+        } else if (maxHarga) {
+            queryParams.push(Number(maxHarga));
+            query += ` AND harga <= $${queryParams.length}`;
+        }
+
+        if (lokasi) {
+            queryParams.push(`%${lokasi}%`);
+            query += ` AND lokasi ILIKE $${queryParams.length}`;
+        }
+
+        if (kamarTidur) {
+            queryParams.push(Number(kamarTidur));
+            query += ` AND kamar_tidur >= $${queryParams.length}`;
+        }
+
+        const { rows } = await db.query(query, queryParams);
+
+        const geoJSON = {
+            type: "FeatureCollection",
+            features: rows.map(row => ({
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)]
+                },
+                properties: {
+                    id: row.id,
+                    title: row.title,
+                    harga: row.harga,
+                    lokasi: row.lokasi,
+                    tipe: row.tipe,
+                    imageUrl: row.image_url,
+                    kamarTidur: row.kamar_tidur
+                }
+            }))
+        };
+
+        res.status(200).json({ success: true, data: geoJSON });
+    } catch (error) {
+        console.error('Error di getProperti:', error);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan saat mengambil data properti geospasial' });
+    }
+};
+
+const getPropertiById = async(req, res) => {
     try {
         const { id } = req.params;
         const query = `
@@ -13,109 +68,125 @@ const getPropertiDetail = async (req, res) => {
             LEFT JOIN agen a ON p.id_agen = a.id 
             WHERE p.id = $1
         `;
-        const result = await pool.query(query, [id]);
+        const { rows } = await db.query(query, [id]);
 
-        if (result.rows.length === 0) return res.status(404).json({ message: "Properti tidak ditemukan" });
-        res.status(200).json(result.rows[0]);
+        if (rows.length === 0) return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
+
+        res.status(200).json({ success: true, data: rows[0] });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error di getPropertiById:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// --- 2. POST (Upload ke MinIO & Simpan ke Database) ---
-const createProperti = async (req, res) => {
+const createProperti = async(req, res) => {
     try {
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen } = req.body;
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur } = req.body;
         const file = req.file;
 
-        if (!file) return res.status(400).json({ message: "Foto wajib diunggah" });
+        if (!file) return res.status(400).json({ success: false, message: "Foto wajib diunggah" });
 
-        const bucketName = 'my-bucket'; 
-        const objectName = Date.now() + '-' + file.originalname;
+        const bucketName = 'my-bucket';
+        // ekstensi .webp
+        const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
+        const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
 
-        // Upload file ke MinIO menggunakan path sementara dari Multer
-        await minioClient.fPutObject(bucketName, objectName, file.path);
+        const webpBuffer = await sharp(file.path)
+            .webp({ quality: 80 })
+            .toBuffer();
 
-        // Hapus file fisik di folder lokal/uploads setelah berhasil ke MinIO
+        await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, {
+            'Content-Type': 'image/webp'
+        });
+
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
 
-        // Simpan URL publik MinIO ke database
-        const imageUrl = `http://192.168.1.16:9000/${bucketName}/${objectName}`;
-        
-        const query = `INSERT INTO properties (title, harga, lokasi, tipe, image_url, latitude, longitude, id_agen) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
-        const values = [title, harga, lokasi, tipe, imageUrl, latitude, longitude, id_agen];
-        const result = await pool.query(query, values);
+        const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
 
-        res.status(201).json({ message: "Berhasil upload ke MinIO!", data: result.rows[0] });
+        const query = `INSERT INTO properties (title, harga, lokasi, tipe, image_url, latitude, longitude, id_agen, kamar_tidur) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`;
+        const values = [title, harga, lokasi, tipe, imageUrl, latitude, longitude, id_agen, kamar_tidur || 0];
+        const { rows } = await db.query(query, values);
+
+        res.status(201).json({ success: true, message: "Berhasil upload dan convert ke WEBP!", data: rows[0] });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error di createProperti:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// --- 3. PUT (Update Data & Kelola Foto Baru) ---
-const updateProperti = async (req, res) => {
+const updateProperti = async(req, res) => {
     try {
         const { id } = req.params;
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen } = req.body;
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur } = req.body;
 
-        const oldData = await pool.query("SELECT image_url FROM properties WHERE id = $1", [id]);
-        if (oldData.rows.length === 0) return res.status(404).json({ message: "Data tidak ditemukan" });
+        const oldData = await db.query("SELECT image_url FROM properties WHERE id = $1", [id]);
+        if (oldData.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
 
         let image_url = oldData.rows[0].image_url;
 
-        // Logika jika ada upload foto baru untuk mengganti yang lama
         if (req.file) {
             const bucketName = 'my-bucket';
-            const objectName = Date.now() + '-' + req.file.originalname;
+            const fileNameWithoutExt = path.parse(req.file.originalname).name.replace(/\s+/g, '-');
+            const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
 
-            await minioClient.fPutObject(bucketName, objectName, req.file.path);
+            const webpBuffer = await sharp(req.file.path)
+                .webp({ quality: 80 })
+                .toBuffer();
+
+            await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, {
+                'Content-Type': 'image/webp'
+            });
+
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-            image_url = `http://192.168.1.16:9000/${bucketName}/${objectName}`;
+            image_url = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
         }
 
         const query = `
             UPDATE properties 
-            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, image_url=$8
-            WHERE id=$9 RETURNING *`;
-        const values = [title, harga, lokasi, tipe, latitude, longitude, id_agen, image_url, id];
-        const result = await pool.query(query, values);
+            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, image_url=$8, kamar_tidur=$9
+            WHERE id=$10 RETURNING *`;
+        const values = [title, harga, lokasi, tipe, latitude, longitude, id_agen, image_url, kamar_tidur || 0, id];
+        const { rows } = await db.query(query, values);
 
-        res.status(200).json({ message: "Data berhasil diperbarui", data: result.rows[0] });
+        res.status(200).json({ success: true, message: "Data berhasil diperbarui!", data: rows[0] });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error di updateProperti:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// --- 4. DELETE (Hapus Data dari Database & File Lokal) ---
-const deleteProperti = async (req, res) => {
+const deleteProperti = async(req, res) => {
     try {
         const { id } = req.params;
-        
-        // Cari data untuk mendapatkan path/URL file sebelum dihapus
-        const dataProperti = await pool.query('SELECT image_url FROM properties WHERE id = $1', [id]);
-        
+
+        const dataProperti = await db.query('SELECT image_url FROM properties WHERE id = $1', [id]);
         if (dataProperti.rows.length === 0) {
-            return res.status(404).json({ message: "Data tidak ditemukan" });
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
         }
 
         const imageUrl = dataProperti.rows[0].image_url;
 
-        // Perbaikan: Hapus file lokal jika path-nya bukan URL (masih sisa-sisa upload lama)
         if (imageUrl && !imageUrl.startsWith('http')) {
             const fileName = imageUrl.split('/').pop();
             const filePath = path.join(__dirname, '../uploads', fileName);
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
 
-        // Perbaikan: Menggunakan query DELETE biasa (tanpa memanggil function SQL)
-        await pool.query('DELETE FROM properties WHERE id = $1', [id]);
+        await db.query('DELETE FROM properties WHERE id = $1', [id]);
 
-        res.status(200).json({ message: "Data berhasil dihapus dari database" });
+        res.status(200).json({ success: true, message: "Data berhasil dihapus dari database" });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error di deleteProperti:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-module.exports = { getPropertiDetail, createProperti, updateProperti, deleteProperti };
+module.exports = {
+    getProperti,
+    getPropertiById,
+    createProperti,
+    updateProperti,
+    deleteProperti
+};

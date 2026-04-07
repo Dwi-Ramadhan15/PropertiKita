@@ -1,40 +1,41 @@
+// Load environment variables dari .env
 require('dotenv').config();
+
 const express = require('express');
-const path = require('path');
-const cors = require('cors'); // Tambahkan ini agar frontend bisa akses API
-const propertiRoutes = require('./routes/properti_route');
+const cors = require('cors');
+const path = require('path'); // Tambahan dari temenmu buat ngurus path folder
+
+// Import file route
+const propertiRoute = require('./routes/properti_route');
+
+// Import konfigurasi swagger
 const { swaggerUi, specs } = require('./utils/swagger');
 
 const app = express();
-
-// --- Middleware ---
-app.use(cors()); // Mengizinkan akses dari domain berbeda (Penting buat integrasi Frontend)
-app.use(express.json()); // Supaya bisa baca request body format JSON
-app.use(express.urlencoded({ extended: true })); // Supaya bisa baca form-data sederhana
-
-// --- Static Files ---
-// Folder 'uploads' dibuat statis agar foto bisa diakses via browser
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// --- Routes ---
-app.use('/api/properti', propertiRoutes);
-
-// --- Swagger Documentation ---
-// Akses dokumentasi di http://localhost:5000/api-docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-
-// --- Server Configuration ---
 const PORT = process.env.PORT || 5000;
 
+// Middleware wajib
+app.use(cors());
+app.use(express.json());
+
+// Middleware untuk bikin folder 'uploads' dari temenmu bisa diakses secara publik (buat nampilin foto)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Setup endpoint API utama
+app.use('/api', propertiRoute);
+
+// Setup endpoint untuk dokumentasi Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
+// Endpoint default 
 app.get('/', (req, res) => {
-    res.send('Selamat Datang di API PropertiKita! Silakan buka /api-docs untuk dokumentasi.');
+    res.send('Server PropertiKita Berjalan Normal! 🚀');
 });
 
+// Jalankan server
 app.listen(PORT, () => {
-    console.log(`\n================================================`);
-    console.log(`🚀 Server PropertiKita Berhasil Dijalankan!`);
-    console.log(`🏠 Local Server : http://localhost:${PORT}`);
-    console.log(`📖 Swagger Docs  : http://localhost:${PORT}/api-docs`);
-    console.log(`================================================\n`);
-    console.log(`Gaspol, Diah! Semoga projeknya lancar jaya! 🔥✨`);
+    console.log(`=========================================`);
+    console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+    console.log(`📖 Swagger UI tersedia di http://localhost:${PORT}/api-docs`);
+    console.log(`=========================================`);
 });

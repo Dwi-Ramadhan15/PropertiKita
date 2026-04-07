@@ -1,38 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const propertiController = require('../controllers/properti_controller');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const propertiController = require('../controllers/properti_controller');
 
-// ===============================
-// Pastikan folder uploads ada
-// ===============================
 const uploadPath = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// ===============================
-// Konfigurasi Multer
-// ===============================
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+    destination: (req, file, cb) => cb(null, uploadPath),
+    filename: (req, file, cb) =>
+        cb(null, Date.now() + '-' + file.originalname),
 });
 
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// ===============================
-// Swagger Schema
-// ===============================
 /**
  * @swagger
  * components:
@@ -58,20 +46,47 @@ const upload = multer({
  *           type: number
  *         longitude:
  *           type: number
- *         nama_agen:
- *           type: string
- *         no_whatsapp:
- *           type: string
  */
 
-// ===============================
-// [GET] Detail Properti
-// ===============================
+/**
+ * @swagger
+ * /api/properti:
+ *   get:
+ *     summary: Pencarian properti dinamis (Format GeoJSON)
+ *     description: Mengambil data properti berdasarkan filter harga, lokasi, dan kamar tidur, diubah menjadi format GeoJSON untuk Leaflet.js.
+ *     tags: [Properti]
+ *     parameters:
+ *       - in: query
+ *         name: minHarga
+ *         schema:
+ *           type: integer
+ *         description: Harga minimal (contoh 1000000)
+ *       - in: query
+ *         name: maxHarga
+ *         schema:
+ *           type: integer
+ *         description: Harga maksimal (contoh 500000000)
+ *       - in: query
+ *         name: lokasi
+ *         schema:
+ *           type: string
+ *         description: Kata kunci lokasi (contoh "Rajabasa")
+ *       - in: query
+ *         name: kamarTidur
+ *         schema:
+ *           type: integer
+ *         description: Minimal jumlah kamar tidur (contoh 3)
+ *     responses:
+ *       200:
+ *         description: Data properti berhasil diambil
+ */
+router.get('/properti', propertiController.getProperti);
+
 /**
  * @swagger
  * /api/properti/{id}:
  *   get:
- *     summary: Mendapatkan detail lengkap satu properti (Termasuk data Agen)
+ *     summary: Mendapatkan detail lengkap satu properti
  *     tags: [Properti]
  *     parameters:
  *       - in: path
@@ -79,27 +94,19 @@ const upload = multer({
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID Properti
  *     responses:
  *       200:
  *         description: Detail properti berhasil diambil
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Properti'
  *       404:
  *         description: Properti tidak ditemukan
  */
-router.get('/:id', propertiController.getPropertiDetail);
+router.get('/properti/:id', propertiController.getPropertiById);
 
-// ===============================
-// [POST] Tambah Properti
-// ===============================
 /**
  * @swagger
  * /api/properti:
  *   post:
- *     summary: Menambahkan properti baru ke sistem
+ *     summary: Menambahkan properti baru
  *     tags: [Properti]
  *     requestBody:
  *       required: true
@@ -111,8 +118,6 @@ router.get('/:id', propertiController.getPropertiDetail);
  *               foto:
  *                 type: string
  *                 format: binary
- *               id_agen:
- *                 type: integer
  *               title:
  *                 type: string
  *               harga:
@@ -125,22 +130,25 @@ router.get('/:id', propertiController.getPropertiDetail);
  *                 type: number
  *               longitude:
  *                 type: number
+ *               id_agen:
+ *                 type: integer
+ *               kamar_tidur:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: Properti berhasil dibuat
- *       500:
- *         description: Server error
  */
-router.post('/', upload.single('foto'), propertiController.createProperti);
+router.post(
+    '/properti',
+    upload.single('foto'),
+    propertiController.createProperti
+);
 
-// ===============================
-// [PUT] Update Properti
-// ===============================
 /**
  * @swagger
  * /api/properti/{id}:
  *   put:
- *     summary: Mengupdate data properti dan mengganti foto
+ *     summary: Mengupdate data properti
  *     tags: [Properti]
  *     parameters:
  *       - in: path
@@ -158,8 +166,6 @@ router.post('/', upload.single('foto'), propertiController.createProperti);
  *               foto:
  *                 type: string
  *                 format: binary
- *               id_agen:
- *                 type: integer
  *               title:
  *                 type: string
  *               harga:
@@ -172,22 +178,23 @@ router.post('/', upload.single('foto'), propertiController.createProperti);
  *                 type: number
  *               longitude:
  *                 type: number
+ *               id_agen:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Data berhasil diperbarui
- *       404:
- *         description: Data tidak ditemukan
  */
-router.put('/:id', upload.single('foto'), propertiController.updateProperti);
+router.put(
+    '/properti/:id',
+    upload.single('foto'),
+    propertiController.updateProperti
+);
 
-// ===============================
-// [DELETE] Hapus Properti
-// ===============================
 /**
  * @swagger
  * /api/properti/{id}:
  *   delete:
- *     summary: Menghapus data properti dan file foto fisiknya dari server
+ *     summary: Menghapus data properti
  *     tags: [Properti]
  *     parameters:
  *       - in: path
@@ -195,13 +202,10 @@ router.put('/:id', upload.single('foto'), propertiController.updateProperti);
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID Properti yang akan dihapus
  *     responses:
  *       200:
- *         description: Data dan file foto berhasil dihapus
- *       404:
- *         description: Data tidak ditemukan
+ *         description: Data berhasil dihapus
  */
-router.delete('/:id', propertiController.deleteProperti);
+router.delete('/properti/:id', propertiController.deleteProperti);
 
 module.exports = router;
