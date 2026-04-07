@@ -3,19 +3,23 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Tambahan dari temenmu buat ngurus path folder
 
 // Import file route
 const propertiRoute = require('./routes/properti_route');
 
-// Import konfigurasi swagger (Pastikan file utils/swagger.js sudah ada isinya)
+// Import konfigurasi swagger
 const { swaggerUi, specs } = require('./utils/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware wajib
-app.use(cors()); // Biar frontend React nanti bisa ngambil data tanpa diblokir
-app.use(express.json()); // Biar bisa baca request body berformat JSON
+app.use(cors());
+app.use(express.json());
+
+// Middleware untuk bikin folder 'uploads' dari temenmu bisa diakses secara publik (buat nampilin foto)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Setup endpoint API utama
 app.use('/api', propertiRoute);
@@ -23,9 +27,9 @@ app.use('/api', propertiRoute);
 // Setup endpoint untuk dokumentasi Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-// Endpoint default cuma buat ngecek server jalan atau nggak
+// Endpoint default 
 app.get('/', (req, res) => {
-    res.send('Server PropertiKita Backend 1 Berjalan Normal! 🚀');
+    res.send('Server PropertiKita Berjalan Normal! 🚀');
 });
 
 // Jalankan server
