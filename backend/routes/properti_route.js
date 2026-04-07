@@ -52,11 +52,33 @@ const upload = multer({
  * @swagger
  * /api/properti:
  *   get:
- *     summary: Mendapatkan semua data properti
+ *     summary: Pencarian properti dinamis (Format GeoJSON)
+ *     description: Mengambil data properti berdasarkan filter harga, lokasi, dan kamar tidur, diubah menjadi format GeoJSON untuk Leaflet.js.
  *     tags: [Properti]
+ *     parameters:
+ *       - in: query
+ *         name: minHarga
+ *         schema:
+ *           type: integer
+ *         description: Harga minimal (contoh 1000000)
+ *       - in: query
+ *         name: maxHarga
+ *         schema:
+ *           type: integer
+ *         description: Harga maksimal (contoh 500000000)
+ *       - in: query
+ *         name: lokasi
+ *         schema:
+ *           type: string
+ *         description: Kata kunci lokasi (contoh "Rajabasa")
+ *       - in: query
+ *         name: kamarTidur
+ *         schema:
+ *           type: integer
+ *         description: Minimal jumlah kamar tidur (contoh 3)
  *     responses:
  *       200:
- *         description: Berhasil mengambil data
+ *         description: Data properti berhasil diambil
  */
 router.get('/properti', propertiController.getProperti);
 
@@ -102,6 +124,16 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *                 type: integer
  *               lokasi:
  *                 type: string
+ *               tipe:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               id_agen:
+ *                 type: integer
+ *               kamar_tidur:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: Properti berhasil dibuat
@@ -134,6 +166,20 @@ router.post(
  *               foto:
  *                 type: string
  *                 format: binary
+ *               title:
+ *                 type: string
+ *               harga:
+ *                 type: integer
+ *               lokasi:
+ *                 type: string
+ *               tipe:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               id_agen:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Data berhasil diperbarui
