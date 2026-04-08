@@ -1,44 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Fix Leaflet z-index agar tidak tabrakan dengan navbar fixed */
-.leaflet-pane,
-.leaflet-map-pane,
-.leaflet-shadow-pane,
-.leaflet-overlay-pane,
-.leaflet-marker-pane,
-.leaflet-tooltip-pane,
-.leaflet-popup-pane { z-index: 40 !important; }
-.leaflet-top, .leaflet-bottom { z-index: 45 !important; }
-.leaflet-control { z-index: 45 !important; }
-
-body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  margin: 0;
-  background-color: #f8fafc;
-  color: #1e293b;
-}
-
-@layer components {
-  /* Kita pisahkan md:px-16 agar tidak bentrok saat proses generate utilities */
-  .navbar-custom {
-    @apply fixed top-0 left-0 right-0 h-20 bg-white/95 backdrop-blur-md z-[9999] px-6 flex items-center justify-between border-b border-slate-100 shadow-sm;
-  }
-  
-  /* Gunakan Media Query murni agar Tailwind tidak bingung */
-  @media (min-width: 768px) {
-    .navbar-custom {
-      padding-left: 4rem; /* Ini sama dengan px-16 */
-      padding-right: 4rem;
-    }
-  }
-
-  .nav-item {
-    @apply text-sm font-semibold text-slate-500 hover:text-blue-600 transition-all duration-200 cursor-pointer px-2 py-1 rounded-lg hover:bg-blue-50;
-  }
-  
-  .nav-item.active {
-    @apply text-blue-600;
-  }
+@import "tailwindcss";
+@theme {
+    --color-primary: #2563eb;
 }
