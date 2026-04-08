@@ -182,3 +182,8 @@
     border-right-color: var(--border);
   }
 }
+
+/* Custom Marker Styling */
+.selected-marker {
+  filter: hue-rotate(150deg) brightness(1.2);
+}
