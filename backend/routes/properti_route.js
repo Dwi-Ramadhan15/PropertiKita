@@ -52,33 +52,36 @@ const upload = multer({
  * @swagger
  * /api/properti:
  *   get:
- *     summary: Pencarian properti dinamis (Format GeoJSON)
- *     description: Mengambil data properti berdasarkan filter harga, lokasi, dan kamar tidur, diubah menjadi format GeoJSON untuk Leaflet.js.
- *     tags: [Properti]
+ *     summary: Mengambil data properti dinamis (Format GeoJSON)
  *     parameters:
- *       - in: query
- *         name: minHarga
+ *       - name: minHarga
+ *         in: query
  *         schema:
  *           type: integer
- *         description: Harga minimal (contoh 1000000)
- *       - in: query
- *         name: maxHarga
+ *       - name: maxHarga
+ *         in: query
  *         schema:
  *           type: integer
- *         description: Harga maksimal (contoh 500000000)
- *       - in: query
- *         name: lokasi
+ *       - name: lokasi
+ *         in: query
  *         schema:
  *           type: string
- *         description: Kata kunci lokasi (contoh "Rajabasa")
- *       - in: query
- *         name: kamarTidur
+ *       - name: tipe
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         description: Halaman ke berapa
  *         schema:
  *           type: integer
- *         description: Minimal jumlah kamar tidur (contoh 3)
- *     responses:
- *       200:
- *         description: Data properti berhasil diambil
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         description: Jumlah data per halaman
+ *         schema:
+ *           type: integer
+ *           default: 10
  */
 router.get('/properti', propertiController.getProperti);
 
@@ -131,8 +134,6 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *               longitude:
  *                 type: number
  *               id_agen:
- *                 type: integer
- *               kamar_tidur:
  *                 type: integer
  *     responses:
  *       201:
@@ -207,5 +208,34 @@ router.put(
  *         description: Data berhasil dihapus
  */
 router.delete('/properti/:id', propertiController.deleteProperti);
+
+/**
+ * @swagger
+ * /api/agen:
+ *   get:
+ *     summary: Mendapatkan daftar semua agen
+ *     description: Digunakan untuk mengisi pilihan (dropdown) agen di form tambah properti.
+ *     tags: [Agen]
+ *     responses:
+ *       200:
+ *         description: Daftar agen berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       nama_agen:
+ *                         type: string
+ */
+router.get('/agen', propertiController.getAgen);
 
 module.exports = router;

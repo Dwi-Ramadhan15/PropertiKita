@@ -32,6 +32,16 @@ app.get('/', (req, res) => {
     res.send('Server PropertiKita Berjalan Normal! 🚀');
 });
 
+// Letakkan ini setelah semua route
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        success: false,
+        message: "Opps! Ada masalah di server, Diah sedang memperbaikinya.",
+        error: process.env.NODE_ENV === 'development' ? err.message : {}
+    });
+});
+
 // Jalankan server
 app.listen(PORT, () => {
     console.log(`=========================================`);
