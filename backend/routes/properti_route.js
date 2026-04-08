@@ -40,6 +40,8 @@ const upload = multer({
  *           type: string
  *         tipe:
  *           type: string
+ *         kamar_tidur:
+ *           type: integer
  *         image_url:
  *           type: string
  *         latitude:
@@ -52,7 +54,8 @@ const upload = multer({
  * @swagger
  * /api/properti:
  *   get:
- *     summary: Mengambil data properti dinamis (Format GeoJSON)
+ *     summary: Mengambil data properti dinamis (Format GeoJSON + Pagination)
+ *     tags: [Properti]
  *     parameters:
  *       - name: minHarga
  *         in: query
@@ -70,6 +73,10 @@ const upload = multer({
  *         in: query
  *         schema:
  *           type: string
+ *       - name: kamar_tidur
+ *         in: query
+ *         schema:
+ *           type: integer
  *       - name: page
  *         in: query
  *         description: Halaman ke berapa
@@ -82,6 +89,9 @@ const upload = multer({
  *         schema:
  *           type: integer
  *           default: 10
+ *     responses:
+ *       200:
+ *         description: Data properti berhasil diambil
  */
 router.get('/properti', propertiController.getProperti);
 
@@ -129,6 +139,8 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *                 type: string
  *               tipe:
  *                 type: string
+ *               kamar_tidur:
+ *                 type: integer
  *               latitude:
  *                 type: number
  *               longitude:
@@ -175,6 +187,8 @@ router.post(
  *                 type: string
  *               tipe:
  *                 type: string
+ *               kamar_tidur:
+ *                 type: integer
  *               latitude:
  *                 type: number
  *               longitude:
@@ -214,27 +228,10 @@ router.delete('/properti/:id', propertiController.deleteProperti);
  * /api/agen:
  *   get:
  *     summary: Mendapatkan daftar semua agen
- *     description: Digunakan untuk mengisi pilihan (dropdown) agen di form tambah properti.
  *     tags: [Agen]
  *     responses:
  *       200:
  *         description: Daftar agen berhasil diambil
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                       nama_agen:
- *                         type: string
  */
 router.get('/agen', propertiController.getAgen);
 
