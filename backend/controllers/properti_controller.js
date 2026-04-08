@@ -61,6 +61,8 @@ const getProperti = async(req, res) => {
                     lokasi: row.lokasi,
                     tipe: row.tipe,
                     kamarTidur: row.kamar_tidur,
+                    kamarMandi: row.kamar_mandi, // BARU
+                    luas: row.luas, // BARU
                     imageUrl: row.image_url
                 }
             }))
@@ -95,7 +97,8 @@ const getPropertiById = async(req, res) => {
 
 const createProperti = async(req, res) => {
     try {
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur } = req.body;
+        // TAMBAHAN: Tarik kamar_mandi dan luas dari req.body
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas } = req.body;
         const file = req.file;
 
         if (!title || title.trim() === "") return res.status(400).json({ success: false, message: "Judul properti wajib diisi!" });
@@ -118,9 +121,10 @@ const createProperti = async(req, res) => {
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
         const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
 
-        const query = `INSERT INTO properties (title, harga, lokasi, tipe, image_url, latitude, longitude, id_agen, kamar_tidur) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`;
-        const values = [title, harga, lokasi, tipe, imageUrl, latitude, longitude, id_agen, kamar_tidur || 0];
+        // TAMBAHAN: Masukkan ke query INSERT
+        const query = `INSERT INTO properties (title, harga, lokasi, tipe, image_url, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
+        const values = [title, harga, lokasi, tipe, imageUrl, latitude, longitude, id_agen, kamar_tidur || 0, kamar_mandi || 0, luas || 0];
         const { rows } = await db.query(query, values);
 
         res.status(201).json({ success: true, message: "Data berhasil disimpan!", data: rows[0] });
@@ -133,7 +137,8 @@ const createProperti = async(req, res) => {
 const updateProperti = async(req, res) => {
     try {
         const { id } = req.params;
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur } = req.body;
+        // TAMBAHAN: Tarik kamar_mandi dan luas
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas } = req.body;
 
         const checkData = await db.query("SELECT * FROM properties WHERE id = $1", [id]);
         if (checkData.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
@@ -148,6 +153,10 @@ const updateProperti = async(req, res) => {
         const updatedLong = longitude || currentData.longitude;
         const updatedAgen = id_agen || currentData.id_agen;
         const updatedKamar = kamar_tidur || currentData.kamar_tidur;
+
+        // TAMBAHAN: Fallback ke data lama jika tidak diisi
+        const updatedMandi = kamar_mandi || currentData.kamar_mandi;
+        const updatedLuas = luas || currentData.luas;
 
         if (updatedAgen) {
             const checkAgen = await db.query("SELECT id FROM agen WHERE id = $1", [updatedAgen]);
@@ -181,12 +190,13 @@ const updateProperti = async(req, res) => {
             image_url = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
         }
 
+        // TAMBAHAN: Masukkan ke query UPDATE
         const query = `
             UPDATE properties 
-            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, image_url=$8, kamar_tidur=$9
-            WHERE id=$10 RETURNING *`;
+            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, image_url=$8, kamar_tidur=$9, kamar_mandi=$10, luas=$11
+            WHERE id=$12 RETURNING *`;
 
-        const values = [updatedTitle, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, image_url, updatedKamar, id];
+        const values = [updatedTitle, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, image_url, updatedKamar, updatedMandi, updatedLuas, id];
         const { rows } = await db.query(query, values);
 
         res.status(200).json({ success: true, message: "Berhasil update data!", data: rows[0] });
