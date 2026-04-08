@@ -8,19 +8,30 @@ export default function PropertyGrid() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // State baru untuk menyimpan ketikan user di kolom pencarian
+  // State pencarian
   const [lokasi, setLokasi] = useState('');
   const [tipe, setTipe] = useState('');
+  const [rentangHarga, setRentangHarga] = useState('');
+  const [kamarTidur, setKamarTidur] = useState('');
 
-  // Fungsi narik data yang sudah di-upgrade biar bisa nerima filter
   const fetchProperties = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (lokasi) params.append('lokasi', lokasi);
       if (tipe) params.append('tipe', tipe);
+      
+      // Logika Rentang Harga
+      if (rentangHarga === 'murah') params.append('maxHarga', '500000000');
+      if (rentangHarga === 'menengah') {
+        params.append('minHarga', '500000000');
+        params.append('maxHarga', '1000000000');
+      }
+      if (rentangHarga === 'mahal') params.append('minHarga', '1000000000');
 
-      // Sekarang URL-nya dinamis mengikuti apa yang diketik user
+      // Jika backend nanti mendukung filter kamar, parameter ini otomatis terkirim
+      if (kamarTidur) params.append('kamar_tidur', kamarTidur);
+
       const res = await axios.get(`http://localhost:5000/api/properti?${params.toString()}`);
       setProperties(res.data.data.features || []);
     } catch (error) {
@@ -30,15 +41,13 @@ export default function PropertyGrid() {
     }
   };
 
-  // Tetap narik semua data saat web pertama kali dibuka
   useEffect(() => {
     fetchProperties();
   }, []);
 
-  // Fungsi yang jalan saat tombol "Cari" diklik
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchProperties(); // Tarik ulang data sesuai filter
+    fetchProperties();
   };
 
   const formatRupiah = (number) => {
@@ -50,10 +59,10 @@ export default function PropertyGrid() {
   return (
     <div className="px-10 py-12 max-w-7xl mx-auto relative">
       
-      {/* INI YANG BARU: KOTAK PENCARIAN (SEARCH BAR) */}
+      {/* SEARCH BAR TERPADU */}
       <form 
         onSubmit={handleSearch}
-        className="bg-white p-4 rounded-xl shadow-lg flex flex-col md:flex-row gap-4 items-center -mt-24 relative z-20 mb-12 border border-gray-100 w-full max-w-4xl mx-auto"
+        className="bg-white p-4 rounded-xl shadow-lg flex flex-col lg:flex-row gap-4 items-center -mt-24 relative z-20 mb-12 border border-gray-100 w-full max-w-6xl mx-auto"
       >
         <input 
           type="text" 
@@ -62,8 +71,9 @@ export default function PropertyGrid() {
           value={lokasi}
           onChange={(e) => setLokasi(e.target.value)}
         />
+        
         <select 
-          className="w-full md:w-48 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+          className="w-full lg:w-48 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
           value={tipe}
           onChange={(e) => setTipe(e.target.value)}
         >
@@ -72,16 +82,39 @@ export default function PropertyGrid() {
           <option value="Kosan">Kosan</option>
           <option value="Villa">Villa</option>
         </select>
+
+        <select 
+          className="w-full lg:w-48 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+          value={rentangHarga}
+          onChange={(e) => setRentangHarga(e.target.value)}
+        >
+          <option value="">Rentang Harga</option>
+          <option value="murah">&lt; Rp 500 Juta</option>
+          <option value="menengah">Rp 500 Jt - 1 Milyar</option>
+          <option value="mahal">&gt; Rp 1 Milyar</option>
+        </select>
+
+        <select 
+          className="w-full lg:w-40 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+          value={kamarTidur}
+          onChange={(e) => setKamarTidur(e.target.value)}
+        >
+          <option value="">Kamar Tidur</option>
+          <option value="1">1 Kamar</option>
+          <option value="2">2 Kamar</option>
+          <option value="3">3 Kamar</option>
+          <option value="4+">4+ Kamar</option>
+        </select>
+
         <button 
           type="submit" 
-          className="w-full md:w-auto bg-primary text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
+          className="w-full lg:w-auto bg-primary text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
         >
           Cari
         </button>
       </form>
-      {/* BATAS KOTAK PENCARIAN */}
 
-      {/* Header Grid */}
+      {/* HEADER GRID */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-gray-800">Properti Pilihan ({properties.length})</h2>
         <select className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">
@@ -91,13 +124,11 @@ export default function PropertyGrid() {
         </select>
       </div>
 
-      {/* Logika kalau lagi loading atau data kosong */}
       {loading ? (
         <div className="text-center py-20 text-xl font-bold text-gray-500">Mencari Properti...</div>
       ) : properties.length === 0 ? (
-        <div className="text-center py-20 text-xl font-bold text-gray-500">Yah, properti di lokasi tersebut belum tersedia.</div>
+        <div className="text-center py-20 text-xl font-bold text-gray-500">Properti tidak ditemukan.</div>
       ) : (
-        /* Grid Kartu Properti */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {properties.map((item) => {
             const prop = item.properties; 
@@ -144,3 +175,7 @@ export default function PropertyGrid() {
     </div>
   );
 }
+
+
+
+
