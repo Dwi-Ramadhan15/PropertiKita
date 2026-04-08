@@ -8,7 +8,7 @@ export default function Navbar() {
       {/* Bagian Kiri: Logo */}
       <div className="flex items-center gap-2 text-primary text-2xl font-bold cursor-pointer">
         <BsBuildingsFill />
-        <span>PropertiKu</span>
+        <span>PropertiKita</span>
       </div>
 
       {/* Bagian Tengah: Menu Navigasi */}
@@ -22,10 +22,9 @@ export default function Navbar() {
 
       {/* Bagian Kanan: Ikon & Tombol */}
       <div className="flex items-center gap-6 text-gray-600">
-        <FiHeart className="text-2xl cursor-pointer hover:text-primary transition" />
         <FiUser className="text-2xl cursor-pointer hover:text-primary transition" />
         <button className="bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition">
-          Pasang Iklan
+          Login
         </button>
       </div>
     </nav>

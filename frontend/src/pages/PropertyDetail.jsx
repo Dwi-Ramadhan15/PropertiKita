@@ -9,11 +9,16 @@ import L from 'leaflet';
 
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-let DefaultIcon = L.icon({ iconUrl: markerIcon, shadowUrl: markerShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
+let DefaultIcon = L.icon({ 
+  iconUrl: markerIcon, 
+  shadowUrl: markerShadow, 
+  iconSize: [25, 41], 
+  iconAnchor: [12, 41] 
+});
 L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function PropertyDetail() {
-  const { id } = useParams(); // Ambil ID dari URL
+  const { id } = useParams(); 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +48,6 @@ export default function PropertyDetail() {
         {/* KOLOM KIRI: Gambar & Deskripsi */}
         <div className="lg:col-span-2">
           
-          {/* TOMBOL KEMBALI KE BERANDA */}
           <Link to="/" className="inline-flex items-center text-primary font-semibold hover:text-blue-800 transition mb-6">
             <FiArrowLeft className="mr-2 text-xl" /> 
             Kembali ke Beranda
@@ -65,19 +69,22 @@ export default function PropertyDetail() {
             <p className="text-gray-600 leading-relaxed italic">
               "Hunian eksklusif dengan desain modern di lokasi strategis. Cocok untuk keluarga muda yang menginginkan kenyamanan dan aksesibilitas tinggi."
             </p>
-            {/* Fasilitas */}
+            
             <div className="flex gap-8 mt-8">
+                {/* Kamar Tidur */}
                 <div className="flex flex-col items-center p-4 bg-blue-50 rounded-xl w-24">
                     <FaBed className="text-2xl text-primary mb-2" />
-                    <span className="font-bold">{item.kamar_tidur || 0}</span>
+                    <span className="font-bold">{item.kamar_tidur || item.kamarTidur || 0}</span>
                 </div>
+                {/* Kamar Mandi */}
                 <div className="flex flex-col items-center p-4 bg-blue-50 rounded-xl w-24">
                     <FaBath className="text-2xl text-primary mb-2" />
-                    <span className="font-bold">2</span>
+                    <span className="font-bold">{item.kamar_mandi || item.kamarMandi || 0}</span>
                 </div>
+                {/* Luas Bangunan/Tanah */}
                 <div className="flex flex-col items-center p-4 bg-blue-50 rounded-xl w-24">
                     <FaRulerCombined className="text-2xl text-primary mb-2" />
-                    <span className="font-bold">120m²</span>
+                    <span className="font-bold">{item.luas || 0}m²</span>
                 </div>
             </div>
           </div>
@@ -106,14 +113,16 @@ export default function PropertyDetail() {
             
             <div className="border-t border-gray-100 pt-6">
               <div className="flex items-center gap-4 mb-6">
-                <img src={item.foto_profil || "https://ui-avatars.com/api/?name=Agen+Properti"} className="w-14 h-14 rounded-full object-cover" />
+                <img src={item.foto_profil || "https://ui-avatars.com/api/?name=Agen+Properti"} alt="Profil Agen" className="w-14 h-14 rounded-full object-cover" />
                 <div>
                   <h4 className="font-bold text-lg">{item.nama_agen || "Agen Terpercaya"}</h4>
                   <p className="text-gray-500 text-sm">Spesialis {item.lokasi}</p>
                 </div>
               </div>
+              
+              {/* TOMBOL WHATSAPP MANUAL/HARDCODE */}
               <a 
-                href={`https://wa.me/${item.no_whatsapp}`}
+                href="https://wa.me/6283180228231" 
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white py-4 rounded-xl font-bold text-lg hover:bg-green-600 transition shadow-md"

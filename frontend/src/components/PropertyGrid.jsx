@@ -29,7 +29,6 @@ export default function PropertyGrid() {
       }
       if (rentangHarga === 'mahal') params.append('minHarga', '1000000000');
 
-      // Jika backend nanti mendukung filter kamar, parameter ini otomatis terkirim
       if (kamarTidur) params.append('kamar_tidur', kamarTidur);
 
       const res = await axios.get(`http://localhost:5000/api/properti?${params.toString()}`);
@@ -114,16 +113,6 @@ export default function PropertyGrid() {
         </button>
       </form>
 
-      {/* HEADER GRID */}
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">Properti Pilihan ({properties.length})</h2>
-        <select className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">
-          <option>Terbaru</option>
-          <option>Harga Terendah</option>
-          <option>Harga Tertinggi</option>
-        </select>
-      </div>
-
       {loading ? (
         <div className="text-center py-20 text-xl font-bold text-gray-500">Mencari Properti...</div>
       ) : properties.length === 0 ? (
@@ -155,10 +144,19 @@ export default function PropertyGrid() {
 
                   <div className="border-t border-gray-100 my-4"></div>
 
+                  {/* ================================================== */}
+                  {/* BAGIAN FASILITAS (SUDAH DINAMIS DARI DATABASE) */}
+                  {/* ================================================== */}
                   <div className="flex items-center gap-5 text-gray-600 text-sm font-medium">
-                    <div className="flex items-center gap-1.5"><FaBed className="text-lg" /> {prop.kamarTidur || 0}</div>
-                    <div className="flex items-center gap-1.5"><FaBath className="text-lg" /> 2</div> 
-                    <div className="flex items-center gap-1.5"><FaRulerCombined className="text-lg" /> 120m²</div> 
+                    <div className="flex items-center gap-1.5">
+                      <FaBed className="text-lg" /> {prop.kamarTidur || prop.kamar_tidur || 0}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <FaBath className="text-lg" /> {prop.kamarMandi || prop.kamar_mandi || 0}
+                    </div> 
+                    <div className="flex items-center gap-1.5">
+                      <FaRulerCombined className="text-lg" /> {prop.luas || 0}m²
+                    </div> 
                   </div>
 
                   <Link 
@@ -175,7 +173,3 @@ export default function PropertyGrid() {
     </div>
   );
 }
-
-
-
-
