@@ -96,55 +96,76 @@ const getPropertiById = async(req, res) => {
 };
 
 const createProperti = async(req, res) => {
+    const client = await db.connect(); // Gunakan transaction agar data konsisten
     try {
-        // TAMBAHAN: Tarik kamar_mandi dan luas dari req.body
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas } = req.body;
-        const file = req.file;
+        await client.query('BEGIN');
 
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas } = req.body;
+        // Ganti req.file jadi req.files karena sekarang fotonya banyak
+        const files = req.files; 
+
+        // --- VALIDASI REQUIRE ---
         if (!title || title.trim() === "") return res.status(400).json({ success: false, message: "Judul properti wajib diisi!" });
         if (!harga || harga <= 0) return res.status(400).json({ success: false, message: "Harga harus berupa angka dan lebih dari 0!" });
-        if (!file) return res.status(400).json({ success: false, message: "Foto wajib diunggah!" });
+        if (!files || files.length === 0) return res.status(400).json({ success: false, message: "Minimal satu foto wajib diunggah!" });
         if (!latitude || !longitude) return res.status(400).json({ success: false, message: "Titik koordinat (Lat/Long) belum ditentukan." });
 
-        const checkAgen = await db.query("SELECT id FROM agen WHERE id = $1", [id_agen]);
+        const checkAgen = await client.query("SELECT id FROM agen WHERE id = $1", [id_agen]);
         if (checkAgen.rows.length === 0) {
-            return res.status(400).json({ success: false, message: "ID Agen tidak ditemukan di database!" });
+            return res.status(400).json({ success: false, message: "ID Agen tidak ditemukan!" });
         }
 
+        // 1. INSERT DATA UTAMA KE TABEL PROPERTIES
+        const query = `INSERT INTO properties (title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
+        const values = [title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur || 0, kamar_mandi || 0, luas || 0];
+        const resProperti = await client.query(query, values);
+        const propertiId = resProperti.rows[0].id;
+
+        // 2. PROSES SEMUA FOTO (LOOPING)
         const bucketName = 'my-bucket';
-        const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
-        const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
+        for (const file of files) {
+            const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
+            const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
 
-        const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
-        await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, { 'Content-Type': 'image/webp' });
+            const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
+            await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, { 'Content-Type': 'image/webp' });
 
-        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-        const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
 
-        // TAMBAHAN: Masukkan ke query INSERT
-        const query = `INSERT INTO properties (title, harga, lokasi, tipe, image_url, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
-        const values = [title, harga, lokasi, tipe, imageUrl, latitude, longitude, id_agen, kamar_tidur || 0, kamar_mandi || 0, luas || 0];
-        const { rows } = await db.query(query, values);
+            // Simpan setiap URL foto ke tabel terpisah (asumsi tabel: property_images)
+            await client.query(`INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)`, [propertiId, imageUrl]);
+        }
 
-        res.status(201).json({ success: true, message: "Data berhasil disimpan!", data: rows[0] });
+        await client.query('COMMIT');
+        res.status(201).json({ success: true, message: "Data dan semua foto berhasil disimpan!" });
+
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error di createProperti:', error);
         res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
     }
 };
 
 const updateProperti = async(req, res) => {
+    const client = await db.connect(); // Gunakan transaction agar update data & foto sinkron
     try {
+        await client.query('BEGIN');
         const { id } = req.params;
-        // TAMBAHAN: Tarik kamar_mandi dan luas
         const { title, harga, lokasi, tipe, latitude, longitude, id_agen, kamar_tidur, kamar_mandi, luas } = req.body;
 
-        const checkData = await db.query("SELECT * FROM properties WHERE id = $1", [id]);
-        if (checkData.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-
+        // 1. Cek data lama
+        const checkData = await client.query("SELECT * FROM properties WHERE id = $1", [id]);
+        if (checkData.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+        }
         const currentData = checkData.rows[0];
 
+        // 2. Logic Partial Update (Fallback ke data lama jika input kosong)
         const updatedTitle = title || currentData.title;
         const updatedHarga = harga || currentData.harga;
         const updatedLokasi = lokasi || currentData.lokasi;
@@ -153,56 +174,64 @@ const updateProperti = async(req, res) => {
         const updatedLong = longitude || currentData.longitude;
         const updatedAgen = id_agen || currentData.id_agen;
         const updatedKamar = kamar_tidur || currentData.kamar_tidur;
-
-        // TAMBAHAN: Fallback ke data lama jika tidak diisi
         const updatedMandi = kamar_mandi || currentData.kamar_mandi;
         const updatedLuas = luas || currentData.luas;
 
+        // Validasi Foreign Key Agen
         if (updatedAgen) {
-            const checkAgen = await db.query("SELECT id FROM agen WHERE id = $1", [updatedAgen]);
+            const checkAgen = await client.query("SELECT id FROM agen WHERE id = $1", [updatedAgen]);
             if (checkAgen.rows.length === 0) {
+                await client.query('ROLLBACK');
                 return res.status(400).json({ success: false, message: `Agen dengan ID ${updatedAgen} tidak ada!` });
             }
         }
 
-        if (updatedHarga < 0) return res.status(400).json({ success: false, message: "Harga tidak boleh minus!" });
-
-        let image_url = currentData.image_url;
-        const bucketName = 'my-bucket';
-
-        if (req.file) {
-            if (image_url) {
-                const oldFileName = image_url.split('/').pop();
-                try {
-                    await minioClient.removeObject(bucketName, oldFileName);
-                } catch (err) { console.log("Foto lama sudah tidak ada di storage."); }
-            }
-
-            const fileNameWithoutExt = path.parse(req.file.originalname).name.replace(/\s+/g, '-');
-            const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
-            const webpBuffer = await sharp(req.file.path).webp({ quality: 80 }).toBuffer();
-
-            await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, {
-                'Content-Type': 'image/webp'
-            });
-
-            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            image_url = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
+        if (updatedHarga < 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: "Harga tidak boleh minus!" });
         }
 
-        // TAMBAHAN: Masukkan ke query UPDATE
-        const query = `
+        // 3. Update Data Utama
+        const queryUpdate = `
             UPDATE properties 
-            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, image_url=$8, kamar_tidur=$9, kamar_mandi=$10, luas=$11
-            WHERE id=$12 RETURNING *`;
+            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, kamar_tidur=$8, kamar_mandi=$9, luas=$10
+            WHERE id=$11 RETURNING *`;
+        const valuesUpdate = [updatedTitle, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, updatedKamar, updatedMandi, updatedLuas, id];
+        await client.query(queryUpdate, valuesUpdate);
 
-        const values = [updatedTitle, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, image_url, updatedKamar, updatedMandi, updatedLuas, id];
-        const { rows } = await db.query(query, values);
+        // 4. Logic Multiple Images (Jika ada foto baru diupload)
+        // Pakai req.files (jamak) agar bisa banyak foto untuk slider
+        if (req.files && req.files.length > 0) {
+            const bucketName = 'my-bucket';
+            
+            for (const file of req.files) {
+                const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
+                const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
+                
+                const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
+                await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, {
+                    'Content-Type': 'image/webp'
+                });
 
-        res.status(200).json({ success: true, message: "Berhasil update data!", data: rows[0] });
+                if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+                const newImageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
+
+                // Masukkan foto-foto baru ke tabel gallery/images
+                await client.query(
+                    "INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)",
+                    [id, newImageUrl]
+                );
+            }
+        }
+
+        await client.query('COMMIT');
+        res.status(200).json({ success: true, message: "Berhasil update data dan menambah foto gallery!", data: updatedTitle });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error di updateProperti:', error);
         res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
     }
 };
 

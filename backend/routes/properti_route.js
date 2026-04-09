@@ -151,11 +151,7 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *       201:
  *         description: Properti berhasil dibuat
  */
-router.post(
-    '/properti',
-    upload.single('foto'),
-    propertiController.createProperti
-);
+router.post('/', upload.array('foto', 10), propertiController.createProperti);
 
 /**
  * @swagger
@@ -199,11 +195,7 @@ router.post(
  *       200:
  *         description: Data berhasil diperbarui
  */
-router.put(
-    '/properti/:id',
-    upload.single('foto'),
-    propertiController.updateProperti
-);
+router.put('/:id', upload.array('foto', 10), propertiController.updateProperti);
 
 /**
  * @swagger
