@@ -4,6 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const propertiController = require('../controllers/properti_controller');
+const { verifyToken } = require('../middlewares/auth');
 
 const uploadPath = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadPath)) {
@@ -32,6 +33,8 @@ const upload = multer({
  *           type: integer
  *         id_agen:
  *           type: integer
+ *         id_kategori:
+ *           type: integer
  *         title:
  *           type: string
  *         harga:
@@ -41,6 +44,10 @@ const upload = multer({
  *         tipe:
  *           type: string
  *         kamar_tidur:
+ *           type: integer
+ *         kamar_mandi:
+ *           type: integer
+ *         luas:
  *           type: integer
  *         image_url:
  *           type: string
@@ -73,6 +80,11 @@ const upload = multer({
  *         in: query
  *         schema:
  *           type: string
+ *       - name: id_kategori
+ *         in: query
+ *         description: "Filter berdasarkan kategori (1 = Dijual, 2 = Disewakan)"
+ *         schema:
+ *           type: integer
  *       - name: kamar_tidur
  *         in: query
  *         schema:
@@ -129,8 +141,10 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *             type: object
  *             properties:
  *               foto:
- *                 type: string
- *                 format: binary
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
  *               title:
  *                 type: string
  *               harga:
@@ -139,7 +153,14 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *                 type: string
  *               tipe:
  *                 type: string
+ *               id_kategori:
+ *                 type: integer
+ *                 description: "ID Kategori (1: Dijual, 2: Disewakan)"
  *               kamar_tidur:
+ *                 type: integer
+ *               kamar_mandi:
+ *                 type: integer
+ *               luas:
  *                 type: integer
  *               latitude:
  *                 type: number
@@ -173,8 +194,10 @@ router.post('/', upload.array('foto', 10), propertiController.createProperti);
  *             type: object
  *             properties:
  *               foto:
- *                 type: string
- *                 format: binary
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
  *               title:
  *                 type: string
  *               harga:
@@ -183,7 +206,14 @@ router.post('/', upload.array('foto', 10), propertiController.createProperti);
  *                 type: string
  *               tipe:
  *                 type: string
+ *               id_kategori:
+ *                 type: integer
+ *                 description: "ID Kategori (1: Dijual, 2: Disewakan)"
  *               kamar_tidur:
+ *                 type: integer
+ *               kamar_mandi:
+ *                 type: integer
+ *               luas:
  *                 type: integer
  *               latitude:
  *                 type: number
@@ -213,7 +243,7 @@ router.put('/:id', upload.array('foto', 10), propertiController.updateProperti);
  *       200:
  *         description: Data berhasil dihapus
  */
-router.delete('/properti/:id', propertiController.deleteProperti);
+router.delete('/:id', verifyToken, propertiController.deleteProperti);
 
 /**
  * @swagger
