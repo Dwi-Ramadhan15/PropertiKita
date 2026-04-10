@@ -8,7 +8,6 @@ export default function PropertyGrid() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // State pencarian
   const [lokasi, setLokasi] = useState('');
   const [tipe, setTipe] = useState('');
   const [rentangHarga, setRentangHarga] = useState('');
@@ -20,8 +19,7 @@ export default function PropertyGrid() {
       const params = new URLSearchParams();
       if (lokasi) params.append('lokasi', lokasi);
       if (tipe) params.append('tipe', tipe);
-      
-      // Logika Rentang Harga
+    
       if (rentangHarga === 'murah') params.append('maxHarga', '500000000');
       if (rentangHarga === 'menengah') {
         params.append('minHarga', '500000000');
@@ -41,12 +39,17 @@ export default function PropertyGrid() {
   };
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
+   
+    const delayDebounceFn = setTimeout(() => {
+      fetchProperties();
+    }, 500); 
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [lokasi, tipe, rentangHarga, kamarTidur]); 
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchProperties();
+    fetchProperties(); 
   };
 
   const formatRupiah = (number) => {
@@ -80,6 +83,7 @@ export default function PropertyGrid() {
           <option value="Rumah">Rumah</option>
           <option value="Kosan">Kosan</option>
           <option value="Villa">Villa</option>
+          <option value="Apartemen">Apartemen</option>
         </select>
 
         <select 
@@ -130,8 +134,8 @@ export default function PropertyGrid() {
                     alt={prop.title} 
                     className="w-full h-full object-cover" 
                   />
-                  <div className="absolute top-4 left-4 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full">
-                    Dijual
+                  <div className={`absolute top-4 left-4 text-white text-xs font-bold px-3 py-1.5 rounded-full ${prop.kategori === 'Disewakan' ? 'bg-orange-500' : 'bg-primary'}`}>
+                    {prop.kategori || 'Dijual'}
                   </div>
                 </div>
 
@@ -144,9 +148,6 @@ export default function PropertyGrid() {
 
                   <div className="border-t border-gray-100 my-4"></div>
 
-                  {/* ================================================== */}
-                  {/* BAGIAN FASILITAS (SUDAH DINAMIS DARI DATABASE) */}
-                  {/* ================================================== */}
                   <div className="flex items-center gap-5 text-gray-600 text-sm font-medium">
                     <div className="flex items-center gap-1.5">
                       <FaBed className="text-lg" /> {prop.kamarTidur || prop.kamar_tidur || 0}
