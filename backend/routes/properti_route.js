@@ -22,40 +22,9 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Properti:
- *       type: object
- *       properties:
- *         id:
- *           type: integer
- *         id_agen:
- *           type: integer
- *         id_kategori:
- *           type: integer
- *         title:
- *           type: string
- *         harga:
- *           type: integer
- *         lokasi:
- *           type: string
- *         tipe:
- *           type: string
- *         kamar_tidur:
- *           type: integer
- *         kamar_mandi:
- *           type: integer
- *         luas:
- *           type: integer
- *         image_url:
- *           type: string
- *         latitude:
- *           type: number
- *         longitude:
- *           type: number
- */
+// ==========================================
+// ROUTES (SUDAH DISESUAIKAN DENGAN FRONTEND)
+// ==========================================
 
 /**
  * @swagger
@@ -109,23 +78,35 @@ router.get('/properti', propertiController.getProperti);
 
 /**
  * @swagger
- * /api/properti/{id}:
+ * /api/agen:
  *   get:
- *     summary: Mendapatkan detail lengkap satu properti
+ *     summary: Mendapatkan daftar semua agen
+ *     tags: [Agen]
+ *     responses:
+ *       200:
+ *         description: Daftar agen berhasil diambil
+ */
+router.get('/agen', propertiController.getAgen);
+
+/**
+ * @swagger
+ * /api/properti/{slug}:
+ *   get:
+ *     summary: Mendapatkan detail lengkap satu properti berdasarkan slug
  *     tags: [Properti]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Detail properti berhasil diambil
  *       404:
  *         description: Properti tidak ditemukan
  */
-router.get('/properti/:id', propertiController.getPropertiById);
+router.get('/properti/:slug', propertiController.getPropertiBySlug);
 
 /**
  * @swagger
@@ -172,7 +153,11 @@ router.get('/properti/:id', propertiController.getPropertiById);
  *       201:
  *         description: Properti berhasil dibuat
  */
-router.post('/', upload.array('foto', 10), propertiController.createProperti);
+router.post(
+    '/properti',
+    upload.array('foto', 10),
+    propertiController.createProperti
+);
 
 /**
  * @swagger
@@ -225,7 +210,11 @@ router.post('/', upload.array('foto', 10), propertiController.createProperti);
  *       200:
  *         description: Data berhasil diperbarui
  */
-router.put('/:id', upload.array('foto', 10), propertiController.updateProperti);
+router.put(
+    '/properti/:id',
+    upload.array('foto', 10),
+    propertiController.updateProperti
+);
 
 /**
  * @swagger
@@ -243,18 +232,6 @@ router.put('/:id', upload.array('foto', 10), propertiController.updateProperti);
  *       200:
  *         description: Data berhasil dihapus
  */
-router.delete('/:id', verifyToken, propertiController.deleteProperti);
-
-/**
- * @swagger
- * /api/agen:
- *   get:
- *     summary: Mendapatkan daftar semua agen
- *     tags: [Agen]
- *     responses:
- *       200:
- *         description: Daftar agen berhasil diambil
- */
-router.get('/agen', propertiController.getAgen);
+router.delete('/properti/:id', verifyToken, propertiController.deleteProperti);
 
 module.exports = router;

@@ -4,6 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
+const generateSlug = (title) => {
+    return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+};
+
 const getProperti = async(req, res) => {
     try {
         const { minHarga, maxHarga, lokasi, tipe, id_kategori, kamar_tidur, page = 1, limit = 10 } = req.query;
@@ -60,6 +67,7 @@ const getProperti = async(req, res) => {
                 },
                 properties: {
                     id: row.id,
+                    slug: row.slug,
                     title: row.title,
                     harga: row.harga,
                     lokasi: row.lokasi,
@@ -68,7 +76,7 @@ const getProperti = async(req, res) => {
                     kamarTidur: row.kamar_tidur,
                     kamarMandi: row.kamar_mandi,
                     luas: row.luas,
-                    imageUrl: row.image_url // Pastikan ini handle image utama jika ada
+                    imageUrl: row.image_url
                 }
             }))
         };
@@ -80,30 +88,31 @@ const getProperti = async(req, res) => {
     }
 };
 
-const getPropertiById = async(req, res) => {
+const getPropertiBySlug = async(req, res) => {
     try {
-        const { id } = req.params;
+        const { slug } = req.params;
         const query = `
             SELECT p.*, a.nama_agen, a.no_whatsapp, a.foto_profil, c.nama as nama_kategori
             FROM properties p 
             LEFT JOIN agen a ON p.id_agen = a.id 
             LEFT JOIN categories c ON p.id_kategori = c.id
-            WHERE p.id = $1
+            WHERE p.slug = $1
         `;
-        const { rows } = await db.query(query, [id]);
+        const { rows } = await db.query(query, [slug]);
 
         if (rows.length === 0) return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
 
-        // Ambil juga gallery fotonya
-        const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [id]);
+        const properti = rows[0];
+
+        const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [properti.id]);
         const data = {
-            ...rows[0],
+            ...properti,
             gallery: images.rows.map(img => img.image_url)
         };
 
         res.status(200).json({ success: true, data: data });
     } catch (error) {
-        console.error('Error di getPropertiById:', error);
+        console.error('Error di getPropertiBySlug:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -114,16 +123,18 @@ const createProperti = async(req, res) => {
         await client.query('BEGIN');
 
         const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas } = req.body;
-        const files = req.files; 
+        const files = req.files;
 
         if (!title || !harga || !id_kategori) {
             return res.status(400).json({ success: false, message: "Judul, Harga, dan Kategori wajib diisi!" });
         }
         if (!files || files.length === 0) return res.status(400).json({ success: false, message: "Minimal satu foto wajib diunggah!" });
 
-        const query = `INSERT INTO properties (title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`;
-        const values = [title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0];
+        const slug = generateSlug(title);
+
+        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`;
+        const values = [title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0];
         const resProperti = await client.query(query, values);
         const propertiId = resProperti.rows[0].id;
 
@@ -168,22 +179,23 @@ const updateProperti = async(req, res) => {
         const currentData = checkData.rows[0];
 
         const updatedTitle = title || currentData.title;
+        const updatedSlug = title ? generateSlug(title) : currentData.slug;
         const updatedHarga = harga || currentData.harga;
         const updatedLokasi = lokasi || currentData.lokasi;
         const updatedTipe = tipe || currentData.tipe;
         const updatedLat = latitude || currentData.latitude;
         const updatedLong = longitude || currentData.longitude;
         const updatedAgen = id_agen || currentData.id_agen;
-        const updatedKategori = id_kategori || currentData.id_kategori; // Penambahan kategori
+        const updatedKategori = id_kategori || currentData.id_kategori;
         const updatedKamar = kamar_tidur || currentData.kamar_tidur;
         const updatedMandi = kamar_mandi || currentData.kamar_mandi;
         const updatedLuas = luas || currentData.luas;
 
         const queryUpdate = `
             UPDATE properties 
-            SET title=$1, harga=$2, lokasi=$3, tipe=$4, latitude=$5, longitude=$6, id_agen=$7, id_kategori=$8, kamar_tidur=$9, kamar_mandi=$10, luas=$11
-            WHERE id=$12 RETURNING *`;
-        const valuesUpdate = [updatedTitle, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, updatedKategori, updatedKamar, updatedMandi, updatedLuas, id];
+            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12
+            WHERE id=$13 RETURNING *`;
+        const valuesUpdate = [updatedTitle, updatedSlug, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, updatedKategori, updatedKamar, updatedMandi, updatedLuas, id];
         await client.query(queryUpdate, valuesUpdate);
 
         if (req.files && req.files.length > 0) {
@@ -191,7 +203,7 @@ const updateProperti = async(req, res) => {
             for (const file of req.files) {
                 const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
                 const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
-                
+
                 const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
                 await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, { 'Content-Type': 'image/webp' });
 
@@ -218,7 +230,6 @@ const deleteProperti = async(req, res) => {
         const check = await db.query('SELECT id FROM properties WHERE id = $1', [id]);
         if (check.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
 
-        // Foto-foto di MinIO idealnya dihapus juga di sini menggunakan looping dari property_images
         await db.query('DELETE FROM properties WHERE id = $1', [id]);
         res.status(200).json({ success: true, message: "Data berhasil dihapus!" });
     } catch (error) {
@@ -240,7 +251,7 @@ const getAgen = async(req, res) => {
 
 module.exports = {
     getProperti,
-    getPropertiById,
+    getPropertiBySlug,
     createProperti,
     updateProperti,
     deleteProperti,
