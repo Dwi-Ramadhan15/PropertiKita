@@ -39,7 +39,6 @@ export default function PropertyGrid() {
   };
 
   useEffect(() => {
-   
     const delayDebounceFn = setTimeout(() => {
       fetchProperties();
     }, 500); 
@@ -60,8 +59,6 @@ export default function PropertyGrid() {
 
   return (
     <div className="px-10 py-12 max-w-7xl mx-auto relative">
-      
-      {/* SEARCH BAR TERPADU */}
       <form 
         onSubmit={handleSearch}
         className="bg-white p-4 rounded-xl shadow-lg flex flex-col lg:flex-row gap-4 items-center -mt-24 relative z-20 mb-12 border border-gray-100 w-full max-w-6xl mx-auto"
@@ -161,7 +158,7 @@ export default function PropertyGrid() {
                   </div>
 
                   <Link 
-                    to={`/properti/${prop.id}`}
+                    to={`/properti/${prop.slug || prop.id}`} // FIX: Pakai ID kalau slug kosong
                     className="block text-center mt-6 bg-blue-50 text-primary py-2.5 rounded-lg font-bold hover:bg-primary hover:text-white transition-colors border border-blue-100">
                     Lihat Detail
                   </Link>
