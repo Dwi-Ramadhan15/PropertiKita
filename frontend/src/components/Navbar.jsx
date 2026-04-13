@@ -13,16 +13,13 @@ export default function Navbar() {
 
       <ul className="flex gap-8 text-gray-500 font-medium">
         <li><Link to="/" className="hover:text-primary transition">Beranda</Link></li>
-        <li className="cursor-pointer hover:text-primary transition">Properti Dijual</li>
-        <li className="cursor-pointer hover:text-primary transition">Properti Disewa</li>
+        <li><Link to="/dijual" className="hover:text-primary transition">Properti Dijual</Link></li>
+        <li><Link to="/disewa" className="hover:text-primary transition">Properti Disewa</Link></li>
+        <li><Link to="/mapsearch" className="hover:text-primary transition">Maps</Link></li>
         
-        {/* DISINI PERBAIKANNYA: Pakai /mapsearch bukan /maps */}
-        <li className="cursor-pointer hover:text-primary transition">
-          <Link to="/mapsearch">Maps</Link>
-        </li>
-        
-        <li className="cursor-pointer hover:text-primary transition">Agen</li>
-        <li className="cursor-pointer hover:text-primary transition">Tentang</li>
+        {/* AKTIFKAN LINK DISINI */}
+        <li><Link to="/agen" className="hover:text-primary transition">Agen</Link></li>
+        <li><Link to="/tentang" className="hover:text-primary transition">Tentang</Link></li>
       </ul>
 
       <div className="flex items-center gap-6 text-gray-600">

@@ -6,6 +6,11 @@ import PropertyDetail from './pages/PropertyDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import MapSearch from './pages/MapSearch'; 
+import PropertiDijual from './pages/PropertiDijual';
+import PropertiDisewa from './pages/PropertiDisewa';
+// IMPORT HALAMAN BARU DISINI
+import Tentang from './pages/Tentang';
+import Agen from './pages/Agen';
 
 function App() {
   return (
@@ -14,15 +19,17 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/dijual" element={<PropertiDijual />} />
+          <Route path="/disewa" element={<PropertiDisewa />} />
           <Route path="/properti/:slug" element={<PropertyDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
-          {/* 2. TAMBAHKAN ROUTE UNTUK MAPSEARCH DI SINI */}
-          {/* Pastikan path-nya "/mapsearch" sesuai dengan yang ada di Navbar */}
           <Route path="/mapsearch" element={<MapSearch />} />
+          
+          {/* TAMBAHKAN ROUTE INI */}
+          <Route path="/tentang" element={<Tentang />} />
+          <Route path="/agen" element={<Agen />} />
 
-          {/* Route Fallback (Jika nyasar) */}
           <Route path="*" element={<div className="text-center py-20 font-bold">404 - Halaman Tidak Ditemukan</div>} />
         </Routes>
       </div>
