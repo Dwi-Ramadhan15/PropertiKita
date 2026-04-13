@@ -69,6 +69,7 @@ const getProperti = async(req, res) => {
                     id: row.id,
                     slug: row.slug,
                     title: row.title,
+                    deskripsi: row.deskripsi,
                     harga: row.harga,
                     lokasi: row.lokasi,
                     tipe: row.tipe,
@@ -76,6 +77,11 @@ const getProperti = async(req, res) => {
                     kamarTidur: row.kamar_tidur,
                     kamarMandi: row.kamar_mandi,
                     luas: row.luas,
+                    kolam_renang: row.kolam_renang,
+                    wifi: row.wifi,
+                    keamanan_24jam: row.keamanan_24jam,
+                    parkir: row.parkir,
+                    ac: row.ac,
                     imageUrl: row.image_url
                 }
             }))
@@ -103,7 +109,6 @@ const getPropertiBySlug = async(req, res) => {
         if (rows.length === 0) return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
 
         const properti = rows[0];
-
         const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [properti.id]);
         const data = {
             ...properti,
@@ -122,7 +127,7 @@ const createProperti = async(req, res) => {
     try {
         await client.query('BEGIN');
 
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas } = req.body;
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac } = req.body;
         const files = req.files;
 
         if (!title || !harga || !id_kategori) {
@@ -132,9 +137,9 @@ const createProperti = async(req, res) => {
 
         const slug = generateSlug(title);
 
-        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`;
-        const values = [title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0];
+        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`;
+        const values = [title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || '', kolam_renang || false, wifi || false, keamanan_24jam || false, parkir || false, ac || false];
         const resProperti = await client.query(query, values);
         const propertiId = resProperti.rows[0].id;
 
@@ -169,7 +174,7 @@ const updateProperti = async(req, res) => {
     try {
         await client.query('BEGIN');
         const { id } = req.params;
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas } = req.body;
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac } = req.body;
 
         const checkData = await client.query("SELECT * FROM properties WHERE id = $1", [id]);
         if (checkData.rows.length === 0) {
@@ -190,12 +195,18 @@ const updateProperti = async(req, res) => {
         const updatedKamar = kamar_tidur || currentData.kamar_tidur;
         const updatedMandi = kamar_mandi || currentData.kamar_mandi;
         const updatedLuas = luas || currentData.luas;
+        const updatedDeskripsi = deskripsi || currentData.deskripsi;
+        const updatedKolam = kolam_renang !== undefined ? kolam_renang : currentData.kolam_renang;
+        const updatedWifi = wifi !== undefined ? wifi : currentData.wifi;
+        const updatedKeamanan = keamanan_24jam !== undefined ? keamanan_24jam : currentData.keamanan_24jam;
+        const updatedParkir = parkir !== undefined ? parkir : currentData.parkir;
+        const updatedAc = ac !== undefined ? ac : currentData.ac;
 
         const queryUpdate = `
             UPDATE properties 
-            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12
-            WHERE id=$13 RETURNING *`;
-        const valuesUpdate = [updatedTitle, updatedSlug, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, updatedKategori, updatedKamar, updatedMandi, updatedLuas, id];
+            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, kolam_renang=$14, wifi=$15, keamanan_24jam=$16, parkir=$17, ac=$18
+            WHERE id=$19 RETURNING *`;
+        const valuesUpdate = [updatedTitle, updatedSlug, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, updatedKategori, updatedKamar, updatedMandi, updatedLuas, updatedDeskripsi, updatedKolam, updatedWifi, updatedKeamanan, updatedParkir, updatedAc, id];
         await client.query(queryUpdate, valuesUpdate);
 
         if (req.files && req.files.length > 0) {
