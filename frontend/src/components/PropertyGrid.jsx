@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MdLocationOn } from 'react-icons/md';
+import { MdLocationOn, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import { FaBed, FaBath, FaRulerCombined } from 'react-icons/fa'; 
 import { Link } from 'react-router-dom';
 
@@ -13,10 +13,17 @@ export default function PropertyGrid() {
   const [rentangHarga, setRentangHarga] = useState('');
   const [kamarTidur, setKamarTidur] = useState('');
 
-  const fetchProperties = async () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 6; 
+
+  const fetchProperties = async (pageNumber = 1) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.append('page', pageNumber);
+      params.append('limit', limit);
+      
       if (lokasi) params.append('lokasi', lokasi);
       if (tipe) params.append('tipe', tipe);
     
@@ -26,11 +33,13 @@ export default function PropertyGrid() {
         params.append('maxHarga', '1000000000');
       }
       if (rentangHarga === 'mahal') params.append('minHarga', '1000000000');
-
       if (kamarTidur) params.append('kamar_tidur', kamarTidur);
 
       const res = await axios.get(`http://localhost:5000/api/properti?${params.toString()}`);
+      
       setProperties(res.data.data.features || []);
+      setTotalPages(res.data.data.totalPages || 1);
+      setCurrentPage(res.data.data.currentPage || 1);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -40,15 +49,17 @@ export default function PropertyGrid() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchProperties();
+      fetchProperties(1);
     }, 500); 
 
     return () => clearTimeout(delayDebounceFn);
   }, [lokasi, tipe, rentangHarga, kamarTidur]); 
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchProperties(); 
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchProperties(newPage);
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
   };
 
   const formatRupiah = (number) => {
@@ -59,13 +70,14 @@ export default function PropertyGrid() {
 
   return (
     <div className="px-10 py-12 max-w-7xl mx-auto relative">
+      {/* FORM FILTER */}
       <form 
-        onSubmit={handleSearch}
+        onSubmit={(e) => { e.preventDefault(); fetchProperties(1); }}
         className="bg-white p-4 rounded-xl shadow-lg flex flex-col lg:flex-row gap-4 items-center -mt-24 relative z-20 mb-12 border border-gray-100 w-full max-w-6xl mx-auto"
       >
         <input 
           type="text" 
-          placeholder="Cari lokasi... (cth: Rajabasa, Way Halim)" 
+          placeholder="Cari lokasi..." 
           className="flex-1 w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
           value={lokasi}
           onChange={(e) => setLokasi(e.target.value)}
@@ -119,54 +131,88 @@ export default function PropertyGrid() {
       ) : properties.length === 0 ? (
         <div className="text-center py-20 text-xl font-bold text-gray-500">Properti tidak ditemukan.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {properties.map((item) => {
-            const prop = item.properties; 
-            
-            return (
-              <div key={prop.id} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100">
-                <div className="relative h-64 bg-gray-200">
-                  <img 
-                    src={prop.imageUrl || "https://via.placeholder.com/400x300?text=No+Image"} 
-                    alt={prop.title} 
-                    className="w-full h-full object-cover" 
-                  />
-                  <div className={`absolute top-4 left-4 text-white text-xs font-bold px-3 py-1.5 rounded-full ${prop.kategori === 'Disewakan' ? 'bg-orange-500' : 'bg-primary'}`}>
-                    {prop.kategori || 'Dijual'}
-                  </div>
-                </div>
-
-                <div className="p-5">
-                  <h3 className="text-2xl font-bold text-primary mb-1">{formatRupiah(prop.harga)}</h3>
-                  <h4 className="text-lg font-semibold text-gray-800 truncate">{prop.title}</h4>
-                  <p className="flex items-center text-gray-500 text-sm mt-2 truncate">
-                    <MdLocationOn className="mr-1 text-lg shrink-0" /> {prop.lokasi}
-                  </p>
-
-                  <div className="border-t border-gray-100 my-4"></div>
-
-                  <div className="flex items-center gap-5 text-gray-600 text-sm font-medium">
-                    <div className="flex items-center gap-1.5">
-                      <FaBed className="text-lg" /> {prop.kamarTidur || prop.kamar_tidur || 0}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {properties.map((item) => {
+              const prop = item.properties; 
+              return (
+                <div key={prop.id} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100">
+                  <div className="relative h-64 bg-gray-200">
+                    <img 
+                      src={prop.imageUrl || "https://via.placeholder.com/400x300"} 
+                      alt={prop.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                    
+                    {/* BAGIAN KATEGORI (DIJUAL / DISEWA) */}
+                    <div className="absolute top-4 left-4">
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-md ${
+                            prop.kategori?.toLowerCase() === 'dijual' ? 'bg-blue-600' : 'bg-orange-500'
+                        }`}>
+                            {prop.kategori || 'Properti'}
+                        </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <FaBath className="text-lg" /> {prop.kamarMandi || prop.kamar_mandi || 0}
-                    </div> 
-                    <div className="flex items-center gap-1.5">
-                      <FaRulerCombined className="text-lg" /> {prop.luas || 0}m²
-                    </div> 
                   </div>
 
-                  <Link 
-                    to={`/properti/${prop.slug || prop.id}`} // FIX: Pakai ID kalau slug kosong
-                    className="block text-center mt-6 bg-blue-50 text-primary py-2.5 rounded-lg font-bold hover:bg-primary hover:text-white transition-colors border border-blue-100">
-                    Lihat Detail
-                  </Link>
+                  <div className="p-5">
+                    <h3 className="text-2xl font-bold text-primary mb-1">{formatRupiah(prop.harga)}</h3>
+                    <h4 className="text-lg font-semibold text-gray-800 truncate">{prop.title}</h4>
+                    <p className="flex items-center text-gray-500 text-sm mt-2 truncate">
+                      <MdLocationOn className="mr-1 text-lg shrink-0" /> {prop.lokasi}
+                    </p>
+
+                    <div className="border-t border-gray-100 my-4"></div>
+
+                    <div className="flex items-center gap-5 text-gray-600 text-sm font-medium">
+                      <div className="flex items-center gap-1.5"><FaBed /> {prop.kamarTidur || 0}</div>
+                      <div className="flex items-center gap-1.5"><FaBath /> {prop.kamarMandi || 0}</div> 
+                      <div className="flex items-center gap-1.5"><FaRulerCombined /> {prop.luas || 0}m²</div> 
+                    </div>
+
+                    <Link 
+                      to={`/properti/${prop.slug}`}
+                      className="block text-center mt-6 bg-blue-50 text-primary py-2.5 rounded-lg font-bold hover:bg-primary hover:text-white transition-colors">
+                      Lihat Detail
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          {/* PAGINATION */}
+          <div className="flex justify-center items-center mt-16 gap-2">
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdChevronLeft size={24} />
+            </button>
+
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => handlePageChange(index + 1)}
+                className={`w-10 h-10 rounded-lg font-bold transition-colors ${
+                  currentPage === index + 1 
+                  ? 'bg-primary text-white border-primary' 
+                  : 'border border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdChevronRight size={24} />
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

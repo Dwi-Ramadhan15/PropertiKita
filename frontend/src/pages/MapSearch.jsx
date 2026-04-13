@@ -166,7 +166,7 @@ export default function MapSearch() {
 
                     <Link 
                       to={`/properti/${item.slug}`} // FIX: Slug sudah terjamin aman dari map di atas
-                      className="bg-blue-600 text-white text-[11px] font-bold py-2 px-3 rounded-lg w-full flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors no-underline"
+                      className="bg-green-500 text-white text-[11px] font-bold py-2 px-3 rounded-lg w-full flex items-center justify-center gap-2 hover:bg-greem-500 transition-colors no-underline"
                     >
                       Lihat Detail <FaExternalLinkAlt size={10}/>
                     </Link>
