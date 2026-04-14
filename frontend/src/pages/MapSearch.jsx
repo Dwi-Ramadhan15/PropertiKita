@@ -45,7 +45,10 @@ export default function MapSearch() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://localhost:5000/api/properti');
+        // MODIFIKASI: Menambahkan parameter limit agar mengambil semua data
+        // Sesuaikan dengan backend kamu, biasanya menggunakan limit=all atau limit=9999
+        const res = await axios.get('http://localhost:5000/api/properti?limit=100');
+        
         const rawFeatures = res.data.data.features || [];
         
         const cleanData = rawFeatures.map(item => {
@@ -54,7 +57,7 @@ export default function MapSearch() {
           return {
             id: prop.id,
             title: prop.title,
-            slug: prop.slug || prop.id, // FIX: Pakai ID kalau slug kosong
+            slug: prop.slug || prop.id,
             harga: Number(prop.harga) || 0,
             latitude: geom.coordinates[1] || 0,
             longitude: geom.coordinates[0] || 0,
@@ -87,6 +90,7 @@ export default function MapSearch() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-white font-sans">
+      {/* Search & Filter Bar */}
       <div className="p-4 shadow-md z-[1001] flex flex-wrap gap-10 items-center px-10 border-b bg-white">
         <div className="flex flex-col min-w-[300px]">
           <label className="text-[10px] font-black text-gray-400 uppercase mb-1">
@@ -113,32 +117,41 @@ export default function MapSearch() {
         </div>
 
         <div className="ml-auto text-right">
-            <span className="text-[10px] font-bold text-gray-400 block uppercase font-black">Ditemukan</span>
+            <span className="text-[10px] font-bold text-gray-400 block uppercase font-black">Total Properti</span>
             <span className="text-2xl font-black text-blue-600">{filteredProperti.length}</span>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar List */}
         <div className="w-[450px] overflow-y-auto p-5 bg-gray-50/50 border-r">
-          {filteredProperti.map((item) => (
-            <div 
-              key={item.id}
-              onClick={() => {
-                setSelectedId(item.id);
-                setMapCenter([item.latitude, item.longitude]);
-              }}
-              className={`bg-white rounded-2xl shadow-sm border mb-5 overflow-hidden cursor-pointer transition-all hover:shadow-xl ${selectedId === item.id ? 'border-blue-600 ring-4 ring-blue-50' : 'border-transparent'}`}
-            >
-              <img src={item.image_url} className="w-full h-44 object-cover" alt="img" />
-              <div className="p-4">
-                <h3 className="font-bold text-gray-800 text-base truncate">{item.title}</h3>
-                <p className="text-blue-600 font-black text-xl mt-1 font-black">Rp {item.harga.toLocaleString('id-ID')}</p>
-                <p className="text-gray-400 text-[11px] mt-1 flex items-center gap-1 font-medium"><FaMapMarkerAlt/> {item.lokasi}</p>
+          {loading ? (
+            <div className="text-center py-10 font-bold text-gray-400">Mengunduh Data...</div>
+          ) : filteredProperti.length === 0 ? (
+            <div className="text-center py-10 font-bold text-gray-400">Tidak ada properti ditemukan.</div>
+          ) : (
+            filteredProperti.map((item) => (
+              <div 
+                key={item.id}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setMapCenter([item.latitude, item.longitude]);
+                }}
+                className={`bg-white rounded-2xl shadow-sm border mb-5 overflow-hidden cursor-pointer transition-all hover:shadow-xl ${selectedId === item.id ? 'border-blue-600 ring-4 ring-blue-50' : 'border-transparent'}`}
+              >
+                <img src={item.image_url} className="w-full h-44 object-cover" alt="img" />
+                <div className="p-4">
+                  <h3 className="font-bold text-gray-800 text-base truncate">{item.title}</h3>
+                  <p className="text-blue-600 font-black text-xl mt-1">Rp {item.harga.toLocaleString('id-ID')}</p>
+                  <p className="text-gray-400 text-[11px] mt-1 flex items-center gap-1 font-medium"><FaMapMarkerAlt/> {item.lokasi}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
+        {/* Map Area */}
         <div className="flex-1 h-full z-0">
           <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -165,8 +178,8 @@ export default function MapSearch() {
                     </div>
 
                     <Link 
-                      to={`/properti/${item.slug}`} // FIX: Slug sudah terjamin aman dari map di atas
-                      className="bg-green-500 text-white text-[11px] font-bold py-2 px-3 rounded-lg w-full flex items-center justify-center gap-2 hover:bg-greem-500 transition-colors no-underline"
+                      to={`/properti/${item.slug}`}
+                      className="bg-green-500 text-white text-[11px] font-bold py-2 px-3 rounded-lg w-full flex items-center justify-center gap-2 hover:bg-green-600 transition-colors no-underline"
                     >
                       Lihat Detail <FaExternalLinkAlt size={10}/>
                     </Link>
