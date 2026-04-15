@@ -1,9 +1,15 @@
 import React from 'react';
 import { FiUser } from 'react-icons/fi';
 import { BsBuildingsFill } from 'react-icons/bs';
-import { Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 
 export default function Navbar() {
+  // Fungsi helper untuk mengatur styling menu yang sedang aktif
+  const activeStyles = ({ isActive }) => 
+    isActive 
+      ? "text-primary font-bold border-b-2 border-primary pb-1 transition-all" 
+      : "hover:text-primary transition-all";
+
   return (
     <nav className="flex justify-between items-center py-4 px-10 bg-white shadow-sm sticky top-0 z-50">
       <Link to="/" className="flex items-center gap-2 text-primary text-2xl font-bold cursor-pointer">
@@ -12,14 +18,36 @@ export default function Navbar() {
       </Link>
 
       <ul className="flex gap-8 text-gray-500 font-medium">
-        <li><Link to="/" className="hover:text-primary transition">Beranda</Link></li>
-        <li><Link to="/dijual" className="hover:text-primary transition">Properti Dijual</Link></li>
-        <li><Link to="/disewa" className="hover:text-primary transition">Properti Disewa</Link></li>
-        <li><Link to="/mapsearch" className="hover:text-primary transition">Maps</Link></li>
-        
-        {/* AKTIFKAN LINK DISINI */}
-        <li><Link to="/agen" className="hover:text-primary transition">Agen</Link></li>
-        <li><Link to="/tentang" className="hover:text-primary transition">Tentang</Link></li>
+        <li>
+          <NavLink to="/" className={activeStyles} end>
+            Beranda
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/dijual" className={activeStyles}>
+            Properti Dijual
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/disewa" className={activeStyles}>
+            Properti Disewa
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/mapsearch" className={activeStyles}>
+            Maps
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/agen" className={activeStyles}>
+            Agen
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/tentang" className={activeStyles}>
+            Tentang
+          </NavLink>
+        </li>
       </ul>
 
       <div className="flex items-center gap-6 text-gray-600">

@@ -2,194 +2,167 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { FaBed, FaBath, FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import 'leaflet/dist/leaflet.css'; // Wajib import CSS
 
+// --- DEFINISI ICON (Pastikan path-nya benar!) ---
 const defaultIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
 });
 
-const selectedIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
+const hoverIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', // ICON MERAH
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
 });
 
-function RecenterMap({ coords }) {
-  const map = useMap();
-  useEffect(() => {
-    if (coords && coords[0] !== 0) map.setView(coords, 14);
-  }, [coords, map]);
-  return null;
+
+// --- KOMPONEN PEMBANTU UNTUK UPDATE POSISI PETA ---
+function MapController({ center }) {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.flyTo(center, 13, { animate: true }); // Efek terbang ke lokasi
+        }
+    }, [center, map]);
+    return null;
 }
 
 export default function MapSearch() {
-  const [properti, setProperti] = useState([]);
-  const [filteredProperti, setFilteredProperti] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState(null);
-  const [mapCenter, setMapCenter] = useState([-5.3971, 105.2668]);
+    const [properties, setProperties] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [mapCenter, setMapCenter] = useState([-5.397140, 105.266800]); // Default: Lampung
 
-  const MAX_PRICE = 5000000000;
-  const [filterHarga, setFilterHarga] = useState(MAX_PRICE);
-  const [filterKamar, setFilterKamar] = useState(0);
+    // --- KUNCI FITUR HOVER 1: State untuk menyimpan ID yang sedang di-hover ---
+    const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // MODIFIKASI: Menambahkan parameter limit agar mengambil semua data
-        // Sesuaikan dengan backend kamu, biasanya menggunakan limit=all atau limit=9999
-        const res = await axios.get('http://localhost:5000/api/properti?limit=100');
-        
-        const rawFeatures = res.data.data.features || [];
-        
-        const cleanData = rawFeatures.map(item => {
-          const prop = item.properties;
-          const geom = item.geometry;
-          return {
-            id: prop.id,
-            title: prop.title,
-            slug: prop.slug || prop.id,
-            harga: Number(prop.harga) || 0,
-            latitude: geom.coordinates[1] || 0,
-            longitude: geom.coordinates[0] || 0,
-            kamar_tidur: Number(prop.kamar_tidur || prop.kamarTidur) || 0,
-            kamar_mandi: Number(prop.kamar_mandi || prop.kamarMandi) || 0,
-            luas: Number(prop.luas) || 0,
-            image_url: prop.imageUrl || "https://via.placeholder.com/400x300",
-            lokasi: prop.lokasi
-          };
-        });
-        setProperti(cleanData);
-        setFilteredProperti(cleanData);
-      } catch (err) {
-        console.error("Gagal ambil data:", err);
-      } finally {
-        setLoading(false);
-      }
+    // Ambil data dari API
+    useEffect(() => {
+        const fetchProperties = async () => {
+            try {
+                const res = await axios.get('http://localhost:5000/api/properti?limit=100');
+                if (res.data.success) {
+                    setProperties(res.data.data.features || []);
+                }
+            } catch (error) {
+                console.error("Gagal ambil data map:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProperties();
+    }, []);
+
+    const formatHarga = (harga) => {
+        return `Rp ${harga.toLocaleString('id-ID')}`;
     };
-    fetchData();
-  }, []);
 
-  useEffect(() => {
-    const hasil = properti.filter(item => {
-      const hargaMatch = filterHarga >= MAX_PRICE || item.harga <= filterHarga;
-      const kamarMatch = filterKamar === 0 || item.kamar_tidur >= filterKamar;
-      return hargaMatch && kamarMatch;
-    });
-    setFilteredProperti(hasil);
-  }, [filterHarga, filterKamar, properti]);
-
-  return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-white font-sans">
-      {/* Search & Filter Bar */}
-      <div className="p-4 shadow-md z-[1001] flex flex-wrap gap-10 items-center px-10 border-b bg-white">
-        <div className="flex flex-col min-w-[300px]">
-          <label className="text-[10px] font-black text-gray-400 uppercase mb-1">
-            Maks Harga: {filterHarga >= MAX_PRICE ? 'SEMUA' : `Rp ${filterHarga.toLocaleString('id-ID')}`}
-          </label>
-          <input 
-            type="range" min="0" max={MAX_PRICE} step="10000000"
-            value={filterHarga} onChange={(e) => setFilterHarga(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg cursor-pointer accent-blue-600"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-[10px] font-black text-gray-400 uppercase mb-1">Minimal Kamar</label>
-          <select 
-            className="border-none bg-gray-100 rounded-lg p-2 text-sm font-bold outline-none ring-1 ring-gray-200"
-            onChange={(e) => setFilterKamar(Number(e.target.value))}
-          >
-            <option value="0">Semua</option>
-            <option value="1">1+ Kamar</option>
-            <option value="2">2+ Kamar</option>
-            <option value="3">3+ Kamar</option>
-          </select>
-        </div>
-
-        <div className="ml-auto text-right">
-            <span className="text-[10px] font-bold text-gray-400 block uppercase font-black">Total Properti</span>
-            <span className="text-2xl font-black text-blue-600">{filteredProperti.length}</span>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar List */}
-        <div className="w-[450px] overflow-y-auto p-5 bg-gray-50/50 border-r">
-          {loading ? (
-            <div className="text-center py-10 font-bold text-gray-400">Mengunduh Data...</div>
-          ) : filteredProperti.length === 0 ? (
-            <div className="text-center py-10 font-bold text-gray-400">Tidak ada properti ditemukan.</div>
-          ) : (
-            filteredProperti.map((item) => (
-              <div 
-                key={item.id}
-                onClick={() => {
-                  setSelectedId(item.id);
-                  setMapCenter([item.latitude, item.longitude]);
-                }}
-                className={`bg-white rounded-2xl shadow-sm border mb-5 overflow-hidden cursor-pointer transition-all hover:shadow-xl ${selectedId === item.id ? 'border-blue-600 ring-4 ring-blue-50' : 'border-transparent'}`}
-              >
-                <img src={item.image_url} className="w-full h-44 object-cover" alt="img" />
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-800 text-base truncate">{item.title}</h3>
-                  <p className="text-blue-600 font-black text-xl mt-1">Rp {item.harga.toLocaleString('id-ID')}</p>
-                  <p className="text-gray-400 text-[11px] mt-1 flex items-center gap-1 font-medium"><FaMapMarkerAlt/> {item.lokasi}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Map Area */}
-        <div className="flex-1 h-full z-0">
-          <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <RecenterMap coords={mapCenter} />
-            
-            {filteredProperti.map((item) => (
-              <Marker 
-                key={item.id} 
-                position={[item.latitude, item.longitude]}
-                icon={selectedId === item.id ? selectedIcon : defaultIcon}
-                eventHandlers={{
-                  click: () => setSelectedId(item.id),
-                }}
-              >
-                <Popup minWidth={200}>
-                  <div className="font-sans">
-                    <img src={item.image_url} alt="popup" className="w-full h-24 object-cover rounded-md mb-2" />
-                    <p className="font-black text-blue-600 text-sm mb-0">Rp {item.harga.toLocaleString('id-ID')}</p>
-                    <p className="font-bold text-gray-700 text-xs mb-2 truncate">{item.title}</p>
-                    
-                    <div className="flex gap-3 text-[10px] text-gray-500 mb-3 font-bold">
-                       <span className="flex items-center gap-1"><FaBed/> {item.kamar_tidur}</span>
-                       <span className="flex items-center gap-1"><FaBath/> {item.kamar_mandi}</span>
+    return (
+        <div className="min-h-screen bg-[#F8FAFC]">
+          {/* FILTER AREA (Header seperti di gambar kamu) */}
+          <div className="bg-white p-4 shadow-sm border-b sticky top-[65px] z-30">
+            <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-6">
+                <div className="flex-1 flex items-center gap-4">
+                    <div className="w-1/2">
+                      <label className="text-xs text-gray-400 font-medium">MAKS HARGA: SEMUA</label>
+                      <input type="range" className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
                     </div>
+                    <div>
+                      <label className="text-xs text-gray-400 font-medium">MINIMAL KAMAR</label>
+                      <select className="border rounded-md px-3 py-1 text-sm bg-white">
+                          <option>Semua</option>
+                      </select>
+                    </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400 font-medium">TOTAL PROPERTI</div>
+                  <div className="text-4xl font-bold text-blue-700">{properties.length}</div>
+                </div>
+            </div>
+          </div>
 
-                    <Link 
-                      to={`/properti/${item.slug}`}
-                      className="bg-green-500 text-white text-[11px] font-bold py-2 px-3 rounded-lg w-full flex items-center justify-center gap-2 hover:bg-green-600 transition-colors no-underline"
-                    >
-                      Lihat Detail <FaExternalLinkAlt size={10}/>
-                    </Link>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+          {/* MAIN MAP AREA */}
+          <div className="flex h-[calc(100vh-130px)]">
+            {/* SIDEBAR DAFTAR PROPERTI (Kiri) */}
+            <div className="w-[420px] bg-white border-r overflow-y-auto p-6 space-y-6">
+                {loading ? (
+                    <div className="text-center py-20 text-gray-400 animate-pulse">Memuat data...</div>
+                ) : (
+                    properties.map((item) => (
+                        // --- KUNCI FITUR HOVER 2: Pasang Event Listener di Card ---
+                        <div 
+                          key={item.properties.id} 
+                          className={`bg-white rounded-2xl shadow-sm border overflow-hidden cursor-pointer transition-all duration-300 transform 
+                            ${hoveredPropertyId === item.properties.id ? 'border-blue-400 shadow-xl -translate-y-1' : 'border-gray-100'}`}
+                          onMouseEnter={() => {
+                              // Set state saat mouse masuk
+                              setHoveredPropertyId(item.properties.id);
+                              // Opsional: Pindahkan peta ke marker yang di-hover
+                              setMapCenter([item.geometry.coordinates[1], item.geometry.coordinates[0]]);
+                          }}
+                          onMouseLeave={() => {
+                              // Reset state saat mouse keluar
+                              setHoveredPropertyId(null);
+                          }}
+                        >
+                            <img src={item.properties.imageUrl || '/path/to/no-image.jpg'} alt="prop" className="w-full h-48 object-cover" />
+                            <div className="p-4 space-y-1">
+                                <h4 className="font-bold text-gray-800 line-clamp-1">{item.properties.title}</h4>
+                                <p className="text-lg font-extrabold text-blue-600">{formatHarga(item.properties.harga)}</p>
+                                <p className="text-xs text-gray-500 line-clamp-1 flex items-center gap-1">
+                                  <svg className="w-3 h-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                                  {item.properties.lokasi}
+                                </p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* LEAFLET MAP (Kanan) */}
+            <div className="flex-1 relative z-10">
+                <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} className="h-full w-full">
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    
+                    {/* Mengontrol posisi peta */}
+                    <MapController center={mapCenter} />
+
+                    {/* MAPPING MARKER DARI DATA GEOM */}
+                    {properties.map((item) => (
+                        <Marker 
+                          key={item.properties.id} 
+                          position={[item.geometry.coordinates[1], item.geometry.coordinates[0]]} // [Lat, Long]
+                          
+                          // --- KUNCI FITUR HOVER 3: Ganti Icon Berdasarkan State ---
+                          icon={hoveredPropertyId === item.properties.id ? hoverIcon : defaultIcon}
+                          
+                          // Sinkronisasi Terbalik (Marker -> Card): 
+                          // Kalau marker di-hover, card di kiri juga ikut ter-highlight
+                          eventHandlers={{
+                            mouseover: () => setHoveredPropertyId(item.properties.id),
+                            mouseout: () => setHoveredPropertyId(null),
+                          }}
+                        >
+                            <Popup>
+                                <div className="text-center p-1">
+                                  <img src={item.properties.imageUrl} className="w-20 h-15 object-cover rounded mx-auto mb-1"/>
+                                  <div className="font-bold text-sm text-blue-700">{formatHarga(item.properties.harga)}</div>
+                                  <div className="text-xs text-gray-600 line-clamp-1">{item.properties.title}</div>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    ))}
+                </MapContainer>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
