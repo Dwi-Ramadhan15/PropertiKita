@@ -1,6 +1,5 @@
 const db = require('../utils/db');
 
-// GET ALL
 const getAllCategories = async (req, res) => {
     try {
         const { rows } = await db.query('SELECT * FROM categories ORDER BY id ASC');
@@ -10,7 +9,6 @@ const getAllCategories = async (req, res) => {
     }
 };
 
-// CREATE (POST)
 const createCategory = async (req, res) => {
     try {
         const { nama } = req.body;
@@ -24,7 +22,6 @@ const createCategory = async (req, res) => {
     }
 };
 
-// UPDATE (PUT)
 const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
@@ -40,7 +37,6 @@ const updateCategory = async (req, res) => {
     }
 };
 
-// DELETE
 const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
