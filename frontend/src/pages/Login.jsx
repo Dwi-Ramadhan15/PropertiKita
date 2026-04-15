@@ -13,12 +13,12 @@ export default function Login() {
     setLoading(true);
     
     try {
-      // Pastikan endpoint ini sesuai dengan route di backend kamu
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const res = await axios.post('http://localhost:5000/api/users/login', { 
+            identifier: email, 
+            password: password 
+          });
       
       if (res.data.success) {
-        // --- POIN KRUSIAL ---
-        // Simpan token untuk pengecekan auth
         localStorage.setItem('token', res.data.token);
         // Simpan data user (id, nama, role) dalam bentuk string JSON
         localStorage.setItem('user', JSON.stringify(res.data.user)); 
@@ -26,7 +26,7 @@ export default function Login() {
         alert("Login Berhasil! Halo " + res.data.user.name);
         
         // Setelah login, arahkan ke halaman Agen atau Beranda
-        navigate('/agen'); 
+        navigate('/'); 
       }
     } catch (err) {
       // Mengambil pesan error dari Backend (UserController)
