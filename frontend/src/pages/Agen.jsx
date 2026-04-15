@@ -66,9 +66,14 @@ export default function Agen() {
               <div className="relative w-36 h-36 mx-auto mb-8">
                 <div className="absolute inset-0 rounded-full border-2 border-blue-600 border-dashed animate-[spin_10s_linear_infinite] opacity-30"></div>
                 <img 
-                  src={ag.foto_profil || "https://via.placeholder.com/150"} 
+                  src={
+                    ag.foto_profil 
+                    ? `http://127.0.0.1:9000/propertikita/${ag.foto_profil}` // Sesuaikan IP & Bucket MinIO kamu
+                    : "https://via.placeholder.com/150"
+                  } 
                   alt={ag.nama_agen} 
                   className="w-full h-full rounded-full object-cover p-2"
+                  onError={(e) => { e.target.src = "https://via.placeholder.com/150" }} // Fallback jika gambar gagal load
                 />
                 <div className="absolute bottom-3 right-3 bg-green-500 w-6 h-6 rounded-full border-4 border-white shadow-sm"></div>
               </div>

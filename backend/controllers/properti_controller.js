@@ -1,5 +1,5 @@
 const db = require('../utils/db');
-const minioClient = require('../utils/minio_client');
+const { minioClient } = require('../utils/minio_client');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -13,12 +13,16 @@ const generateSlug = (title) => {
 
 const getProperti = async(req, res) => {
     try {
-        const { minHarga, maxHarga, lokasi, tipe, id_kategori, kamar_tidur, page = 1, limit = 10 } = req.query;
-
+        const { minHarga, maxHarga, lokasi, tipe, id_kategori, kamar_tidur, agen, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
+        
         let query = 'SELECT p.*, c.nama as nama_kategori FROM properties p LEFT JOIN categories c ON p.id_kategori = c.id WHERE 1=1';
         const queryParams = [];
 
+        if (agen) {
+            queryParams.push(Number(agen));
+            query += ` AND p.id_agen = $${queryParams.length}`;
+        }
         if (minHarga && maxHarga) {
             queryParams.push(Number(minHarga), Number(maxHarga));
             query += ` AND p.harga BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
@@ -66,22 +70,8 @@ const getProperti = async(req, res) => {
                     coordinates: [parseFloat(row.longitude), parseFloat(row.latitude)]
                 },
                 properties: {
-                    id: row.id,
-                    slug: row.slug,
-                    title: row.title,
-                    deskripsi: row.deskripsi,
-                    harga: row.harga,
-                    lokasi: row.lokasi,
-                    tipe: row.tipe,
+                    ...row,
                     kategori: row.nama_kategori,
-                    kamarTidur: row.kamar_tidur,
-                    kamarMandi: row.kamar_mandi,
-                    luas: row.luas,
-                    kolam_renang: row.kolam_renang,
-                    wifi: row.wifi,
-                    keamanan_24jam: row.keamanan_24jam,
-                    parkir: row.parkir,
-                    ac: row.ac,
                     imageUrl: row.image_url
                 }
             }))
@@ -110,12 +100,14 @@ const getPropertiBySlug = async(req, res) => {
 
         const properti = rows[0];
         const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [properti.id]);
-        const data = {
-            ...properti,
-            gallery: images.rows.map(img => img.image_url)
-        };
-
-        res.status(200).json({ success: true, data: data });
+        
+        res.status(200).json({ 
+            success: true, 
+            data: {
+                ...properti,
+                gallery: images.rows.map(img => img.image_url)
+            } 
+        });
     } catch (error) {
         console.error('Error di getPropertiBySlug:', error);
         res.status(500).json({ success: false, message: error.message });
@@ -126,7 +118,6 @@ const createProperti = async(req, res) => {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
-
         const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac } = req.body;
         const files = req.files;
 
@@ -136,30 +127,37 @@ const createProperti = async(req, res) => {
         if (!files || files.length === 0) return res.status(400).json({ success: false, message: "Minimal satu foto wajib diunggah!" });
 
         const slug = generateSlug(title);
+        const bucketName = 'propertikita';
 
         const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac) 
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`;
+        
         const values = [title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || '', kolam_renang || false, wifi || false, keamanan_24jam || false, parkir || false, ac || false];
         const resProperti = await client.query(query, values);
         const propertiId = resProperti.rows[0].id;
 
-        const bucketName = 'my-bucket';
-        for (const file of files) {
+        let firstImageUrl = '';
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
             const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
             const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
 
             const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
-            await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, { 'Content-Type': 'image/webp' });
+            await minioClient.putObject(bucketName, objectName, webpBuffer, { 'Content-Type': 'image/webp' });
 
             if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
             const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
 
+            if (i === 0) firstImageUrl = imageUrl;
+
             await client.query(`INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)`, [propertiId, imageUrl]);
         }
 
+        await client.query(`UPDATE properties SET image_url = $1 WHERE id = $2`, [firstImageUrl, propertiId]);
+
         await client.query('COMMIT');
         res.status(201).json({ success: true, message: "Data dan semua foto berhasil disimpan!" });
-
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error di createProperti:', error);
@@ -181,51 +179,45 @@ const updateProperti = async(req, res) => {
             await client.query('ROLLBACK');
             return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
         }
-        const currentData = checkData.rows[0];
 
-        const updatedTitle = title || currentData.title;
-        const updatedSlug = title ? generateSlug(title) : currentData.slug;
-        const updatedHarga = harga || currentData.harga;
-        const updatedLokasi = lokasi || currentData.lokasi;
-        const updatedTipe = tipe || currentData.tipe;
-        const updatedLat = latitude || currentData.latitude;
-        const updatedLong = longitude || currentData.longitude;
-        const updatedAgen = id_agen || currentData.id_agen;
-        const updatedKategori = id_kategori || currentData.id_kategori;
-        const updatedKamar = kamar_tidur || currentData.kamar_tidur;
-        const updatedMandi = kamar_mandi || currentData.kamar_mandi;
-        const updatedLuas = luas || currentData.luas;
-        const updatedDeskripsi = deskripsi || currentData.deskripsi;
-        const updatedKolam = kolam_renang !== undefined ? kolam_renang : currentData.kolam_renang;
-        const updatedWifi = wifi !== undefined ? wifi : currentData.wifi;
-        const updatedKeamanan = keamanan_24jam !== undefined ? keamanan_24jam : currentData.keamanan_24jam;
-        const updatedParkir = parkir !== undefined ? parkir : currentData.parkir;
-        const updatedAc = ac !== undefined ? ac : currentData.ac;
+        const current = checkData.rows[0];
+        const slug = title ? generateSlug(title) : current.slug;
 
         const queryUpdate = `
             UPDATE properties 
             SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, kolam_renang=$14, wifi=$15, keamanan_24jam=$16, parkir=$17, ac=$18
-            WHERE id=$19 RETURNING *`;
-        const valuesUpdate = [updatedTitle, updatedSlug, updatedHarga, updatedLokasi, updatedTipe, updatedLat, updatedLong, updatedAgen, updatedKategori, updatedKamar, updatedMandi, updatedLuas, updatedDeskripsi, updatedKolam, updatedWifi, updatedKeamanan, updatedParkir, updatedAc, id];
+            WHERE id=$19`;
+        
+        const valuesUpdate = [
+            title || current.title, slug, harga || current.harga, lokasi || current.lokasi, tipe || current.tipe,
+            latitude || current.latitude, longitude || current.longitude, id_agen || current.id_agen,
+            id_kategori || current.id_kategori, kamar_tidur || current.kamar_tidur, kamar_mandi || current.kamar_mandi,
+            luas || current.luas, deskripsi || current.deskripsi, 
+            kolam_renang !== undefined ? kolam_renang : current.kolam_renang,
+            wifi !== undefined ? wifi : current.wifi,
+            keamanan_24jam !== undefined ? keamanan_24jam : current.keamanan_24jam,
+            parkir !== undefined ? parkir : current.parkir,
+            ac !== undefined ? ac : current.ac,
+            id
+        ];
+        
         await client.query(queryUpdate, valuesUpdate);
 
         if (req.files && req.files.length > 0) {
-            const bucketName = 'my-bucket';
+            const bucketName = 'propertikita';
             for (const file of req.files) {
                 const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
                 const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
-
                 const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
-                await minioClient.putObject(bucketName, objectName, webpBuffer, webpBuffer.length, { 'Content-Type': 'image/webp' });
-
+                await minioClient.putObject(bucketName, objectName, webpBuffer, { 'Content-Type': 'image/webp' });
                 if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-                const newImageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
-                await client.query("INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)", [id, newImageUrl]);
+                const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
+                await client.query("INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)", [id, imageUrl]);
             }
         }
 
         await client.query('COMMIT');
-        res.status(200).json({ success: true, message: "Berhasil update data properti!", data: updatedTitle });
+        res.status(200).json({ success: true, message: "Berhasil update data properti!" });
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error di updateProperti:', error);
@@ -251,8 +243,7 @@ const deleteProperti = async(req, res) => {
 
 const getAgen = async(req, res) => {
     try {
-        const query = 'SELECT id, nama_agen, no_whatsapp, foto_profil FROM agen ORDER BY nama_agen ASC';
-        const { rows } = await db.query(query);
+        const { rows } = await db.query('SELECT id, nama_agen, no_whatsapp, foto_profil FROM agen ORDER BY nama_agen ASC');
         res.status(200).json({ success: true, data: rows });
     } catch (error) {
         console.error('Error di getAgen:', error);
@@ -260,11 +251,4 @@ const getAgen = async(req, res) => {
     }
 };
 
-module.exports = {
-    getProperti,
-    getPropertiBySlug,
-    createProperti,
-    updateProperti,
-    deleteProperti,
-    getAgen
-};
+module.exports = { getProperti, getPropertiBySlug, createProperti, updateProperti, deleteProperti, getAgen };
