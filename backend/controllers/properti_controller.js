@@ -13,11 +13,18 @@ const generateSlug = (title) => {
 
 const getProperti = async(req, res) => {
     try {
-        const { minHarga, maxHarga, lokasi, tipe, id_kategori, kamar_tidur, agen, page = 1, limit = 10 } = req.query;
+        const { minHarga, maxHarga, lokasi, tipe, id_kategori, kamar_tidur, agen, status, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
         
-        let query = 'SELECT p.*, c.nama as nama_kategori FROM properties p LEFT JOIN categories c ON p.id_kategori = c.id WHERE 1=1';
+        let query = "SELECT p.*, c.nama as nama_kategori FROM properties p LEFT JOIN categories c ON p.id_kategori = c.id WHERE 1=1";
         const queryParams = [];
+
+        if (status) {
+            queryParams.push(status);
+            query += ` AND p.status = $${queryParams.length}`;
+        } else {
+            query += ` AND p.status = 'approved'`;
+        }
 
         if (agen) {
             queryParams.push(Number(agen));
@@ -79,7 +86,7 @@ const getProperti = async(req, res) => {
 
         res.status(200).json({ success: true, data: geoJSON });
     } catch (error) {
-        console.error('Error di getProperti:', error);
+        console.error(error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -109,7 +116,6 @@ const getPropertiBySlug = async(req, res) => {
             } 
         });
     } catch (error) {
-        console.error('Error di getPropertiBySlug:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -124,13 +130,15 @@ const createProperti = async(req, res) => {
         if (!title || !harga || !id_kategori) {
             return res.status(400).json({ success: false, message: "Judul, Harga, dan Kategori wajib diisi!" });
         }
-        if (!files || files.length === 0) return res.status(400).json({ success: false, message: "Minimal satu foto wajib diunggah!" });
+        if (!files || files.length < 2) {
+            return res.status(400).json({ success: false, message: "Minimal dua foto wajib diunggah!" });
+        }
 
         const slug = generateSlug(title);
         const bucketName = 'propertikita';
 
-        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`;
+        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac, status) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 'pending') RETURNING id`;
         
         const values = [title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || '', kolam_renang || false, wifi || false, keamanan_24jam || false, parkir || false, ac || false];
         const resProperti = await client.query(query, values);
@@ -157,10 +165,9 @@ const createProperti = async(req, res) => {
         await client.query(`UPDATE properties SET image_url = $1 WHERE id = $2`, [firstImageUrl, propertiId]);
 
         await client.query('COMMIT');
-        res.status(201).json({ success: true, message: "Data dan semua foto berhasil disimpan!" });
+        res.status(201).json({ success: true, message: "Properti berhasil dikirim dan menunggu tinjauan admin!" });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error di createProperti:', error);
         res.status(500).json({ success: false, message: error.message });
     } finally {
         client.release();
@@ -172,7 +179,7 @@ const updateProperti = async(req, res) => {
     try {
         await client.query('BEGIN');
         const { id } = req.params;
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac } = req.body;
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac, status } = req.body;
 
         const checkData = await client.query("SELECT * FROM properties WHERE id = $1", [id]);
         if (checkData.rows.length === 0) {
@@ -185,8 +192,8 @@ const updateProperti = async(req, res) => {
 
         const queryUpdate = `
             UPDATE properties 
-            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, kolam_renang=$14, wifi=$15, keamanan_24jam=$16, parkir=$17, ac=$18
-            WHERE id=$19`;
+            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, kolam_renang=$14, wifi=$15, keamanan_24jam=$16, parkir=$17, ac=$18, status=$19
+            WHERE id=$20`;
         
         const valuesUpdate = [
             title || current.title, slug, harga || current.harga, lokasi || current.lokasi, tipe || current.tipe,
@@ -198,6 +205,7 @@ const updateProperti = async(req, res) => {
             keamanan_24jam !== undefined ? keamanan_24jam : current.keamanan_24jam,
             parkir !== undefined ? parkir : current.parkir,
             ac !== undefined ? ac : current.ac,
+            status || current.status,
             id
         ];
         
@@ -220,10 +228,23 @@ const updateProperti = async(req, res) => {
         res.status(200).json({ success: true, message: "Berhasil update data properti!" });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error di updateProperti:', error);
         res.status(500).json({ success: false, message: error.message });
     } finally {
         client.release();
+    }
+};
+
+const updateStatusProperti = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!['approved', 'rejected', 'pending'].includes(status)) {
+            return res.status(400).json({ success: false, message: "Status tidak valid" });
+        }
+        await db.query("UPDATE properties SET status = $1 WHERE id = $2", [status, id]);
+        res.status(200).json({ success: true, message: `Properti berhasil di ${status}!` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -236,7 +257,6 @@ const deleteProperti = async(req, res) => {
         await db.query('DELETE FROM properties WHERE id = $1', [id]);
         res.status(200).json({ success: true, message: "Data berhasil dihapus!" });
     } catch (error) {
-        console.error('Error di deleteProperti:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -246,9 +266,16 @@ const getAgen = async(req, res) => {
         const { rows } = await db.query('SELECT id, nama_agen, no_whatsapp, foto_profil FROM agen ORDER BY nama_agen ASC');
         res.status(200).json({ success: true, data: rows });
     } catch (error) {
-        console.error('Error di getAgen:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-module.exports = { getProperti, getPropertiBySlug, createProperti, updateProperti, deleteProperti, getAgen };
+module.exports = { 
+    getProperti, 
+    getPropertiBySlug, 
+    createProperti, 
+    updateProperti, 
+    updateStatusProperti,
+    deleteProperti, 
+    getAgen 
+};

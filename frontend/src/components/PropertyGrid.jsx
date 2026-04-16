@@ -58,6 +58,7 @@ export default function PropertyGrid() {
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
       fetchProperties(newPage);
+      // Scroll smooth ke area grid saat ganti halaman
       window.scrollTo({ top: 400, behavior: 'smooth' });
     }
   };
@@ -69,22 +70,22 @@ export default function PropertyGrid() {
   };
 
   return (
-    <div className="px-10 py-12 max-w-7xl mx-auto relative">
+    <div className="px-6 md:px-10 py-12 max-w-7xl mx-auto relative">
       {/* FORM FILTER */}
       <form 
         onSubmit={(e) => { e.preventDefault(); fetchProperties(1); }}
-        className="bg-white p-4 rounded-xl shadow-lg flex flex-col lg:flex-row gap-4 items-center -mt-24 relative z-20 mb-12 border border-gray-100 w-full max-w-6xl mx-auto"
+        className="bg-white p-5 rounded-3xl shadow-xl flex flex-col lg:flex-row gap-4 items-center -mt-24 relative z-20 mb-16 border border-gray-50 w-full"
       >
         <input 
           type="text" 
           placeholder="Cari lokasi..." 
-          className="flex-1 w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 w-full border border-gray-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           value={lokasi}
           onChange={(e) => setLokasi(e.target.value)}
         />
         
         <select 
-          className="w-full lg:w-48 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+          className="w-full lg:w-48 border border-gray-200 rounded-2xl px-5 py-4 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           value={tipe}
           onChange={(e) => setTipe(e.target.value)}
         >
@@ -96,7 +97,7 @@ export default function PropertyGrid() {
         </select>
 
         <select 
-          className="w-full lg:w-48 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+          className="w-full lg:w-48 border border-gray-200 rounded-2xl px-5 py-4 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           value={rentangHarga}
           onChange={(e) => setRentangHarga(e.target.value)}
         >
@@ -106,98 +107,80 @@ export default function PropertyGrid() {
           <option value="mahal">&gt; Rp 1 Milyar</option>
         </select>
 
-        <select 
-          className="w-full lg:w-40 border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-          value={kamarTidur}
-          onChange={(e) => setKamarTidur(e.target.value)}
-        >
-          <option value="">Kamar Tidur</option>
-          <option value="1">1 Kamar</option>
-          <option value="2">2 Kamar</option>
-          <option value="3">3 Kamar</option>
-          <option value="4+">4+ Kamar</option>
-        </select>
-
         <button 
           type="submit" 
-          className="w-full lg:w-auto bg-primary text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
+          className="w-full lg:w-auto bg-[#1E293B] text-white px-10 py-4 rounded-2xl font-bold hover:bg-slate-800 transition shadow-md"
         >
           Cari
         </button>
       </form>
 
       {loading ? (
-        <div className="text-center py-20 text-xl font-bold text-gray-500">Mencari Properti...</div>
+        <div className="text-center py-20 text-xl font-bold text-slate-400">Memuat Properti...</div>
       ) : properties.length === 0 ? (
-        <div className="text-center py-20 text-xl font-bold text-gray-500">Properti tidak ditemukan.</div>
+        <div className="text-center py-20 text-xl font-bold text-slate-400">Properti tidak ditemukan.</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* GRID PROPERTI */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {properties.map((item) => {
               const prop = item.properties; 
               return (
-                <div key={prop.id} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100">
-                  <div className="relative h-64 bg-gray-200">
+                <div key={prop.id} className="bg-white rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-50 flex flex-col group">
+                  <div className="relative h-64 bg-slate-100 overflow-hidden">
                     <img 
-                      src={prop.imageUrl || "https://via.placeholder.com/400x300"} 
+                      src={prop.image_url || prop.imageUrl || "https://via.placeholder.com/400x300"} 
                       alt={prop.title} 
-                      className="w-full h-full object-cover" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                     />
-                    
-                    {/* BAGIAN KATEGORI (DIJUAL / DISEWA) */}
-                    <div className="absolute top-4 left-4">
-                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-md ${
-                            prop.kategori?.toLowerCase() === 'dijual' ? 'bg-blue-600' : 'bg-orange-500'
-                        }`}>
-                            {prop.kategori || 'Properti'}
-                        </span>
-                    </div>
                   </div>
 
-                  <div className="p-5">
-                    <h3 className="text-2xl font-bold text-primary mb-1">{formatRupiah(prop.harga)}</h3>
-                    <h4 className="text-lg font-semibold text-gray-800 truncate">{prop.title}</h4>
-                    <p className="flex items-center text-gray-500 text-sm mt-2 truncate">
+                  <div className="p-7 flex flex-col flex-1">
+                    <h3 className="text-2xl font-bold text-blue-600 mb-1">{formatRupiah(prop.harga)}</h3>
+                    <h4 className="text-lg font-bold text-[#1E293B] truncate mb-2">{prop.title}</h4>
+                    <p className="flex items-center text-slate-400 text-sm mb-6 truncate">
                       <MdLocationOn className="mr-1 text-lg shrink-0" /> {prop.lokasi}
                     </p>
 
-                    <div className="border-t border-gray-100 my-4"></div>
+                    <div className="mt-auto">
+                      {/* Bagian Fasilitas - Fix 0 Data */}
+                      <div className="flex items-center justify-between text-slate-600 text-sm font-bold border-t border-slate-50 pt-5">
+                        <div className="flex items-center gap-1.5"><FaBed className="text-blue-500"/> {prop.kamar_tidur || 0}</div>
+                        <div className="flex items-center gap-1.5"><FaBath className="text-blue-500"/> {prop.kamar_mandi || 0}</div> 
+                        <div className="flex items-center gap-1.5"><FaRulerCombined className="text-blue-500"/> {prop.luas || 0}m²</div> 
+                      </div>
 
-                    <div className="flex items-center gap-5 text-gray-600 text-sm font-medium">
-                      <div className="flex items-center gap-1.5"><FaBed /> {prop.kamarTidur || 0}</div>
-                      <div className="flex items-center gap-1.5"><FaBath /> {prop.kamarMandi || 0}</div> 
-                      <div className="flex items-center gap-1.5"><FaRulerCombined /> {prop.luas || 0}m²</div> 
+                      <Link 
+                        to={`/properti/${prop.slug}`}
+                        className="block text-center mt-7 bg-slate-50 text-[#1E293B] py-4 rounded-2xl font-bold hover:bg-[#1E293B] hover:text-white transition-all duration-300 border border-slate-100"
+                      >
+                        Lihat Detail
+                      </Link>
                     </div>
-
-                    <Link 
-                      to={`/properti/${prop.slug}`}
-                      className="block text-center mt-6 bg-blue-50 text-primary py-2.5 rounded-lg font-bold hover:bg-primary hover:text-white transition-colors">
-                      Lihat Detail
-                    </Link>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* PAGINATION */}
-          <div className="flex justify-center items-center mt-16 gap-2">
+          {/* PAGINATION - Tetap Ada & Makin Cakep */}
+          <div className="flex justify-center items-center mt-20 gap-3">
             <button 
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-xl border border-slate-200 hover:bg-slate-100 disabled:opacity-30 transition-all shadow-sm"
             >
-              <MdChevronLeft size={24} />
+              <MdChevronLeft size={24} className="text-slate-600" />
             </button>
 
             {[...Array(totalPages)].map((_, index) => (
               <button
                 key={index + 1}
                 onClick={() => handlePageChange(index + 1)}
-                className={`w-10 h-10 rounded-lg font-bold transition-colors ${
+                className={`w-12 h-12 rounded-xl font-bold transition-all shadow-sm ${
                   currentPage === index + 1 
-                  ? 'bg-primary text-white border-primary' 
-                  : 'border border-gray-300 hover:bg-gray-100'
+                  ? 'bg-[#1E293B] text-white border-[#1E293B]' 
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-500 hover:text-blue-500'
                 }`}
               >
                 {index + 1}
@@ -207,9 +190,9 @@ export default function PropertyGrid() {
             <button 
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-xl border border-slate-200 hover:bg-slate-100 disabled:opacity-30 transition-all shadow-sm"
             >
-              <MdChevronRight size={24} />
+              <MdChevronRight size={24} className="text-slate-600" />
             </button>
           </div>
         </>

@@ -3,7 +3,6 @@ import HeroCarousel from '../components/HeroCarousel';
 import PropertyGrid from '../components/PropertyGrid';
 
 export default function Home() {
-  // State untuk menyimpan pilihan filter user
   const [filter, setFilter] = useState({
     lokasi: '',
     tipe: '',
@@ -12,10 +11,13 @@ export default function Home() {
   });
 
   return (
-    <main className="bg-gray-50 min-h-screen">
-      {/* Banner Utama - Tetap seperti aslinya agar bisa geser/gerak */}
+    <main className="bg-[#F8FAFC] min-h-screen">
+      {/* 1. Banner Utama */}
       <HeroCarousel />
-      <div>
+
+      {/* 2. Container Property Grid langsung tanpa Judul */}
+      <div className="max-w-7xl mx-auto px-6 md:px-10 py-10">
+        {/* Langsung menampilkan Grid Properti tanpa elemen teks tambahan */}
         <PropertyGrid />
       </div>
     </main>
