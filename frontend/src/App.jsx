@@ -12,20 +12,15 @@ import Tentang from './pages/Tentang';
 import Agen from './pages/Agen';
 import DaftarPropertiAgen from './pages/DaftarPropertiAgen';
 import DashboardAgen from './pages/DashboardAgen';
+import DashboardAdmin from './pages/DashboardAdmin';
 
-// Komponen Pembungkus Utama agar useLocation bisa jalan
 function AppContent() {
   const location = useLocation();
-
-  // Daftar halaman yang TIDAK boleh ada Navbar User
   const hideNavbarPaths = ['/dashboard-agen'];
-  
-  // Cek apakah halaman saat ini masuk daftar sembunyi
   const showNavbar = !hideNavbarPaths.includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar User muncul secara kondisional */}
       {showNavbar && <Navbar />}
       
       <Routes>
@@ -39,10 +34,8 @@ function AppContent() {
         <Route path="/tentang" element={<Tentang />} />
         <Route path="/agen" element={<Agen />} />
         <Route path="/properti" element={<DaftarPropertiAgen />} />
-        
-        {/* Halaman Khusus Agen */}
         <Route path="/dashboard-agen" element={<DashboardAgen />} />
-
+        <Route path="/dashboard-admin" element={<DashboardAdmin />} />
         <Route path="*" element={
           <div className="text-center py-20">
             <h2 className="text-4xl font-bold text-gray-800">404</h2>

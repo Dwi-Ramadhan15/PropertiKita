@@ -22,10 +22,6 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// ==========================================
-// ROUTES (SUDAH DISESUAIKAN DENGAN FRONTEND)
-// ==========================================
-
 /**
  * @swagger
  * /api/properti:
@@ -92,7 +88,7 @@ router.get('/agen', propertiController.getAgen);
  * @swagger
  * /api/properti/{slug}:
  *   get:
- *     summary: Mendapatkan detail lengkap satu properti berdasarkan slug
+ *     summary: Mendapatkan detail properti berdasarkan slug
  *     tags: [Properti]
  *     parameters:
  *       - in: path
@@ -121,7 +117,7 @@ router.get('/properti/:slug', propertiController.getPropertiBySlug);
  *           schema:
  *             type: object
  *             properties:
- *               foto:
+ *               images:
  *                 type: array
  *                 items:
  *                   type: string
@@ -155,7 +151,7 @@ router.get('/properti/:slug', propertiController.getPropertiBySlug);
  */
 router.post(
     '/properti',
-    upload.array('foto', 10),
+    upload.array('images', 10),
     propertiController.createProperti
 );
 
@@ -178,7 +174,7 @@ router.post(
  *           schema:
  *             type: object
  *             properties:
- *               foto:
+ *               images:
  *                 type: array
  *                 items:
  *                   type: string
@@ -212,7 +208,7 @@ router.post(
  */
 router.put(
     '/properti/:id',
-    upload.array('foto', 10),
+    upload.array('images', 10),
     propertiController.updateProperti
 );
 

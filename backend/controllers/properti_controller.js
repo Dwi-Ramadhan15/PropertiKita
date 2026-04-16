@@ -11,41 +11,69 @@ const generateSlug = (title) => {
         .replace(/(^-|-$)+/g, '');
 };
 
+const getRealAgenId = async(userId, client = db) => {
+    const userRes = await client.query('SELECT email, phone_number FROM users WHERE id = $1', [userId]);
+    if (userRes.rows.length > 0) {
+        const u = userRes.rows[0];
+        const agenRes = await client.query('SELECT id FROM agen WHERE email = $1 OR no_whatsapp = $2', [u.email, u.phone_number]);
+        if (agenRes.rows.length > 0) {
+            return agenRes.rows[0].id;
+        }
+    }
+    return null;
+};
+
 const getProperti = async(req, res) => {
     try {
         const { minHarga, maxHarga, lokasi, tipe, id_kategori, kamar_tidur, agen, status, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
-        
+
         let query = "SELECT p.*, c.nama as nama_kategori FROM properties p LEFT JOIN categories c ON p.id_kategori = c.id WHERE 1=1";
         const queryParams = [];
 
-        if (status) {
+        // PERBAIKAN LOGIKA STATUS DI SINI
+        if (status && status !== 'all') {
+            // Kalau statusnya spesifik (pending/approved/rejected)
             queryParams.push(status);
             query += ` AND p.status = $${queryParams.length}`;
-        } else {
+        } else if (!status) {
+            // Kalau nggak dikirim status sama sekali, default ke approved (buat halaman depan)
             query += ` AND p.status = 'approved'`;
         }
+        // Kalau status === 'all', query-nya dilewat aja biar semua data (pending/approved) ketarik!
 
         if (agen) {
-            queryParams.push(Number(agen));
+            const realAgenId = await getRealAgenId(agen);
+            if (!realAgenId) {
+                return res.status(200).json({
+                    success: true,
+                    data: { type: "FeatureCollection", totalData: 0, currentPage: Number(page), totalPages: 0, features: [] }
+                });
+            }
+            queryParams.push(Number(realAgenId));
             query += ` AND p.id_agen = $${queryParams.length}`;
         }
+
         if (minHarga && maxHarga) {
             queryParams.push(Number(minHarga), Number(maxHarga));
             query += ` AND p.harga BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
         }
+
         if (lokasi) {
             queryParams.push(`%${lokasi}%`);
             query += ` AND p.lokasi ILIKE $${queryParams.length}`;
         }
+
         if (tipe) {
             queryParams.push(tipe);
             query += ` AND p.tipe = $${queryParams.length}`;
         }
+
         if (id_kategori) {
             queryParams.push(Number(id_kategori));
             query += ` AND p.id_kategori = $${queryParams.length}`;
         }
+
         if (kamar_tidur) {
             if (kamar_tidur === '4+') {
                 queryParams.push(4);
@@ -86,7 +114,6 @@ const getProperti = async(req, res) => {
 
         res.status(200).json({ success: true, data: geoJSON });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -107,13 +134,13 @@ const getPropertiBySlug = async(req, res) => {
 
         const properti = rows[0];
         const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [properti.id]);
-        
-        res.status(200).json({ 
-            success: true, 
+
+        res.status(200).json({
+            success: true,
             data: {
                 ...properti,
                 gallery: images.rows.map(img => img.image_url)
-            } 
+            }
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -134,13 +161,28 @@ const createProperti = async(req, res) => {
             return res.status(400).json({ success: false, message: "Minimal dua foto wajib diunggah!" });
         }
 
+        const realAgenId = await getRealAgenId(id_agen, client);
+        if (!realAgenId) {
+            return res.status(400).json({ success: false, message: "Profil agen tidak valid atau belum disinkronisasi!" });
+        }
+
         const slug = generateSlug(title);
         const bucketName = 'propertikita';
 
+        const bucketExists = await minioClient.bucketExists(bucketName);
+        if (!bucketExists) {
+            await minioClient.makeBucket(bucketName);
+        }
+
         const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac, status) 
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 'pending') RETURNING id`;
-        
-        const values = [title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || '', kolam_renang || false, wifi || false, keamanan_24jam || false, parkir || false, ac || false];
+
+        const values = [
+            title, slug, harga, lokasi, tipe, latitude, longitude, realAgenId, id_kategori,
+            kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || '',
+            kolam_renang === 'true', wifi === 'true', keamanan_24jam === 'true', parkir === 'true', ac === 'true'
+        ];
+
         const resProperti = await client.query(query, values);
         const propertiId = resProperti.rows[0].id;
 
@@ -148,7 +190,7 @@ const createProperti = async(req, res) => {
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
+            const fileNameWithoutExt = path.parse(file.originalname).name.replace(/[^a-zA-Z0-9]/g, '-');
             const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
 
             const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
@@ -190,31 +232,41 @@ const updateProperti = async(req, res) => {
         const current = checkData.rows[0];
         const slug = title ? generateSlug(title) : current.slug;
 
+        let realAgenId = current.id_agen;
+        if (id_agen) {
+            const checkedAgen = await getRealAgenId(id_agen, client);
+            if (checkedAgen) realAgenId = checkedAgen;
+        }
+
         const queryUpdate = `
             UPDATE properties 
             SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, kolam_renang=$14, wifi=$15, keamanan_24jam=$16, parkir=$17, ac=$18, status=$19
             WHERE id=$20`;
-        
+
         const valuesUpdate = [
             title || current.title, slug, harga || current.harga, lokasi || current.lokasi, tipe || current.tipe,
-            latitude || current.latitude, longitude || current.longitude, id_agen || current.id_agen,
+            latitude || current.latitude, longitude || current.longitude, realAgenId,
             id_kategori || current.id_kategori, kamar_tidur || current.kamar_tidur, kamar_mandi || current.kamar_mandi,
-            luas || current.luas, deskripsi || current.deskripsi, 
-            kolam_renang !== undefined ? kolam_renang : current.kolam_renang,
-            wifi !== undefined ? wifi : current.wifi,
-            keamanan_24jam !== undefined ? keamanan_24jam : current.keamanan_24jam,
-            parkir !== undefined ? parkir : current.parkir,
-            ac !== undefined ? ac : current.ac,
+            luas || current.luas, deskripsi || current.deskripsi,
+            kolam_renang !== undefined ? (kolam_renang === 'true') : current.kolam_renang,
+            wifi !== undefined ? (wifi === 'true') : current.wifi,
+            keamanan_24jam !== undefined ? (keamanan_24jam === 'true') : current.keamanan_24jam,
+            parkir !== undefined ? (parkir === 'true') : current.parkir,
+            ac !== undefined ? (ac === 'true') : current.ac,
             status || current.status,
             id
         ];
-        
+
         await client.query(queryUpdate, valuesUpdate);
 
         if (req.files && req.files.length > 0) {
             const bucketName = 'propertikita';
+
+            const bucketExists = await minioClient.bucketExists(bucketName);
+            if (!bucketExists) await minioClient.makeBucket(bucketName);
+
             for (const file of req.files) {
-                const fileNameWithoutExt = path.parse(file.originalname).name.replace(/\s+/g, '-');
+                const fileNameWithoutExt = path.parse(file.originalname).name.replace(/[^a-zA-Z0-9]/g, '-');
                 const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
                 const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
                 await minioClient.putObject(bucketName, objectName, webpBuffer, { 'Content-Type': 'image/webp' });
@@ -234,7 +286,7 @@ const updateProperti = async(req, res) => {
     }
 };
 
-const updateStatusProperti = async (req, res) => {
+const updateStatusProperti = async(req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -270,12 +322,12 @@ const getAgen = async(req, res) => {
     }
 };
 
-module.exports = { 
-    getProperti, 
-    getPropertiBySlug, 
-    createProperti, 
-    updateProperti, 
+module.exports = {
+    getProperti,
+    getPropertiBySlug,
+    createProperti,
+    updateProperti,
     updateStatusProperti,
-    deleteProperti, 
-    getAgen 
+    deleteProperti,
+    getAgen
 };
