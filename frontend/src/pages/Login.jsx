@@ -8,7 +8,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false); // Tambahkan loading state biar keren
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     
@@ -19,17 +19,20 @@ export default function Login() {
           });
       
       if (res.data.success) {
-        localStorage.setItem('token', res.data.token);
-        // Simpan data user (id, nama, role) dalam bentuk string JSON
-        localStorage.setItem('user', JSON.stringify(res.data.user)); 
+        const { token, user } = res.data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user)); 
         
-        alert("Login Berhasil! Halo " + res.data.user.name);
+        alert("Login Berhasil! Halo " + user.name);
         
-        // Setelah login, arahkan ke halaman Agen atau Beranda
-        navigate('/'); 
+        // Langsung arahkan berdasarkan role tanpa dicegat verifikasi
+        if (user.role === 'agen' || user.role === 'admin') {
+          navigate('/dashboard-agen'); 
+        } else {
+          navigate('/'); 
+        }
       }
     } catch (err) {
-      // Mengambil pesan error dari Backend (UserController)
       const errorMsg = err.response?.data?.message || "Email atau password salah!";
       alert("Login Gagal: " + errorMsg);
     } finally {
