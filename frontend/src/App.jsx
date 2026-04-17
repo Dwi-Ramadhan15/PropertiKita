@@ -13,6 +13,7 @@ import Agen from './pages/Agen';
 import DaftarPropertiAgen from './pages/DaftarPropertiAgen';
 import DashboardAgen from './pages/DashboardAgen';
 import DashboardAdmin from './pages/DashboardAdmin';
+import UserDashboard from './pages/UserDashboard';
 
 function AppContent() {
   return (
@@ -30,6 +31,7 @@ function AppContent() {
         <Route path="/tentang" element={<Tentang />} />
         <Route path="/agen" element={<Agen />} />
         <Route path="/properti" element={<DaftarPropertiAgen />} />
+        <Route path="/dashboard-user" element={<UserDashboard />} />
         <Route path="/dashboard-agen" element={<DashboardAgen />} />
         <Route path="/dashboard-admin" element={<DashboardAdmin />} />
         <Route path="*" element={

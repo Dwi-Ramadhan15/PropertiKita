@@ -52,54 +52,50 @@ const register = async(req, res) => {
             return res.status(400).json({ success: false, message: "Nama & Password wajib!" });
         }
 
-        if ((userRole === 'agen' || userRole === 'admin') && !req.file) {
-            return res.status(400).json({ success: false, message: "Agen dan Admin wajib upload foto profil!" });
-        }
-
         const cleanEmail = email ? email.trim().toLowerCase() : null;
         const cleanWhatsapp = whatsapp ? whatsapp.trim() : null;
 
         if (req.file) {
             const bucketName = 'propertikita';
-            const safeName = req.file.originalname.split('.')[0].replace(/\s/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-            const objectName = `${Date.now()}-${safeName}.webp`;
-
-            const webpBuffer = await sharp(req.file.buffer)
-                .webp({ quality: 80 })
-                .toBuffer();
-
-            const exists = await minioClient.bucketExists(bucketName);
-            if (!exists) await minioClient.makeBucket(bucketName);
-
+            const objectName = `${Date.now()}-${req.file.originalname.replace(/\s/g, '-')}.webp`;
+            const webpBuffer = await sharp(req.file.buffer).resize(500, 500).webp({ quality: 80 }).toBuffer();
             await minioClient.putObject(bucketName, objectName, webpBuffer);
             foto_profil = objectName;
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, 10);
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-        const queryUsers = `
-            INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`;
-        const valuesUsers = [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil];
-        await db.query(queryUsers, valuesUsers);
+        await db.query(
+            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil]
+        );
 
-        if (userRole === 'user' && cleanWhatsapp) {
-            await sendWhatsAppOTP(cleanWhatsapp, otpCode);
-        } else if ((userRole === 'agen' || userRole === 'admin') && cleanEmail) {
-            await sendEmailOTP(cleanEmail, otpCode);
-        }
+        if (userRole === 'user' && cleanWhatsapp) await sendWhatsAppOTP(cleanWhatsapp, otpCode);
+        else if (cleanEmail) await sendEmailOTP(cleanEmail, otpCode);
 
-        res.status(201).json({
-            success: true,
-            message: `Registrasi berhasil! Cek ${userRole === 'user' ? 'WhatsApp' : 'Email'} untuk kode verifikasi.`,
-            otp_preview: otpCode
-        });
+        res.status(201).json({ success: true, message: "Registrasi berhasil!" });
     } catch (error) {
-        if (error.code === '23505') {
-            return res.status(400).json({ success: false, message: "Email atau nomor WhatsApp sudah terdaftar!" });
-        }
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const login = async(req, res) => {
+    try {
+        const { identifier, password } = req.body;
+        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
+
+        if (result.rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+
+        const user = result.rows[0];
+        if (!user.is_verified) return res.status(401).json({ success: false, message: "Belum verifikasi!" });
+
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) return res.status(401).json({ success: false, message: "Password salah!" });
+
+        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1d' });
+        res.json({ success: true, token, user: { id: user.id, name: user.name, role: user.role, foto_profil: user.foto_profil } });
+    } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -108,102 +104,47 @@ const verifyOtp = async(req, res) => {
     const client = await db.connect();
     try {
         const { identifier, otp } = req.body;
-        if (!identifier || !otp) {
-            return res.status(400).json({ success: false, message: "Identifier & OTP wajib diisi!" });
-        }
+        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
 
-        const cleanIdentifier = identifier.trim().toLowerCase();
-        const resultUsers = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", 
-            [cleanIdentifier]
-        );
+        if (result.rows.length === 0 || result.rows[0].otp_code !== otp) return res.status(400).json({ success: false, message: "OTP Salah!" });
 
-        if (resultUsers.rows.length === 0) {
-            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
-        }
-
-        const user = resultUsers.rows[0];
-
-        if (user.otp_code !== otp) {
-            return res.status(400).json({ success: false, message: "Kode OTP salah!" });
-        }
-
+        const user = result.rows[0];
         await client.query('BEGIN');
-
-        await client.query(
-            "UPDATE users SET is_verified = true, otp_code = NULL WHERE id = $1", 
-            [user.id]
-        );
-
+        await client.query("UPDATE users SET is_verified = true, otp_code = NULL WHERE id = $1", [user.id]);
         if (user.role === 'agen') {
-            const cekAgen = await client.query("SELECT * FROM agen WHERE email = $1", [user.email]);
-            if (cekAgen.rows.length === 0) {
-                const queryAgen = `
-                    INSERT INTO agen (nama_agen, email, no_whatsapp, foto_profil) 
-                    VALUES ($1, $2, $3, $4)`;
-                await client.query(queryAgen, [user.name, user.email, user.phone_number, user.foto_profil]);
-            }
+            await client.query("INSERT INTO agen (nama_agen, email, no_whatsapp, foto_profil) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING", [user.name, user.email, user.phone_number, user.foto_profil]);
         }
-
         await client.query('COMMIT');
-        res.status(200).json({ success: true, message: "Akun berhasil diverifikasi! Silakan login." });
+        res.json({ success: true, message: "Verifikasi Berhasil!" });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ success: false, message: error.message });
-    } finally {
-        client.release();
-    }
+    } finally { client.release(); }
 };
 
-const login = async(req, res) => {
+const getProfile = async (req, res) => {
     try {
-        const { identifier, password } = req.body;
-        if (!identifier || !password) {
-            return res.status(400).json({ success: false, message: "Identifier & Password wajib diisi!" });
-        }
-
-        const cleanIdentifier = identifier.trim().toLowerCase();
-        const result = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", 
-            [cleanIdentifier]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, message: "Akun tidak ditemukan!" });
-        }
-
-        const user = result.rows[0];
-
-        if (!user.is_verified) {
-            return res.status(401).json({ success: false, message: "Akun Anda belum diverifikasi!" });
-        }
-
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) {
-            return res.status(401).json({ success: false, message: "Password yang Anda masukkan salah!" });
-        }
-
-        const token = jwt.sign(
-            { id: user.id, role: user.role }, 
-            process.env.JWT_SECRET || 'secretkey', 
-            { expiresIn: '1d' }
-        );
-
-        res.status(200).json({
-            success: true,
-            message: "Login berhasil!",
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                role: user.role,
-                foto_profil: user.foto_profil,
-                identifier: user.email || user.phone_number
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+        const result = await db.query("SELECT id, name, email, phone_number, role, foto_profil FROM users WHERE id = $1", [req.user.id]);
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
-module.exports = { register, login, verifyOtp };
+const updateProfile = async (req, res) => {
+    try {
+        const { name, email, phone_number } = req.body;
+        const result = await db.query("UPDATE users SET name = $1, email = $2, phone_number = $3 WHERE id = $4 RETURNING *", [name, email, phone_number, req.user.id]);
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+};
+
+const updateAvatar = async (req, res) => {
+    try {
+        const objectName = `avatar-${Date.now()}.webp`;
+        const webpBuffer = await sharp(req.file.buffer).resize(300, 300).webp().toBuffer();
+        await minioClient.putObject('propertikita', objectName, webpBuffer);
+        await db.query("UPDATE users SET foto_profil = $1 WHERE id = $2", [objectName, req.user.id]);
+        res.json({ success: true, foto_profil: objectName });
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+};
+
+module.exports = { register, login, verifyOtp, getProfile, updateProfile, updateAvatar };

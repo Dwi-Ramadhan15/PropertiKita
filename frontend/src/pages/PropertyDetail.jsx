@@ -10,18 +10,31 @@ import L from 'leaflet';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({ 
+// --- DEFINISI ICON ---
+// Icon Biru (Default)
+const BlueIcon = L.icon({ 
   iconUrl: markerIcon, 
   shadowUrl: markerShadow, 
   iconSize: [25, 41], 
   iconAnchor: [12, 41] 
 });
-L.Marker.prototype.options.icon = DefaultIcon;
+
+// Icon Merah (Saat Diklik)
+const RedIcon = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+L.Marker.prototype.options.icon = BlueIcon;
 
 export default function PropertyDetail() {
   const { slug } = useParams(); 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMarkerActive, setIsMarkerActive] = useState(false);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -40,6 +53,7 @@ export default function PropertyDetail() {
   if (!item) return <div className="text-center py-20 font-bold text-red-500">Properti tidak ditemukan.</div>;
 
   const position = [parseFloat(item.latitude) || 0, parseFloat(item.longitude) || 0];
+  const googleMapsUrl = `https://www.google.com/maps?q=${item.latitude},${item.longitude}`;
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 font-sans">
@@ -64,7 +78,6 @@ export default function PropertyDetail() {
             <MdLocationOn className="text-red-500 mr-2" size={24} /> {item.lokasi}
           </p>
 
-          {/* DETAIL UTAMA (KAMAR, MANDI, LUAS) */}
           <div className="grid grid-cols-3 gap-4 md:gap-8 mb-10">
             <div className="flex flex-col items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
               <FaBed className="text-2xl text-blue-600 mb-2" />
@@ -89,7 +102,6 @@ export default function PropertyDetail() {
               {item.deskripsi || "Informasi deskripsi belum tersedia."}
             </p>
             
-            {/* FASILITAS */}
             <div className="mt-10">
               <h3 className="text-xl font-bold mb-6 text-gray-800">Fasilitas & Fitur</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6">
@@ -122,13 +134,38 @@ export default function PropertyDetail() {
             </div>
           </div>
 
-          {/* PETA */}
+          {/* PETA DENGAN LOGIKA MARKER MERAH */}
           <div className="bg-white p-2 rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="h-[400px]">
               <MapContainer center={position} zoom={15} style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={position}>
-                  <Popup>{item.title}</Popup>
+                <Marker 
+                  position={position}
+                  icon={isMarkerActive ? RedIcon : BlueIcon}
+                  eventHandlers={{
+                    click: () => setIsMarkerActive(true),
+                    popupclose: () => setIsMarkerActive(false),
+                  }}
+                >
+                  <Popup minWidth={220}>
+                    <div className="flex flex-col p-1">
+                      <img 
+                        src={item.image_url} 
+                        alt={item.title} 
+                        className="w-full h-28 object-cover rounded-lg mb-2"
+                      />
+                      <h5 className="font-bold text-gray-900 text-sm mb-0">{item.title}</h5>
+                      <p className="text-[10px] text-gray-500 mb-3">{item.lokasi}</p>
+                      <a 
+                        href={googleMapsUrl} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="block text-center bg-green-500 text-white text-[10px] py-2 rounded-md font-bold hover:bg-green-700 transition-all uppercase tracking-wider"
+                      >
+                        Tampilkan di Maps
+                      </a>
+                    </div>
+                  </Popup>
                 </Marker>
               </MapContainer>
             </div>
