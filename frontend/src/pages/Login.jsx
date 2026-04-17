@@ -5,10 +5,10 @@ import axios from 'axios';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false); // Tambahkan loading state biar keren
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     
@@ -25,8 +25,9 @@ const handleLogin = async (e) => {
         
         alert("Login Berhasil! Halo " + user.name);
         
-        // Langsung arahkan berdasarkan role tanpa dicegat verifikasi
-        if (user.role === 'agen' || user.role === 'admin') {
+        if (user.role === 'admin') {
+          navigate('/dashboard-admin');
+        } else if (user.role === 'agen') {
           navigate('/dashboard-agen'); 
         } else {
           navigate('/'); 

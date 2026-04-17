@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import PropertyDetail from './pages/PropertyDetail';
@@ -15,13 +15,9 @@ import DashboardAgen from './pages/DashboardAgen';
 import DashboardAdmin from './pages/DashboardAdmin';
 
 function AppContent() {
-  const location = useLocation();
-  const hideNavbarPaths = ['/dashboard-agen'];
-  const showNavbar = !hideNavbarPaths.includes(location.pathname);
-
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {showNavbar && <Navbar />}
+      <Navbar />
       
       <Routes>
         <Route path="/" element={<Home />} />
@@ -47,7 +43,6 @@ function AppContent() {
   );
 }
 
-// Komponen App sebagai entry point Router
 function App() {
   return (
     <Router>
