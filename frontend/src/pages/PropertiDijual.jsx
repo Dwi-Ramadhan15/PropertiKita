@@ -116,8 +116,8 @@ export default function PropertiDijual() {
                     <h4 className="text-lg font-bold text-slate-800 line-clamp-1 mb-2">{item.properties.title}</h4>
                     <p className="flex items-center text-slate-400 text-sm mb-6"><MdLocationOn className="text-red-400 mr-1" size={18}/> {item.properties.lokasi}</p>
                     <div className="flex justify-between items-center py-5 border-t border-slate-50 text-slate-500">
-                      <div className="flex items-center gap-2"><FaBed className="text-blue-400"/> <span>{item.properties.kamarTidur || 0}</span></div>
-                      <div className="flex items-center gap-2"><FaBath className="text-blue-400"/> <span>{item.properties.kamarMandi || 0}</span></div>
+                      <div className="flex items-center gap-2"><FaBed className="text-blue-400"/> <span>{item.properties.kamar_tidur || 0}</span></div>
+                      <div className="flex items-center gap-2"><FaBath className="text-blue-400"/> <span>{item.properties.kamar_mandi || 0}</span></div>
                       <div className="flex items-center gap-2"><FaRulerCombined className="text-blue-400"/> <span>{item.properties.luas || 0}m²</span></div>
                     </div>
                     <Link to={`/properti/${item.properties.slug}`} className="mt-4 block text-center py-3.5 bg-slate-50 text-blue-600 rounded-2xl font-bold hover:bg-blue-600 hover:text-white transition-all duration-300">Lihat Detail</Link>
