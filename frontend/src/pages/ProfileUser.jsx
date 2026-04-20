@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MdCameraAlt, MdEdit, MdSave, MdCancel, MdLogout, MdPerson } from 'react-icons/md';
 import Swal from 'sweetalert2';
 
-const UserDashboard = () => {
+const ProfileUser = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -182,4 +182,4 @@ const UserDashboard = () => {
   );
 };
 
-export default UserDashboard;
+export default ProfileUser;
