@@ -67,8 +67,7 @@ const register = async(req, res) => {
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
         await db.query(
-            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil]
+            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil]
         );
 
         if (userRole === 'user' && cleanWhatsapp) await sendWhatsAppOTP(cleanWhatsapp, otpCode);
@@ -122,29 +121,97 @@ const verifyOtp = async(req, res) => {
     } finally { client.release(); }
 };
 
-const getProfile = async (req, res) => {
+const getProfile = async(req, res) => {
     try {
-        const result = await db.query("SELECT id, name, email, phone_number, role, foto_profil FROM users WHERE id = $1", [req.user.id]);
+        const userId = req.user ? req.user.id : req.userId;
+        const result = await db.query("SELECT id, name, email, phone_number, role, foto_profil FROM users WHERE id = $1", [userId]);
         res.json({ success: true, data: result.rows[0] });
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
-const updateProfile = async (req, res) => {
+const getUserProfile = async(req, res) => {
     try {
+        const { id } = req.params;
+        const query = `
+            SELECT u.id, u.name, u.email, u.phone_number, u.foto_profil,
+            COALESCE((
+                SELECT COUNT(p.id) FROM properties p 
+                WHERE p.id_agen = (
+                    SELECT a.id FROM agen a 
+                    WHERE a.email = u.email OR a.no_whatsapp = u.phone_number 
+                    LIMIT 1
+                )
+            ), 0) as total_listing
+            FROM users u
+            WHERE u.id = $1
+        `;
+        const { rows } = await db.query(query, [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+        }
+
+        res.status(200).json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const updateProfile = async(req, res) => {
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
         const { name, email, phone_number } = req.body;
-        const result = await db.query("UPDATE users SET name = $1, email = $2, phone_number = $3 WHERE id = $4 RETURNING *", [name, email, phone_number, req.user.id]);
+        const userId = req.user ? req.user.id : req.userId;
+
+        const oldUser = await client.query("SELECT email, phone_number FROM users WHERE id = $1", [userId]);
+        if (oldUser.rows.length > 0) {
+            const old = oldUser.rows[0];
+            await client.query(
+                "UPDATE agen SET nama_agen = $1, email = $2, no_whatsapp = $3 WHERE email = $4 OR no_whatsapp = $5", [name, email, phone_number, old.email, old.phone_number]
+            );
+        }
+
+        const result = await client.query("UPDATE users SET name = $1, email = $2, phone_number = $3 WHERE id = $4 RETURNING *", [name, email, phone_number, userId]);
+        await client.query('COMMIT');
         res.json({ success: true, data: result.rows[0] });
-    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
 };
 
-const updateAvatar = async (req, res) => {
+const updateAvatar = async(req, res) => {
+    const client = await db.connect();
     try {
+        await client.query('BEGIN');
+        const userId = req.user ? req.user.id : req.userId;
         const objectName = `avatar-${Date.now()}.webp`;
         const webpBuffer = await sharp(req.file.buffer).resize(300, 300).webp().toBuffer();
+
         await minioClient.putObject('propertikita', objectName, webpBuffer);
-        await db.query("UPDATE users SET foto_profil = $1 WHERE id = $2", [objectName, req.user.id]);
+
+        const oldUser = await client.query("SELECT email, phone_number FROM users WHERE id = $1", [userId]);
+        if (oldUser.rows.length > 0) {
+            const old = oldUser.rows[0];
+            const imageUrl = `http://127.0.0.1:9000/propertikita/${objectName}`;
+            await client.query(
+                "UPDATE agen SET foto_profil = $1 WHERE email = $2 OR no_whatsapp = $3", [imageUrl, old.email, old.phone_number]
+            );
+        }
+
+        await client.query("UPDATE users SET foto_profil = $1 WHERE id = $2", [objectName, userId]);
+        await client.query('COMMIT');
+
         res.json({ success: true, foto_profil: objectName });
-    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
 };
 
-module.exports = { register, login, verifyOtp, getProfile, updateProfile, updateAvatar };
+module.exports = { register, login, verifyOtp, getProfile, getUserProfile, updateProfile, updateAvatar };

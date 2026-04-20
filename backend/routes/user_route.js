@@ -4,7 +4,7 @@ const userController = require('../controllers/user_controller');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 
-const upload = multer({ 
+const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }
 });
@@ -22,11 +22,18 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-router.post('/register', upload.single('image'), userController.register);
+router.post('/register', upload.single('foto_profil'), userController.register);
 router.post('/login', userController.login);
 router.post('/verify-otp', userController.verifyOtp);
-router.get('/me', authenticateToken, userController.getProfile);
-router.put('/update', authenticateToken, userController.updateProfile);
-router.put('/update-avatar', authenticateToken, upload.single('image'), userController.updateAvatar);
+
+router.get('/profile', authenticateToken, userController.getProfile);
+router.get('/:id/profile', userController.getUserProfile);
+router.put('/profile', authenticateToken, userController.updateProfile);
+router.post('/avatar', authenticateToken, upload.single('avatar'), userController.updateAvatar);
+
+router.get('/users/profile', authenticateToken, userController.getProfile);
+router.get('/users/:id/profile', userController.getUserProfile);
+router.put('/users/profile', authenticateToken, userController.updateProfile);
+router.post('/users/avatar', authenticateToken, upload.single('avatar'), userController.updateAvatar);
 
 module.exports = router;
