@@ -8,17 +8,24 @@ export default function Agen() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 1. Ambil data agen dari API
+  // Mengambil data user yang sedang login dari localStorage
+  const userStr = localStorage.getItem('user');
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+
+  const formatFotoUrl = (foto) => {
+    if (!foto) return null;
+    if (foto.startsWith('http')) return foto;
+    return `http://127.0.0.1:9000/propertikita/${foto}`;
+  };
+
   useEffect(() => {
     const fetchAgen = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/agen');
-        // Menangani berbagai kemungkinan struktur response data
         if (res.data.success || res.data.data) {
           setDaftarAgen(res.data.data || res.data);
         }
       } catch (error) {
-        console.error("Gagal mengambil data agen:", error);
       } finally {
         setLoading(false);
       }
@@ -26,23 +33,22 @@ export default function Agen() {
     fetchAgen();
   }, []);
 
-  // 2. Fungsi Proteksi WhatsApp
   const handleWhatsApp = (ag) => {
     const token = localStorage.getItem('token');
 
-    if (!token) {
+    if (!token || !currentUser) {
       alert("Wajib Login! Bestie harus masuk akun dulu untuk menghubungi agen.");
       navigate('/login');
     } else {
       const phone = ag.no_whatsapp.replace(/\D/g, ''); 
-      const message = encodeURIComponent(`Halo ${ag.nama_agen}, saya tertarik dengan properti Anda di PropertiKita.`);
+      // Menambahkan nama user yang sedang login ke dalam template pesan
+      const message = encodeURIComponent(`Halo ${ag.nama_agen}, perkenalkan saya ${currentUser.name}. Saya tertarik dengan properti Anda yang ada di PropertiKita dan ingin berdiskusi lebih lanjut.`);
       window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* HEADER - Warna & Kata-kata Sesuai Figma */}
       <div className="bg-[#475569] py-20 px-10 text-center mb-16">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           Agen Properti Profesional
@@ -52,7 +58,6 @@ export default function Agen() {
         </p>
       </div>
 
-      {/* GRID DAFTAR AGEN */}
       <div className="max-w-7xl mx-auto px-6 md:px-10 pb-24">
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -67,13 +72,12 @@ export default function Agen() {
                 key={ag.id} 
                 className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-10 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 text-center group"
               >
-                {/* Foto Profil dengan Animasi Dashed Rotate */}
                 <div className="relative w-36 h-36 mx-auto mb-8">
                   <div className="absolute inset-0 rounded-full border-2 border-[#3B82F6] border-dashed animate-[spin_10s_linear_infinite] opacity-30"></div>
                   <div className="w-full h-full rounded-full overflow-hidden p-2 bg-white relative z-10">
-                    {ag.foto_profil ? (
+                    {formatFotoUrl(ag.foto_profil) ? (
                       <img 
-                        src={`http://127.0.0.1:9000/propertikita/${ag.foto_profil}`} 
+                        src={formatFotoUrl(ag.foto_profil)} 
                         alt={ag.nama_agen} 
                         className="w-full h-full rounded-full object-cover"
                         onError={(e) => { e.target.src = "https://via.placeholder.com/150" }}

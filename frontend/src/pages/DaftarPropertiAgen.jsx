@@ -14,7 +14,7 @@ export default function DaftarPropertiAgen() {
     const fetchPropertiByAgen = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:5000/api/properti?agen=${agenId}`);
+        const res = await axios.get(`http://localhost:5000/api/properti?agen_id=${agenId}`);
         if (res.data.success && res.data.data.features) {
           setProperti(res.data.data.features);
         } else {
@@ -45,7 +45,7 @@ export default function DaftarPropertiAgen() {
 
       {properti.length === 0 ? (
         <div className="bg-white p-20 rounded-3xl text-center shadow-sm border border-dashed border-gray-300">
-          <p className="text-gray-400 text-xl font-medium">Data tidak ditemukan untuk Agen ID: {agenId}</p>
+          <p className="text-gray-400 text-xl font-medium">Data properti tidak ditemukan untuk Agen ini.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -54,7 +54,7 @@ export default function DaftarPropertiAgen() {
             return (
               <div key={p.id} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100">
                 <div className="relative h-64">
-                  <img src={p.imageUrl || "https://via.placeholder.com/400x300"} alt={p.title} className="w-full h-full object-cover" />
+                  <img src={p.imageUrl || p.image_url || "https://via.placeholder.com/400x300"} alt={p.title} className="w-full h-full object-cover" />
                   <div className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase">{p.tipe}</div>
                 </div>
                 <div className="p-6">
