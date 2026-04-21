@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, FiEdit3, FiPlus, FiX } from 'react-icons/fi';
+import { FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, FiEdit3, FiPlus, FiX, FiBell, FiInfo } from 'react-icons/fi';
 import ProfileAgen from '../pages/ProfileAgen'; 
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
 
 export default function DashboardAgen() {
   const [properti, setProperti] = useState([]);
@@ -14,6 +17,10 @@ export default function DashboardAgen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
+
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
@@ -36,6 +43,28 @@ export default function DashboardAgen() {
   ];
 
   useEffect(() => {
+    if (user && user.id) {
+      socket.emit('join_room', `agen_${user.id}`);
+      
+      const handleNotify = (data) => {
+        setToast(data.message);
+        setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString(), status: data.status }, ...prev]);
+        fetchProperti();
+
+        setTimeout(() => {
+          setToast(null);
+        }, 5000);
+      };
+
+      socket.on('notify_agen', handleNotify);
+
+      return () => {
+        socket.off('notify_agen', handleNotify);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user || user.role !== 'agen') {
       navigate('/login');
     } else {
@@ -47,9 +76,7 @@ export default function DashboardAgen() {
     try {
       const res = await axios.get(`http://localhost:5000/api/properti?agen=${user.id}&status=all`);
       setProperti(res.data.data.features.map(f => f.properties) || []);
-    } catch (err) {
-      console.error("Gagal load data");
-    }
+    } catch (err) {}
   };
 
   const handleFileChange = (e) => {
@@ -86,16 +113,24 @@ export default function DashboardAgen() {
       
       if (editingId) {
         await axios.put(`http://localhost:5000/api/properti/${editingId}`, data, config);
-        alert("Berhasil diupdate!");
+        setToast("Listing berhasil diupdate!");
       } else {
         await axios.post('http://localhost:5000/api/properti', data, config);
-        alert("Berhasil ditambah! Menunggu persetujuan admin.");
+        
+        socket.emit('new_property_submitted', {
+          agenName: user.name,
+          title: formData.title,
+          message: `Agen ${user.name} menambahkan properti baru: ${formData.title}`
+        });
+
+        setToast("Berhasil ditambah! Menunggu persetujuan admin.");
       }
       
+      setTimeout(() => setToast(null), 5000);
       closeModal();
       fetchProperti();
     } catch (err) {
-      alert(err.response?.data?.message || "Terjadi kesalahan pada server. Cek log terminal backend.");
+      alert(err.response?.data?.message || "Terjadi kesalahan pada server.");
     }
   };
 
@@ -211,6 +246,17 @@ export default function DashboardAgen() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
       
+      {toast && (
+        <div className="fixed top-10 right-10 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[200] transform transition-all duration-500 translate-y-0 opacity-100">
+          <div className="bg-[#D9AB7B] p-2 rounded-full text-slate-900"><FiInfo size={20} /></div>
+          <div>
+            <p className="text-[10px] text-[#D9AB7B] font-black uppercase tracking-widest">Informasi Sistem</p>
+            <p className="font-bold text-sm">{toast}</p>
+          </div>
+          <button onClick={() => setToast(null)} className="ml-4 text-gray-400 hover:text-white"><FiX size={20}/></button>
+        </div>
+      )}
+
       <div className="w-72 bg-white border-r border-gray-100 shadow-xl flex flex-col p-6 z-10 hidden md:flex">
         <div className="mb-10 mt-4 p-6 shadow-xl relative overflow-hidden">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
@@ -234,7 +280,7 @@ export default function DashboardAgen() {
         </nav>
       </div>
 
-      <div className="flex-1 p-8 md:p-12 overflow-y-auto h-screen">
+      <div className="flex-1 p-8 md:p-12 overflow-y-auto h-screen relative">
         <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-10 gap-6">
           <div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 uppercase">
@@ -243,13 +289,48 @@ export default function DashboardAgen() {
             <p className="text-gray-500 font-bold ml-1 mt-2">Halo {user?.name}, selamat bekerja hari ini.</p>
           </div>
           
-          {activeTab === 'daftar' && (
-            <div className="flex gap-3">
-              <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#D9AB7B] text-[#1E293B] px-8 py-4 rounded-[1.5rem] font-black shadow-xl shadow-[#D9AB7B]/20 hover:bg-[#c49a6e] hover:-translate-y-1 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <button onClick={() => setShowNotifDropdown(!showNotifDropdown)} className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-500 hover:text-[#D9AB7B] transition-all relative">
+                <FiBell size={24} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center animate-bounce">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {showNotifDropdown && (
+                <div className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden z-50">
+                  <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
+                    <span className="font-black italic uppercase">Pemberitahuan</span>
+                    <button onClick={() => setNotifications([])} className="text-[10px] text-[#D9AB7B] hover:text-white font-bold uppercase">Bersihkan</button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">Kosong</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className="p-5 border-b border-gray-50 hover:bg-gray-50 flex gap-4 transition-all">
+                          <div className={`mt-1 ${n.status === 'approved' ? 'text-green-500' : n.status === 'rejected' ? 'text-red-500' : 'text-[#D9AB7B]'}`}><FiInfo size={18}/></div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-800">{n.text}</p>
+                            <p className="text-[9px] text-gray-400 font-bold mt-2 uppercase tracking-widest">{n.time}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {activeTab === 'daftar' && (
+              <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#D9AB7B] text-[#1E293B] px-8 py-4 rounded-[1.5rem] font-black shadow-xl shadow-[#D9AB7B]/20 hover:bg-[#c49a6e] hover:-translate-y-1 transition-all h-14">
                 <FiPlus className="text-xl" /> TAMBAH UNIT
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {renderContent()}
@@ -378,4 +459,4 @@ export default function DashboardAgen() {
       )}
     </div>
   );
-}   
+}

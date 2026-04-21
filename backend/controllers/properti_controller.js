@@ -126,7 +126,7 @@ const getPropertiBySlug = async(req, res) => {
             FROM properties p 
             LEFT JOIN agen a ON p.id_agen = a.id 
             LEFT JOIN categories c ON p.id_kategori = c.id
-            WHERE p.slug = $1
+            WHERE p.slug = $1 ORDER BY p.id DESC
         `;
         const { rows } = await db.query(query, [slug]);
 
