@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, FiEdit3, FiPlus, FiX, FiBell, FiInfo } from 'react-icons/fi';
+import { FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck } from 'react-icons/fi';
 import ProfileAgen from '../pages/ProfileAgen'; 
 import { io } from 'socket.io-client';
 
@@ -23,7 +23,9 @@ export default function DashboardAgen() {
   const [toast, setToast] = useState(null);
 
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const token = localStorage.getItem('token');
 
   const initialFormState = {
     title: '', harga: '', lokasi: '', tipe: 'Rumah', id_kategori: 1,
@@ -43,33 +45,30 @@ export default function DashboardAgen() {
   ];
 
   useEffect(() => {
-    if (user && user.id) {
-      socket.emit('join_room', `agen_${user.id}`);
-      
-      const handleNotify = (data) => {
-        setToast(data.message);
-        setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString(), status: data.status }, ...prev]);
-        fetchProperti();
-
-        setTimeout(() => {
-          setToast(null);
-        }, 5000);
-      };
-
-      socket.on('notify_agen', handleNotify);
-
-      return () => {
-        socket.off('notify_agen', handleNotify);
-      };
-    }
-  }, []);
-
-  useEffect(() => {
     if (!user || user.role !== 'agen') {
       navigate('/login');
-    } else {
-      fetchProperti();
+      return;
     }
+
+    fetchProperti();
+
+    socket.emit('join_room', `agen_${user.id}`);
+    
+    const handleNotify = (data) => {
+      setToast(data.message);
+      setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString(), status: data.status }, ...prev]);
+      fetchProperti();
+
+      setTimeout(() => {
+        setToast(null);
+      }, 5000);
+    };
+
+    socket.on('notify_agen', handleNotify);
+
+    return () => {
+      socket.off('notify_agen', handleNotify);
+    };
   }, []);
 
   const fetchProperti = async () => {
@@ -109,7 +108,12 @@ export default function DashboardAgen() {
     });
 
     try {
-      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      const config = { 
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}` 
+        } 
+      };
       
       if (editingId) {
         await axios.put(`http://localhost:5000/api/properti/${editingId}`, data, config);
@@ -169,14 +173,28 @@ export default function DashboardAgen() {
     }
     
     try {
-      await axios.delete(`http://localhost:5000/api/properti/${propertyToDelete.id}`);
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      if (deleteReason === "Properti sudah laku terjual / tersewa") {
+        await axios.put(`http://localhost:5000/api/properti/${propertyToDelete.id}/status`, { status: 'sold' }, config);
+        setToast("Properti berhasil dipindahkan ke Riwayat Penjualan!");
+      } else {
+        await axios.delete(`http://localhost:5000/api/properti/${propertyToDelete.id}`, config);
+        setToast("Properti berhasil dihapus permanen dari sistem.");
+      }
+      
+      setTimeout(() => setToast(null), 5000);
       setShowDeleteModal(false);
       setPropertyToDelete(null);
       setDeleteReason('');
       fetchProperti();
     } catch (err) {
-      alert("Gagal menghapus properti");
+      alert("Gagal memproses permintaan.");
     }
+  };
+
+  const formatRupiah = (angka) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
   };
 
   const renderContent = () => {
@@ -184,7 +202,7 @@ export default function DashboardAgen() {
       return <ProfileAgen />;
     }
 
-    if (activeTab !== 'daftar') {
+    if (activeTab === 'statistik') {
       return (
         <div className="flex flex-col items-center justify-center h-96 bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-10 text-center">
           <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6">
@@ -195,6 +213,10 @@ export default function DashboardAgen() {
         </div>
       );
     }
+
+    const daftarProperti = properti.filter(p => p.status !== 'sold');
+    const terjualProperti = properti.filter(p => p.status === 'sold');
+    const dataToDisplay = activeTab === 'daftar' ? daftarProperti : terjualProperti;
 
     return (
       <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
@@ -207,7 +229,7 @@ export default function DashboardAgen() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {properti.map((p) => (
+            {dataToDisplay.map((p) => (
               <tr key={p.id} className="hover:bg-blue-50/30 transition">
                 <td className="p-6">
                   <div className="flex items-center gap-5">
@@ -219,26 +241,43 @@ export default function DashboardAgen() {
                   </div>
                 </td>
                 <td className="p-6 text-center">
-                  <div className="font-black text-gray-800 text-lg">Rp {parseInt(p.harga).toLocaleString()}</div>
-                  <span className={`text-[9px] px-3 py-1 rounded-full font-black uppercase ${p.status === 'approved' ? 'bg-green-100 text-green-600' : p.status === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
-                    {p.status}
+                  <div className="font-black text-gray-800 text-lg">{formatRupiah(p.harga)}</div>
+                  <span className={`text-[9px] px-3 py-1 rounded-full font-black uppercase ${
+                    p.status === 'approved' ? 'bg-green-100 text-green-600' : 
+                    p.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
+                    p.status === 'sold' ? 'bg-blue-100 text-blue-600' : 
+                    'bg-red-100 text-red-600'
+                  }`}>
+                    {p.status === 'sold' ? 'Terjual / Tersewa' : p.status}
                   </span>
                 </td>
                 <td className="p-6">
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => openEditModal(p)} className="flex items-center gap-2 px-5 py-2 bg-amber-50 text-amber-600 rounded-xl font-black hover:bg-amber-500 hover:text-white transition text-[10px]">
-                      <FiEdit3 /> EDIT
-                    </button>
-                    <button onClick={() => handleDeleteClick(p)} className="flex items-center gap-2 px-5 py-2 bg-red-50 text-red-600 rounded-xl font-black hover:bg-red-500 hover:text-white transition text-[10px]">
-                      <FiTrash2 /> HAPUS
-                    </button>
+                    {p.status !== 'sold' ? (
+                      <>
+                        <button onClick={() => openEditModal(p)} className="flex items-center gap-2 px-5 py-2 bg-amber-50 text-amber-600 rounded-xl font-black hover:bg-amber-500 hover:text-white transition text-[10px]">
+                          <FiEdit3 /> EDIT
+                        </button>
+                        <button onClick={() => handleDeleteClick(p)} className="flex items-center gap-2 px-5 py-2 bg-red-50 text-red-600 rounded-xl font-black hover:bg-red-500 hover:text-white transition text-[10px]">
+                          <FiTrash2 /> HAPUS
+                        </button>
+                      </>
+                    ) : (
+                      <span className="flex items-center gap-2 px-5 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase">
+                        <FiCheck /> Selesai
+                      </span>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {properti.length === 0 && <div className="p-20 text-center text-gray-300 font-black italic uppercase">Belum ada data</div>}
+        {dataToDisplay.length === 0 && (
+          <div className="p-20 text-center text-gray-300 font-black italic uppercase">
+            Belum ada data {activeTab === 'terjual' ? 'penjualan' : 'properti'}
+          </div>
+        )}
       </div>
     );
   };
@@ -368,7 +407,7 @@ export default function DashboardAgen() {
             </div>
 
             <div className="flex gap-4">
-              <button onClick={confirmDelete} className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-500/30 hover:bg-red-700 transition">HAPUS PERMANEN</button>
+              <button onClick={confirmDelete} className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-500/30 hover:bg-red-700 transition">KONFIRMASI</button>
               <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-lg hover:bg-gray-200 transition">BATAL</button>
             </div>
           </div>

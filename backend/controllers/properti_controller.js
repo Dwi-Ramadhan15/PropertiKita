@@ -290,7 +290,7 @@ const updateStatusProperti = async(req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
-        if (!['approved', 'rejected', 'pending'].includes(status)) {
+        if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
             return res.status(400).json({ success: false, message: "Status tidak valid" });
         }
         await db.query("UPDATE properties SET status = $1 WHERE id = $2", [status, id]);
