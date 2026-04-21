@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/user_controller');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const { getAllUsers } = require('../controllers/user_controller');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -25,6 +26,7 @@ const authenticateToken = (req, res, next) => {
 router.post('/register', upload.single('foto_profil'), userController.register);
 router.post('/login', userController.login);
 router.post('/verify-otp', userController.verifyOtp);
+router.get('/', getAllUsers);
 
 router.get('/profile', authenticateToken, userController.getProfile);
 router.get('/:id/profile', userController.getUserProfile);

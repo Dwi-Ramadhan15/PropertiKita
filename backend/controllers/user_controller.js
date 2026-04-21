@@ -129,6 +129,27 @@ const getProfile = async(req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
+
+const getAllUsers = async (req, res) => {
+    try {
+        const { role } = req.query; // 'user' atau 'agen'
+        const query = `
+            SELECT id, name, email, phone_number, role, foto_profil, is_verified 
+            FROM users 
+            WHERE role = $1 
+            ORDER BY id DESC
+        `;
+        const { rows } = await db.query(query, [role]);
+        
+        res.status(200).json({ 
+            success: true, 
+            data: rows 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 const getUserProfile = async(req, res) => {
     try {
         const { id } = req.params;
@@ -214,4 +235,4 @@ const updateAvatar = async(req, res) => {
     }
 };
 
-module.exports = { register, login, verifyOtp, getProfile, getUserProfile, updateProfile, updateAvatar };
+module.exports = { register, login, verifyOtp, getAllUsers, getProfile, getUserProfile, updateProfile, updateAvatar };
