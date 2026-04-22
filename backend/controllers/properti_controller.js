@@ -30,8 +30,7 @@ const getProperti = async(req, res) => {
 
         let query = "SELECT p.*, c.nama as nama_kategori FROM properties p LEFT JOIN categories c ON p.id_kategori = c.id WHERE 1=1";
         const queryParams = [];
-
-        // PERBAIKAN LOGIKA STATUS DI SINI
+        //perbaikan statursd
         if (status && status !== 'all') {
             // Kalau statusnya spesifik (pending/approved/rejected)
             queryParams.push(status);
@@ -286,18 +285,54 @@ const updateProperti = async(req, res) => {
     }
 };
 
-const updateStatusProperti = async(req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-        if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
-            return res.status(400).json({ success: false, message: "Status tidak valid" });
-        }
-        await db.query("UPDATE properties SET status = $1 WHERE id = $2", [status, id]);
-        res.status(200).json({ success: true, message: `Properti berhasil di ${status}!` });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+const updateStatusProperti = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
+      return res.status(400).json({ success: false, message: "Status tidak valid" });
     }
+
+    // Update status dan ambil data title serta id_agen (ID dari tabel agen)
+    const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
+    const result = await db.query(query, [status, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    }
+
+    const properti = result.rows[0];
+
+    // LOGIC NOTIFIKASI SOCKET.IO
+    if (req.io) {
+      // Room menggunakan ID agen, misal: agen_1
+      const roomName = `agen_${properti.id_agen}`;
+      
+      let msg = "";
+      if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
+      else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
+      else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
+
+      const payload = {
+        status: status,
+        message: msg,
+        title: properti.title
+      };
+
+      req.io.to(roomName).emit('notify_agen', payload);
+      console.log(`[SOCKET] Notif terkirim ke ${roomName}`);
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Status berhasil diubah menjadi ${status}`,
+      data: properti 
+    });
+  } catch (error) {
+    console.error("Update Status Error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 const deleteProperti = async(req, res) => {

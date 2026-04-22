@@ -1,51 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React from 'react';
 import { FaWhatsapp, FaHome, FaUserCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import useAgen from '../hooks/useAgen';
 
 export default function Agen() {
-  const [daftarAgen, setDaftarAgen] = useState([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Mengambil data user yang sedang login dari localStorage
-  const userStr = localStorage.getItem('user');
-  const currentUser = userStr ? JSON.parse(userStr) : null;
-
-  const formatFotoUrl = (foto) => {
-    if (!foto) return null;
-    if (foto.startsWith('http')) return foto;
-    return `http://127.0.0.1:9000/propertikita/${foto}`;
-  };
-
-  useEffect(() => {
-    const fetchAgen = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/agen');
-        if (res.data.success || res.data.data) {
-          setDaftarAgen(res.data.data || res.data);
-        }
-      } catch (error) {
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAgen();
-  }, []);
-
-  const handleWhatsApp = (ag) => {
-    const token = localStorage.getItem('token');
-
-    if (!token || !currentUser) {
-      alert("Wajib Login! Bestie harus masuk akun dulu untuk menghubungi agen.");
-      navigate('/login');
-    } else {
-      const phone = ag.no_whatsapp.replace(/\D/g, ''); 
-      // Menambahkan nama user yang sedang login ke dalam template pesan
-      const message = encodeURIComponent(`Halo ${ag.nama_agen}, perkenalkan saya ${currentUser.name}. Saya tertarik dengan properti Anda yang ada di PropertiKita dan ingin berdiskusi lebih lanjut.`);
-      window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-    }
-  };
+  const {
+    daftarAgen,
+    loading,
+    formatFotoUrl,
+    handleWhatsApp
+  } = useAgen(navigate);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -64,7 +30,9 @@ export default function Agen() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3B82F6]"></div>
           </div>
         ) : daftarAgen.length === 0 ? (
-          <div className="text-center py-20 text-slate-400 font-medium">Belum ada agen yang terdaftar.</div>
+          <div className="text-center py-20 text-slate-400 font-medium">
+            Belum ada agen yang terdaftar.
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {daftarAgen.map((ag) => (
@@ -74,6 +42,7 @@ export default function Agen() {
               >
                 <div className="relative w-36 h-36 mx-auto mb-8">
                   <div className="absolute inset-0 rounded-full border-2 border-[#3B82F6] border-dashed animate-[spin_10s_linear_infinite] opacity-30"></div>
+                  
                   <div className="w-full h-full rounded-full overflow-hidden p-2 bg-white relative z-10">
                     {formatFotoUrl(ag.foto_profil) ? (
                       <img 
@@ -88,11 +57,17 @@ export default function Agen() {
                       </div>
                     )}
                   </div>
+
                   <div className="absolute bottom-3 right-3 bg-green-500 w-6 h-6 rounded-full border-4 border-white shadow-sm z-20"></div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#1E293B] mb-1">{ag.nama_agen}</h3>
-                <p className="text-[#3B82F6] font-bold text-xs uppercase tracking-[0.2em] mb-8">Certified Agent</p>
+                <h3 className="text-2xl font-bold text-[#1E293B] mb-1">
+                  {ag.nama_agen}
+                </h3>
+
+                <p className="text-[#3B82F6] font-bold text-xs uppercase tracking-[0.2em] mb-8">
+                  Certified Agent
+                </p>
                 
                 <div className="flex flex-col gap-4">
                   <button 
