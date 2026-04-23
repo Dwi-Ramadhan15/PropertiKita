@@ -1,0 +1,144 @@
+// src/hooks/usePropertyDetail.js
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+export default function usePropertyDetail(slug) {
+  const navigate = useNavigate();
+
+  const [item, setItem] = useState(null);
+  const [agen, setAgen] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentImage, setCurrentImage] = useState(0);
+
+  // ===============================
+  // FETCH DETAIL PROPERTI
+  // ===============================
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/properti/${slug}`
+        );
+
+        setItem(res.data.data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetail();
+  }, [slug]);
+
+  // ===============================
+  // FETCH DATA AGEN
+  // ===============================
+  useEffect(() => {
+    if (!item?.id_agen) return;
+
+    const fetchAgen = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/api/agen"
+        );
+
+        const found = res.data.data.find(
+          (a) => Number(a.id) === Number(item.id_agen)
+        );
+
+        setAgen(found || null);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchAgen();
+  }, [item]);
+
+  // ===============================
+  // FORMAT FOTO AGEN
+  // ===============================
+  const formatFotoUrl = (foto) => {
+    if (!foto) return null;
+
+    if (foto.startsWith("http")) return foto;
+
+    return `http://127.0.0.1:9000/propertikita/${foto}`;
+  };
+
+  // ===============================
+  // HANDLE IMAGE PROPERTY
+  // ===============================
+  const images = item?.images?.length
+    ? item.images
+    : item?.gallery?.length
+    ? item.gallery
+    : item?.image_url
+    ? [item.image_url]
+    : [];
+
+  // ===============================
+  // AUTO SLIDE
+  // ===============================
+  useEffect(() => {
+    if (images.length < 2) return;
+
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % images.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [images]);
+
+  // ===============================
+  // MAP POSITION
+  // ===============================
+  const position = [
+    parseFloat(item?.latitude) || 0,
+    parseFloat(item?.longitude) || 0,
+  ];
+
+  const mapsUrl = `https://www.google.com/maps?q=${item?.latitude},${item?.longitude}`;
+
+  // ===============================
+  // WA URL
+  // ===============================
+  const waUrl = `https://wa.me/${item?.no_whatsapp?.replace(
+    /^0/,
+    "62"
+  )}`;
+
+  // ===============================
+  // HUBUNGI AGEN
+  // ===============================
+  const handleHubungiAgen = () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login", {
+        state: {
+          from: `/property/${slug}`,
+        },
+      });
+
+      return;
+    }
+
+    window.open(waUrl, "_blank");
+  };
+
+  return {
+    item,
+    agen,
+    loading,
+    images,
+    currentImage,
+    setCurrentImage,
+    position,
+    mapsUrl,
+    handleHubungiAgen,
+    formatFotoUrl,
+  };
+}
