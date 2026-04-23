@@ -1,15 +1,7 @@
-<<<<<<< HEAD
-// src/pages/Agen.jsx
-import React from "react";
-import { FaWhatsapp, FaHome, FaUserCircle } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import useAgen from "../hooks/useAgen";
-=======
 import React from 'react';
 import { FaWhatsapp, FaHome, FaUserCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import useAgen from '../hooks/useAgen';
->>>>>>> ayu
 
 export default function Agen() {
   const navigate = useNavigate();
@@ -18,12 +10,7 @@ export default function Agen() {
     daftarAgen,
     loading,
     formatFotoUrl,
-<<<<<<< HEAD
-    handleWhatsApp,
-    handleLihatProperti,
-=======
     handleWhatsApp
->>>>>>> ayu
   } = useAgen(navigate);
 
   return (
@@ -32,10 +19,6 @@ export default function Agen() {
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           Agen Properti Profesional
         </h1>
-<<<<<<< HEAD
-
-=======
->>>>>>> ayu
         <p className="text-blue-50 text-lg md:text-xl max-w-2xl mx-auto opacity-90">
           Tim agen berpengalaman siap membantu Anda menemukan properti impian
         </p>
@@ -53,30 +36,12 @@ export default function Agen() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {daftarAgen.map((ag) => (
-<<<<<<< HEAD
-              <div
-                key={ag.id}
-=======
               <div 
                 key={ag.id} 
->>>>>>> ayu
                 className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-10 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 text-center group"
               >
                 <div className="relative w-36 h-36 mx-auto mb-8">
                   <div className="absolute inset-0 rounded-full border-2 border-[#3B82F6] border-dashed animate-[spin_10s_linear_infinite] opacity-30"></div>
-<<<<<<< HEAD
-
-                  <div className="w-full h-full rounded-full overflow-hidden p-2 bg-white relative z-10">
-                    {formatFotoUrl(ag.foto_profil) ? (
-                      <img
-                        src={formatFotoUrl(ag.foto_profil)}
-                        alt={ag.nama_agen}
-                        className="w-full h-full rounded-full object-cover"
-                        onError={(e) => {
-                          e.target.src =
-                            "https://via.placeholder.com/150";
-                        }}
-=======
                   
                   <div className="w-full h-full rounded-full overflow-hidden p-2 bg-white relative z-10">
                     {formatFotoUrl(ag.foto_profil) ? (
@@ -85,7 +50,6 @@ export default function Agen() {
                         alt={ag.nama_agen} 
                         className="w-full h-full rounded-full object-cover"
                         onError={(e) => { e.target.src = "https://via.placeholder.com/150" }}
->>>>>>> ayu
                       />
                     ) : (
                       <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
@@ -104,36 +68,21 @@ export default function Agen() {
                 <p className="text-[#3B82F6] font-bold text-xs uppercase tracking-[0.2em] mb-8">
                   Certified Agent
                 </p>
-<<<<<<< HEAD
-
-                <div className="flex flex-col gap-4">
-                  <button
-=======
                 
                 <div className="flex flex-col gap-4">
                   <button 
->>>>>>> ayu
                     onClick={() => handleWhatsApp(ag)}
                     className="flex items-center justify-center gap-3 bg-[#22C55E] hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95"
                   >
                     <FaWhatsapp size={22} /> WhatsApp
                   </button>
 
-<<<<<<< HEAD
-<button
-  onClick={() => navigate(`/properti?agen=${ag.user_id}`)}
-  className="flex items-center justify-center gap-3 bg-[#1E293B] hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all active:scale-95"
->
-  <FaHome size={18} /> Lihat Properti
-</button>
-=======
                   <button 
                     onClick={() => navigate(`/properti?agen=${ag.id}`)}
                     className="flex items-center justify-center gap-3 bg-[#1E293B] hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all active:scale-95"
                   >
                     <FaHome size={18} /> Lihat Properti
                   </button>
->>>>>>> ayu
                 </div>
               </div>
             ))}

@@ -1,27 +1,3 @@
-<<<<<<< HEAD
-import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FiMail, FiLock, FiUser, FiPhone, FiCamera } from 'react-icons/fi';
-import bgImage from '../assets/rumah-mewah-Armada.jpg'; 
-
-import useRegister from '../hooks/useRegister';
-
-export default function Register() {
-  const navigate = useNavigate();
-
-  const {
-    formData,
-    setFormData,
-    preview,
-    handleImageChange,
-    handleRegister,
-    handleVerifyOtp,
-    showOtpModal,
-    setShowOtpModal,
-    otpCode,
-    setOtpCode
-  } = useRegister(navigate);
-=======
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -94,7 +70,6 @@ export default function Register() {
       alert("Verifikasi Gagal: " + (err.response?.data?.message || "OTP Salah"));
     }
   };
->>>>>>> ayu
 
   return (
     <div 
@@ -109,11 +84,7 @@ export default function Register() {
         
         <form onSubmit={handleRegister} className="space-y-4">
           
-<<<<<<< HEAD
-          {/* FOTO PROFIL */}
-=======
           {/* INPUT FOTO PROFIL - Lingkaran di Tengah */}
->>>>>>> ayu
           <div className="flex flex-col items-center mb-6">
             <div className="relative group">
               <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
@@ -131,20 +102,12 @@ export default function Register() {
             <p className="text-xs text-gray-400 mt-2">Tambah Foto Profil</p>
           </div>
 
-<<<<<<< HEAD
-          {/* ROLE */}
-=======
->>>>>>> ayu
           <div className="flex bg-gray-100 p-1 rounded-2xl mb-6">
             <button 
               type="button"
               className={`flex-1 py-3 rounded-xl font-bold transition ${formData.role === 'user' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
               onClick={() => setFormData({...formData, role: 'user'})}
             >User Biasa</button>
-<<<<<<< HEAD
-
-=======
->>>>>>> ayu
             <button 
               type="button"
               className={`flex-1 py-3 rounded-xl font-bold transition ${formData.role === 'agen' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
@@ -152,11 +115,7 @@ export default function Register() {
             >Agen Properti</button>
           </div>
 
-<<<<<<< HEAD
-          {/* INPUT */}
-=======
           {/* ... Input Name, Email, WhatsApp, Password tetap sama seperti kode kamu ... */}
->>>>>>> ayu
           <div className="relative">
             <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
@@ -203,15 +162,6 @@ export default function Register() {
         </p>
       </div>
 
-<<<<<<< HEAD
-      {/* OTP MODAL */}
-      {showOtpModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center">
-            <h3 className="text-2xl font-black mb-2">Masukkan OTP</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Kode dikirim ke {formData.role === 'user' ? formData.whatsapp : formData.email}
-=======
       {/* ... Modal OTP tetap sama ... */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -219,27 +169,12 @@ export default function Register() {
             <h3 className="text-2xl font-black text-gray-900 mb-2">Masukkan OTP</h3>
             <p className="text-gray-500 text-sm mb-6">
               Kode telah dikirim ke {formData.role === 'user' ? formData.whatsapp : formData.email}
->>>>>>> ayu
             </p>
             
             <form onSubmit={handleVerifyOtp}>
               <input 
                 type="text" 
                 maxLength="6"
-<<<<<<< HEAD
-                className="w-full text-center text-3xl tracking-[0.5em] font-bold p-4 mb-6 bg-gray-50 rounded-2xl"
-                onChange={(e) => setOtpCode(e.target.value)} 
-                required 
-              />
-              <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black">
-                Verifikasi
-              </button>
-            </form>
-
-            <button 
-              onClick={() => setShowOtpModal(false)}
-              className="mt-4 text-gray-400 text-sm font-bold"
-=======
                 placeholder="• • • • • •" 
                 className="w-full text-center text-3xl tracking-[0.5em] font-bold p-4 mb-6 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 border border-transparent"
                 onChange={(e) => setOtpCode(e.target.value)} 
@@ -256,7 +191,6 @@ export default function Register() {
             <button 
               onClick={() => setShowOtpModal(false)}
               className="mt-4 text-gray-400 text-sm hover:text-gray-600 font-bold"
->>>>>>> ayu
             >
               Batal
             </button>

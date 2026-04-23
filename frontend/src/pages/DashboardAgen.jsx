@@ -1,42 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
-import { FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck } from 'react-icons/fi';
-=======
 import { 
   FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, 
   FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck, FiImage 
 } from 'react-icons/fi';
->>>>>>> ayu
 import ProfileAgen from '../pages/ProfileAgen'; 
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
-<<<<<<< HEAD
-=======
 const FASILITAS_PRESET = [
   'AC', 'Parkir', 'Keamanan 24/7', 'Kolam Renang', 'WiFi', 
   'Taman', 'Balkon', 'Dapur', 'CCTV'
 ];
->>>>>>> ayu
 
 export default function DashboardAgen() {
   const [properti, setProperti] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
-<<<<<<< HEAD
-  const [activeTab, setActiveTab] = useState('daftar');
-  
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [propertyToDelete, setPropertyToDelete] = useState(null);
-  const [deleteReason, setDeleteReason] = useState('');
-
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const [toast, setToast] = useState(null);
-=======
   const [previews, setPreviews] = useState([]);
   const [activeTab, setActiveTab] = useState('daftar');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -46,7 +28,6 @@ export default function DashboardAgen() {
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [toast, setToast] = useState(null);
   const [tempFasilitas, setTempFasilitas] = useState('');
->>>>>>> ayu
 
   const navigate = useNavigate();
   const userStr = localStorage.getItem('user');
@@ -57,11 +38,7 @@ export default function DashboardAgen() {
     title: '', harga: '', lokasi: '', tipe: 'Rumah', id_kategori: 1,
     kamar_tidur: 0, kamar_mandi: 0, luas: 0, deskripsi: '',
     latitude: -5.3971, longitude: 105.2668,
-<<<<<<< HEAD
-    kolam_renang: false, wifi: false, keamanan_24jam: false, parkir: false, ac: false
-=======
     fasilitas: [] 
->>>>>>> ayu
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -74,8 +51,6 @@ export default function DashboardAgen() {
     "Lainnya"
   ];
 
-<<<<<<< HEAD
-=======
   const toggleFasilitas = (item) => {
     setFormData(prev => {
       const isExist = prev.fasilitas.includes(item);
@@ -107,57 +82,29 @@ export default function DashboardAgen() {
     });
   };
 
->>>>>>> ayu
   useEffect(() => {
     if (!user || user.role !== 'agen') {
       navigate('/login');
       return;
     }
-<<<<<<< HEAD
-
     fetchProperti();
-
-=======
-    fetchProperti();
->>>>>>> ayu
     socket.emit('join_room', `agen_${user.id}`);
     
     const handleNotify = (data) => {
       setToast(data.message);
       setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString(), status: data.status }, ...prev]);
       fetchProperti();
-<<<<<<< HEAD
-
-      setTimeout(() => {
-        setToast(null);
-      }, 5000);
-    };
-
-    socket.on('notify_agen', handleNotify);
-
-    return () => {
-      socket.off('notify_agen', handleNotify);
-    };
-=======
       setTimeout(() => { setToast(null); }, 5000);
     };
 
     socket.on('notify_agen', handleNotify);
     return () => { socket.off('notify_agen', handleNotify); };
->>>>>>> ayu
   }, []);
 
   const fetchProperti = async () => {
     try {
       const res = await axios.get(`http://localhost:5000/api/properti?agen=${user.id}&status=all`);
       setProperti(res.data.data.features.map(f => f.properties) || []);
-<<<<<<< HEAD
-    } catch (err) {}
-  };
-
-  const handleFileChange = (e) => {
-    setSelectedFiles(e.target.files);
-=======
     } catch (err) { console.error(err); }
   };
 
@@ -182,7 +129,6 @@ export default function DashboardAgen() {
     const updatedPreviews = [...previews];
     updatedPreviews.splice(index, 1);
     setPreviews(updatedPreviews);
->>>>>>> ayu
   };
 
   const handleSubmit = async (e) => {
@@ -199,25 +145,15 @@ export default function DashboardAgen() {
         data.append(key, 0);
       } else if (['latitude', 'longitude'].includes(key) && formData[key] === '') {
         data.append(key, key === 'latitude' ? -5.3971 : 105.2668);
-<<<<<<< HEAD
-=======
       } else if (key === 'fasilitas') {
         data.append(key, JSON.stringify(formData[key]));
->>>>>>> ayu
       } else {
         data.append(key, formData[key]);
       }
     });
     
     data.append('id_agen', user.id);
-<<<<<<< HEAD
-
-    Array.from(selectedFiles).forEach((file) => {
-      data.append('images', file); 
-    });
-=======
     selectedFiles.forEach((file) => { data.append('images', file); });
->>>>>>> ayu
 
     try {
       const config = { 
@@ -232,31 +168,17 @@ export default function DashboardAgen() {
         setToast("Listing berhasil diupdate!");
       } else {
         await axios.post('http://localhost:5000/api/properti', data, config);
-<<<<<<< HEAD
-        
-=======
->>>>>>> ayu
         socket.emit('new_property_submitted', {
           agenName: user.name,
           title: formData.title,
           message: `Agen ${user.name} menambahkan properti baru: ${formData.title}`
         });
-<<<<<<< HEAD
-
-        setToast("Berhasil ditambah! Menunggu persetujuan admin.");
-      }
-      
-      setTimeout(() => setToast(null), 5000);
-      closeModal();
-      fetchProperti();
-=======
         setToast("Berhasil ditambah! Menunggu persetujuan admin.");
       }
       
       closeModal();
       fetchProperti();
       setTimeout(() => setToast(null), 5000);
->>>>>>> ayu
     } catch (err) {
       alert(err.response?.data?.message || "Terjadi kesalahan pada server.");
     }
@@ -266,20 +188,14 @@ export default function DashboardAgen() {
     setShowModal(false);
     setEditingId(null);
     setSelectedFiles([]);
-<<<<<<< HEAD
-    setFormData(initialFormState);
-=======
     previews.forEach(url => { if(url.startsWith('blob:')) URL.revokeObjectURL(url) });
     setPreviews([]);
     setFormData(initialFormState);
     setTempFasilitas('');
->>>>>>> ayu
   };
 
   const openEditModal = (p) => {
     setEditingId(p.id);
-<<<<<<< HEAD
-=======
     let currentFasilitas = [];
     try {
       currentFasilitas = typeof p.fasilitas === 'string' ? JSON.parse(p.fasilitas) : (p.fasilitas || []);
@@ -287,19 +203,10 @@ export default function DashboardAgen() {
       currentFasilitas = [];
     }
 
->>>>>>> ayu
     setFormData({
       title: p.title, harga: p.harga, lokasi: p.lokasi, tipe: p.tipe, id_kategori: p.id_kategori || 1,
       kamar_tidur: p.kamar_tidur || 0, kamar_mandi: p.kamar_mandi || 0, luas: p.luas || 0, 
       deskripsi: p.deskripsi || '', latitude: p.latitude || -5.3971, longitude: p.longitude || 105.2668, 
-<<<<<<< HEAD
-      kolam_renang: Boolean(p.kolam_renang),
-      wifi: Boolean(p.wifi),
-      keamanan_24jam: Boolean(p.keamanan_24jam),
-      parkir: Boolean(p.parkir),
-      ac: Boolean(p.ac)
-    });
-=======
       fasilitas: currentFasilitas
     });
 
@@ -313,7 +220,6 @@ export default function DashboardAgen() {
     }
     
     setPreviews(allPreviews);
->>>>>>> ayu
     setShowModal(true);
   };
 
@@ -328,40 +234,19 @@ export default function DashboardAgen() {
       alert("Silakan pilih alasan penghapusan terlebih dahulu.");
       return;
     }
-<<<<<<< HEAD
-    
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-
-=======
-    try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
->>>>>>> ayu
       if (deleteReason === "Properti sudah laku terjual / tersewa") {
         await axios.put(`http://localhost:5000/api/properti/${propertyToDelete.id}/status`, { status: 'sold' }, config);
         setToast("Properti berhasil dipindahkan ke Riwayat Penjualan!");
       } else {
         await axios.delete(`http://localhost:5000/api/properti/${propertyToDelete.id}`, config);
-<<<<<<< HEAD
-        setToast("Properti berhasil dihapus permanen dari sistem.");
-      }
-      
-      setTimeout(() => setToast(null), 5000);
-      setShowDeleteModal(false);
-      setPropertyToDelete(null);
-      setDeleteReason('');
-      fetchProperti();
-    } catch (err) {
-      alert("Gagal memproses permintaan.");
-    }
-=======
         setToast("Properti berhasil dihapus permanen.");
       }
       setShowDeleteModal(false);
       fetchProperti();
       setTimeout(() => setToast(null), 5000);
     } catch (err) { alert("Gagal memproses permintaan."); }
->>>>>>> ayu
   };
 
   const formatRupiah = (angka) => {
@@ -369,14 +254,7 @@ export default function DashboardAgen() {
   };
 
   const renderContent = () => {
-<<<<<<< HEAD
-    if (activeTab === 'profil') {
-      return <ProfileAgen />;
-    }
-
-=======
     if (activeTab === 'profil') return <ProfileAgen />;
->>>>>>> ayu
     if (activeTab === 'statistik') {
       return (
         <div className="flex flex-col items-center justify-center h-96 bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-10 text-center">
@@ -384,24 +262,14 @@ export default function DashboardAgen() {
             <FiPieChart className="text-4xl" />
           </div>
           <h3 className="text-2xl font-black text-gray-800 mb-2 uppercase italic">Segera Hadir</h3>
-<<<<<<< HEAD
-          <p className="text-gray-500 font-medium">Fitur ini sedang dalam tahap pengembangan. Pantau terus pembaruannya!</p>
-=======
           <p className="text-gray-500 font-medium">Fitur ini sedang dalam tahap pengembangan.</p>
->>>>>>> ayu
         </div>
       );
     }
 
-<<<<<<< HEAD
-    const daftarProperti = properti.filter(p => p.status !== 'sold');
-    const terjualProperti = properti.filter(p => p.status === 'sold');
-    const dataToDisplay = activeTab === 'daftar' ? daftarProperti : terjualProperti;
-=======
     const dataToDisplay = activeTab === 'daftar' 
       ? properti.filter(p => p.status !== 'sold') 
       : properti.filter(p => p.status === 'sold');
->>>>>>> ayu
 
     return (
       <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
@@ -418,11 +286,7 @@ export default function DashboardAgen() {
               <tr key={p.id} className="hover:bg-blue-50/30 transition">
                 <td className="p-6">
                   <div className="flex items-center gap-5">
-<<<<<<< HEAD
-                    <img src={p.image_url || p.imageUrl} className="w-24 h-20 rounded-[1.2rem] object-cover bg-gray-100" />
-=======
                     <img src={p.image_url || p.imageUrl} className="w-24 h-20 rounded-[1.2rem] object-cover bg-gray-100" alt="prop" />
->>>>>>> ayu
                     <div>
                       <div className="font-black text-xl text-gray-800">{p.title}</div>
                       <div className="text-xs font-bold text-blue-500 uppercase">{p.tipe} • {p.lokasi}</div>
@@ -434,12 +298,7 @@ export default function DashboardAgen() {
                   <span className={`text-[9px] px-3 py-1 rounded-full font-black uppercase ${
                     p.status === 'approved' ? 'bg-green-100 text-green-600' : 
                     p.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
-<<<<<<< HEAD
-                    p.status === 'sold' ? 'bg-blue-100 text-blue-600' : 
-                    'bg-red-100 text-red-600'
-=======
                     p.status === 'sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'
->>>>>>> ayu
                   }`}>
                     {p.status === 'sold' ? 'Terjual / Tersewa' : p.status}
                   </span>
@@ -466,28 +325,14 @@ export default function DashboardAgen() {
             ))}
           </tbody>
         </table>
-<<<<<<< HEAD
-        {dataToDisplay.length === 0 && (
-          <div className="p-20 text-center text-gray-300 font-black italic uppercase">
-            Belum ada data {activeTab === 'terjual' ? 'penjualan' : 'properti'}
-          </div>
-        )}
-=======
->>>>>>> ayu
       </div>
     );
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
-<<<<<<< HEAD
-      
-      {toast && (
-        <div className="fixed top-10 right-10 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[200] transform transition-all duration-500 translate-y-0 opacity-100">
-=======
       {toast && (
         <div className="fixed top-10 right-10 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-right duration-300">
->>>>>>> ayu
           <div className="bg-[#D9AB7B] p-2 rounded-full text-slate-900"><FiInfo size={20} /></div>
           <div>
             <p className="text-[10px] text-[#D9AB7B] font-black uppercase tracking-widest">Informasi Sistem</p>
@@ -498,25 +343,6 @@ export default function DashboardAgen() {
       )}
 
       <div className="w-72 bg-white border-r border-gray-100 shadow-xl flex flex-col p-6 z-10 hidden md:flex">
-<<<<<<< HEAD
-        <div className="mb-10 mt-4 p-6 shadow-xl relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
-          <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase relative z-10">Panel Agen</h2>
-          <p className="text-[#D9AB7B] font-bold text-[10px] uppercase tracking-widest mt-1 relative z-10">Sistem Manajemen Properti</p>
-        </div>
-
-        <nav className="flex flex-col gap-3 flex-1">
-          <button onClick={() => setActiveTab('daftar')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'daftar' ? 'bg-[#D9AB7B] text-[#1E293B] shadow-lg shadow-[#D9AB7B]/30' : 'text-gray-500 hover:bg-gray-50 hover:text-[#D9AB7B]'}`}>
-            <FiList className="text-xl" /> Daftar Properti
-          </button>
-          <button onClick={() => setActiveTab('terjual')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'terjual' ? 'bg-[#D9AB7B] text-[#1E293B] shadow-lg shadow-[#D9AB7B]/30' : 'text-gray-500 hover:bg-gray-50 hover:text-[#D9AB7B]'}`}>
-            <FiCheckSquare className="text-xl" /> Properti Terjual
-          </button>
-          <button onClick={() => setActiveTab('statistik')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'statistik' ? 'bg-[#D9AB7B] text-[#1E293B] shadow-lg shadow-[#D9AB7B]/30' : 'text-gray-500 hover:bg-gray-50 hover:text-[#D9AB7B]'}`}>
-            <FiPieChart className="text-xl" /> Statistik Agen
-          </button>
-          <button onClick={() => setActiveTab('profil')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'profil' ? 'bg-[#D9AB7B] text-[#1E293B] shadow-lg shadow-[#D9AB7B]/30' : 'text-gray-500 hover:bg-gray-50 hover:text-[#D9AB7B]'}`}>
-=======
         <div className="mb-10 mt-4 p-6 shadow-xl relative overflow-hidden bg-white-200 rounded-3xl">
           <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase relative z-10">Panel Agen</h2>
           <p className="text-[#D9AB7B] font-bold text-[10px] uppercase tracking-widest mt-1 relative z-10">Manajemen Properti</p>
@@ -529,7 +355,6 @@ export default function DashboardAgen() {
             <FiCheckSquare className="text-xl" /> Riwayat Penjualan
           </button>
           <button onClick={() => setActiveTab('profil')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'profil' ? 'bg-[#D9AB7B] text-[#1E293B] shadow-lg shadow-[#D9AB7B]/30' : 'text-gray-500 hover:bg-gray-50'}`}>
->>>>>>> ayu
             <FiUser className="text-xl" /> Profil Saya
           </button>
         </nav>
@@ -539,51 +364,6 @@ export default function DashboardAgen() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-10 gap-6">
           <div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 uppercase">
-<<<<<<< HEAD
-              {activeTab === 'daftar' ? 'Kelola Listing' : activeTab === 'terjual' ? 'Riwayat Penjualan' : activeTab === 'statistik' ? 'Performa Agen' : 'Pengaturan Profil'}
-            </h1>
-            <p className="text-gray-500 font-bold ml-1 mt-2">Halo {user?.name}, selamat bekerja hari ini.</p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <button onClick={() => setShowNotifDropdown(!showNotifDropdown)} className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-500 hover:text-[#D9AB7B] transition-all relative">
-                <FiBell size={24} />
-                {notifications.length > 0 && (
-                  <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center animate-bounce">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
-
-              {showNotifDropdown && (
-                <div className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden z-50">
-                  <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
-                    <span className="font-black italic uppercase">Pemberitahuan</span>
-                    <button onClick={() => setNotifications([])} className="text-[10px] text-[#D9AB7B] hover:text-white font-bold uppercase">Bersihkan</button>
-                  </div>
-                  <div className="max-h-72 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">Kosong</div>
-                    ) : (
-                      notifications.map(n => (
-                        <div key={n.id} className="p-5 border-b border-gray-50 hover:bg-gray-50 flex gap-4 transition-all">
-                          <div className={`mt-1 ${n.status === 'approved' ? 'text-green-500' : n.status === 'rejected' ? 'text-red-500' : 'text-[#D9AB7B]'}`}><FiInfo size={18}/></div>
-                          <div>
-                            <p className="text-xs font-bold text-gray-800">{n.text}</p>
-                            <p className="text-[9px] text-gray-400 font-bold mt-2 uppercase tracking-widest">{n.time}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {activeTab === 'daftar' && (
-              <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#D9AB7B] text-[#1E293B] px-8 py-4 rounded-[1.5rem] font-black shadow-xl shadow-[#D9AB7B]/20 hover:bg-[#c49a6e] hover:-translate-y-1 transition-all h-14">
-=======
               {activeTab === 'daftar' ? 'Kelola Listing' : activeTab === 'terjual' ? 'Terjual' : 'Profil'}
             </h1>
             <p className="text-gray-500 font-bold ml-1 mt-2">Halo {user?.name}, mari kembangkan listingmu!</p>
@@ -598,7 +378,6 @@ export default function DashboardAgen() {
             </button>
             {activeTab === 'daftar' && (
               <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#D9AB7B] text-[#1E293B] px-8 py-4 rounded-[1.5rem] font-black shadow-xl hover:-translate-y-1 transition-all h-14">
->>>>>>> ayu
                 <FiPlus className="text-xl" /> TAMBAH UNIT
               </button>
             )}
@@ -606,36 +385,6 @@ export default function DashboardAgen() {
         </div>
 
         {renderContent()}
-<<<<<<< HEAD
-
-      </div>
-
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl transform transition-all">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black italic uppercase text-gray-900">Alasan Penghapusan</h3>
-              <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-red-500 transition p-2 bg-gray-50 rounded-full hover:bg-red-50">
-                <FiX className="text-xl font-black" />
-              </button>
-            </div>
-            
-            <p className="text-gray-500 font-medium mb-6 text-sm">
-              Anda akan menghapus listing <strong className="text-gray-800">"{propertyToDelete?.title}"</strong>. Mohon pilih alasan mengapa properti ini dihapus dari sistem.
-            </p>
-
-            <div className="space-y-3 mb-8">
-              {deleteReasons.map((reason, idx) => (
-                <label key={idx} className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${deleteReason === reason ? 'border-red-500 bg-red-50' : 'border-gray-100 hover:border-red-200'}`}>
-                  <input 
-                    type="radio" 
-                    name="deleteReason" 
-                    value={reason} 
-                    checked={deleteReason === reason} 
-                    onChange={(e) => setDeleteReason(e.target.value)}
-                    className="w-5 h-5 accent-red-600"
-                  />
-=======
       </div>
 
       {showDeleteModal && (
@@ -649,42 +398,19 @@ export default function DashboardAgen() {
               {deleteReasons.map((reason, idx) => (
                 <label key={idx} className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${deleteReason === reason ? 'border-red-500 bg-red-50' : 'border-gray-100 hover:border-red-200'}`}>
                   <input type="radio" name="deleteReason" value={reason} checked={deleteReason === reason} onChange={(e) => setDeleteReason(e.target.value)} className="w-5 h-5 accent-red-600" />
->>>>>>> ayu
                   <span className={`font-bold text-sm ${deleteReason === reason ? 'text-red-700' : 'text-gray-600'}`}>{reason}</span>
                 </label>
               ))}
             </div>
-<<<<<<< HEAD
-
-            <div className="flex gap-4">
-              <button onClick={confirmDelete} className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-500/30 hover:bg-red-700 transition">KONFIRMASI</button>
-              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-lg hover:bg-gray-200 transition">BATAL</button>
-=======
             <div className="flex gap-4">
               <button onClick={confirmDelete} className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black shadow-xl hover:bg-red-700 transition">KONFIRMASI</button>
               <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition">BATAL</button>
->>>>>>> ayu
             </div>
           </div>
         </div>
       )}
 
       {showModal && (
-<<<<<<< HEAD
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[3rem] p-10 w-full max-w-4xl max-h-[92vh] overflow-y-auto">
-            <h2 className="text-4xl font-black italic mb-8 uppercase text-gray-900">{editingId ? 'Update Listing' : 'Input Properti Baru'}</h2>
-            
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              
-              <div className="col-span-2 md:col-span-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Judul Listing</label>
-                <input className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none focus:ring-2 focus:ring-blue-500" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-              </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Kategori</label>
-                <select className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.id_kategori} onChange={e => setFormData({...formData, id_kategori: Number(e.target.value)})}>
-=======
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[250] p-4">
           <div className="bg-white rounded-[3rem] p-10 w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-8">
@@ -700,7 +426,6 @@ export default function DashboardAgen() {
               <div className="col-span-2 md:col-span-1">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Kategori</label>
                 <select className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none border border-transparent" value={formData.id_kategori} onChange={e => setFormData({...formData, id_kategori: Number(e.target.value)})}>
->>>>>>> ayu
                   <option value={1}>Dijual</option>
                   <option value={2}>Disewakan</option>
                 </select>
@@ -708,35 +433,15 @@ export default function DashboardAgen() {
 
               <div className="col-span-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Harga (Rp)</label>
-<<<<<<< HEAD
-                <input type="number" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.harga} onChange={e => setFormData({...formData, harga: e.target.value})} required />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Tipe Properti</label>
-                <select className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.tipe} onChange={e => setFormData({...formData, tipe: e.target.value})}>
-=======
                 <input type="number" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none border border-transparent" value={formData.harga} onChange={e => setFormData({...formData, harga: e.target.value})} required />
               </div>
               <div className="col-span-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Tipe Properti</label>
                 <select className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none border border-transparent" value={formData.tipe} onChange={e => setFormData({...formData, tipe: e.target.value})}>
->>>>>>> ayu
                   <option>Rumah</option><option>Apartemen</option><option>Kos-kosan</option><option>Villa</option>
                 </select>
               </div>
 
-<<<<<<< HEAD
-              <div className="col-span-2 md:col-span-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">K. Tidur</label>
-                <input type="number" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} />
-              </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">K. Mandi</label>
-                <input type="number" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.kamar_mandi} onChange={e => setFormData({...formData, kamar_mandi: e.target.value})} />
-              </div>
-              <div className="col-span-2 md:col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Luas Bangunan/Tanah (m²)</label>
-=======
               <div className="col-span-1">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">K. Tidur</label>
                 <input type="number" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} />
@@ -747,51 +452,20 @@ export default function DashboardAgen() {
               </div>
               <div className="col-span-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Luas (m²)</label>
->>>>>>> ayu
                 <input type="number" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.luas} onChange={e => setFormData({...formData, luas: e.target.value})} />
               </div>
 
               <div className="col-span-4">
-<<<<<<< HEAD
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Alamat / Lokasi Lengkap</label>
-                <input type="text" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Latitude (Opsional)</label>
-                <input type="text" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="-5.3971" />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Longitude (Opsional)</label>
-                <input type="text" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="105.2668" />
-              </div>
-
-              <div className="col-span-4">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Deskripsi Properti</label>
-=======
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Lokasi Lengkap</label>
                 <input type="text" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
               </div>
 
               <div className="col-span-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Deskripsi</label>
->>>>>>> ayu
                 <textarea className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none h-32" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})}></textarea>
               </div>
 
               <div className="col-span-4">
-<<<<<<< HEAD
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Upload Foto (Min 2)</label>
-                <input type="file" multiple onChange={handleFileChange} className="w-full p-6 bg-blue-50/50 text-blue-600 rounded-[1.5rem] border-2 border-dashed border-blue-200 font-black cursor-pointer" accept="image/*" />
-              </div>
-              <div className="col-span-4 bg-gray-50 p-6 rounded-[2rem] flex flex-wrap gap-6">
-                {['kolam_renang', 'wifi', 'keamanan_24jam', 'parkir', 'ac'].map(f => (
-                  <label key={f} className="flex items-center gap-3 text-[10px] font-black uppercase text-gray-600 cursor-pointer">
-                    <input type="checkbox" className="w-5 h-5 accent-blue-600 rounded" checked={formData[f]} onChange={e => setFormData({...formData, [f]: e.target.checked})} /> {f.replace('_', ' ')}
-                  </label>
-                ))}
-              </div>
-
-=======
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2 block mb-2">Pilih Fasilitas</label>
                 <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                   {FASILITAS_PRESET.map((item) => {
@@ -872,15 +546,10 @@ export default function DashboardAgen() {
                 )}
               </div>
 
->>>>>>> ayu
               <div className="col-span-4 mt-6 flex gap-4">
                 <button type="submit" className="flex-[2] py-6 bg-blue-600 text-white rounded-[1.5rem] font-black text-xl shadow-xl hover:bg-blue-700 transition">SIMPAN DATA</button>
                 <button type="button" onClick={closeModal} className="flex-1 py-6 bg-gray-100 text-gray-400 rounded-[1.5rem] font-black text-xl hover:bg-gray-200 transition">BATAL</button>
               </div>
-<<<<<<< HEAD
-
-=======
->>>>>>> ayu
             </form>
           </div>
         </div>
