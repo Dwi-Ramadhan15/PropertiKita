@@ -30,16 +30,13 @@ const getProperti = async(req, res) => {
 
         let query = "SELECT p.*, c.nama as nama_kategori FROM properties p LEFT JOIN categories c ON p.id_kategori = c.id WHERE 1=1";
         const queryParams = [];
-        //perbaikan statursd
+
         if (status && status !== 'all') {
-            // Kalau statusnya spesifik (pending/approved/rejected)
             queryParams.push(status);
             query += ` AND p.status = $${queryParams.length}`;
         } else if (!status) {
-            // Kalau nggak dikirim status sama sekali, default ke approved (buat halaman depan)
             query += ` AND p.status = 'approved'`;
         }
-        // Kalau status === 'all', query-nya dilewat aja biar semua data (pending/approved) ketarik!
 
         if (agen) {
             const realAgenId = await getRealAgenId(agen);
@@ -132,13 +129,18 @@ const getPropertiBySlug = async(req, res) => {
         if (rows.length === 0) return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
 
         const properti = rows[0];
+
         const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [properti.id]);
+
+        const fasRes = await db.query("SELECT nama_fasilitas FROM fasilitas_properti WHERE id_properti = $1", [properti.id]);
+        const daftarFasilitas = fasRes.rows.map(f => f.nama_fasilitas);
 
         res.status(200).json({
             success: true,
             data: {
                 ...properti,
-                gallery: images.rows.map(img => img.image_url)
+                gallery: images.rows.map(img => img.image_url),
+                fasilitas: daftarFasilitas
             }
         });
     } catch (error) {
@@ -150,7 +152,8 @@ const createProperti = async(req, res) => {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac } = req.body;
+
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas } = req.body;
         const files = req.files;
 
         if (!title || !harga || !id_kategori) {
@@ -173,17 +176,33 @@ const createProperti = async(req, res) => {
             await minioClient.makeBucket(bucketName);
         }
 
-        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac, status) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 'pending') RETURNING id`;
+        const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, status) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending') RETURNING id`;
 
         const values = [
             title, slug, harga, lokasi, tipe, latitude, longitude, realAgenId, id_kategori,
-            kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || '',
-            kolam_renang === 'true', wifi === 'true', keamanan_24jam === 'true', parkir === 'true', ac === 'true'
+            kamar_tidur || 0, kamar_mandi || 0, luas || 0, deskripsi || ''
         ];
 
         const resProperti = await client.query(query, values);
         const propertiId = resProperti.rows[0].id;
+
+        if (fasilitas) {
+            let fasilitasArray = [];
+            try {
+                fasilitasArray = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
+            } catch (e) {
+                fasilitasArray = [fasilitas];
+            }
+
+            for (const itemFasilitas of fasilitasArray) {
+                if (itemFasilitas && itemFasilitas.trim() !== '') {
+                    await client.query(
+                        `INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [propertiId, itemFasilitas.trim()]
+                    );
+                }
+            }
+        }
 
         let firstImageUrl = '';
 
@@ -220,7 +239,8 @@ const updateProperti = async(req, res) => {
     try {
         await client.query('BEGIN');
         const { id } = req.params;
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, kolam_renang, wifi, keamanan_24jam, parkir, ac, status } = req.body;
+
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas, status } = req.body;
 
         const checkData = await client.query("SELECT * FROM properties WHERE id = $1", [id]);
         if (checkData.rows.length === 0) {
@@ -239,24 +259,38 @@ const updateProperti = async(req, res) => {
 
         const queryUpdate = `
             UPDATE properties 
-            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, kolam_renang=$14, wifi=$15, keamanan_24jam=$16, parkir=$17, ac=$18, status=$19
-            WHERE id=$20`;
+            SET title=$1, slug=$2, harga=$3, lokasi=$4, tipe=$5, latitude=$6, longitude=$7, id_agen=$8, id_kategori=$9, kamar_tidur=$10, kamar_mandi=$11, luas=$12, deskripsi=$13, status=$14
+            WHERE id=$15`;
 
         const valuesUpdate = [
             title || current.title, slug, harga || current.harga, lokasi || current.lokasi, tipe || current.tipe,
             latitude || current.latitude, longitude || current.longitude, realAgenId,
             id_kategori || current.id_kategori, kamar_tidur || current.kamar_tidur, kamar_mandi || current.kamar_mandi,
             luas || current.luas, deskripsi || current.deskripsi,
-            kolam_renang !== undefined ? (kolam_renang === 'true') : current.kolam_renang,
-            wifi !== undefined ? (wifi === 'true') : current.wifi,
-            keamanan_24jam !== undefined ? (keamanan_24jam === 'true') : current.keamanan_24jam,
-            parkir !== undefined ? (parkir === 'true') : current.parkir,
-            ac !== undefined ? (ac === 'true') : current.ac,
             status || current.status,
             id
         ];
 
         await client.query(queryUpdate, valuesUpdate);
+
+        if (fasilitas !== undefined) {
+            await client.query(`DELETE FROM fasilitas_properti WHERE id_properti = $1`, [id]);
+
+            let fasilitasArray = [];
+            try {
+                fasilitasArray = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
+            } catch (e) {
+                fasilitasArray = [fasilitas];
+            }
+
+            for (const itemFasilitas of fasilitasArray) {
+                if (itemFasilitas && itemFasilitas.trim() !== '') {
+                    await client.query(
+                        `INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [id, itemFasilitas.trim()]
+                    );
+                }
+            }
+        }
 
         if (req.files && req.files.length > 0) {
             const bucketName = 'propertikita';
@@ -285,54 +319,51 @@ const updateProperti = async(req, res) => {
     }
 };
 
-const updateStatusProperti = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
+const updateStatusProperti = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
 
-    if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
-      return res.status(400).json({ success: false, message: "Status tidak valid" });
+        if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
+            return res.status(400).json({ success: false, message: "Status tidak valid" });
+        }
+
+        const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
+        const result = await db.query(query, [status, id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+        }
+
+        const properti = result.rows[0];
+
+        if (req.io) {
+            const roomName = `agen_${properti.id_agen}`;
+
+            let msg = "";
+            if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
+            else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
+            else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
+
+            const payload = {
+                status: status,
+                message: msg,
+                title: properti.title
+            };
+
+            req.io.to(roomName).emit('notify_agen', payload);
+            console.log(`[SOCKET] Notif terkirim ke ${roomName}`);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Status berhasil diubah menjadi ${status}`,
+            data: properti
+        });
+    } catch (error) {
+        console.error("Update Status Error:", error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    // Update status dan ambil data title serta id_agen (ID dari tabel agen)
-    const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
-    const result = await db.query(query, [status, id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-    }
-
-    const properti = result.rows[0];
-
-    // LOGIC NOTIFIKASI SOCKET.IO
-    if (req.io) {
-      // Room menggunakan ID agen, misal: agen_1
-      const roomName = `agen_${properti.id_agen}`;
-      
-      let msg = "";
-      if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
-      else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
-      else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
-
-      const payload = {
-        status: status,
-        message: msg,
-        title: properti.title
-      };
-
-      req.io.to(roomName).emit('notify_agen', payload);
-      console.log(`[SOCKET] Notif terkirim ke ${roomName}`);
-    }
-
-    res.status(200).json({ 
-      success: true, 
-      message: `Status berhasil diubah menjadi ${status}`,
-      data: properti 
-    });
-  } catch (error) {
-    console.error("Update Status Error:", error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
 const deleteProperti = async(req, res) => {
