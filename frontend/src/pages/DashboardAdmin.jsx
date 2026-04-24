@@ -363,7 +363,7 @@ export default function DashboardAdmin() {
         <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-              <h2 className="text-2xl font-black italic uppercase text-gray-900">Review Listing Properti</h2>
+              <h2 className="text-2xl font-black text-center uppercase text-gray-900">Review Listing Properti</h2>
               <button onClick={() => setSelectedProperty(null)} className="text-gray-400 hover:text-red-500 p-2 bg-white rounded-full shadow-sm hover:shadow transition"><FiX size={20}/></button>
             </div>
 
@@ -416,16 +416,23 @@ export default function DashboardAdmin() {
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Fasilitas</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProperty.kolam_renang && <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase">Kolam Renang</span>}
-                    {selectedProperty.wifi && <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase">WiFi</span>}
-                    {selectedProperty.keamanan_24jam && <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase">Keamanan 24 Jam</span>}
-                    {selectedProperty.parkir && <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase">Parkir</span>}
-                    {selectedProperty.ac && <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase">AC</span>}
-                    {!selectedProperty.kolam_renang && !selectedProperty.wifi && !selectedProperty.keamanan_24jam && !selectedProperty.parkir && !selectedProperty.ac && (
-                      <span className="text-sm font-medium text-gray-400">Tidak ada info fasilitas khusus.</span>
-                    )}
+                  <div>
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Fasilitas</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {/* Cek apakah ada data di array fasilitas */}
+                        {selectedProperty.fasilitas && selectedProperty.fasilitas.length > 0 ? (
+                          selectedProperty.fasilitas.map((item, index) => (
+                            <span 
+                              key={index} 
+                              className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase border border-blue-100"
+                            >
+                              {item}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm font-medium text-gray-400">Tidak ada info fasilitas khusus.</span>
+                        )}
+                      </div>
                   </div>
                 </div>
               </div>

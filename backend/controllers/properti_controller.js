@@ -89,6 +89,20 @@ const getProperti = async(req, res) => {
 
         const { rows } = await db.query(query, queryParams);
 
+        const propertyIds = rows.map(r => r.id);
+        let fasilitasMap = {};
+
+        if (propertyIds.length > 0) {
+            const fasRes = await db.query(
+                "SELECT id_properti, nama_fasilitas FROM fasilitas_properti WHERE id_properti = ANY($1)",
+                [propertyIds]
+            );
+            fasRes.rows.forEach(f => {
+                if (!fasilitasMap[f.id_properti]) fasilitasMap[f.id_properti] = [];
+                fasilitasMap[f.id_properti].push(f.nama_fasilitas);
+            });
+        }
+
         const geoJSON = {
             type: "FeatureCollection",
             totalData: totalData,
@@ -103,7 +117,8 @@ const getProperti = async(req, res) => {
                 properties: {
                     ...row,
                     kategori: row.nama_kategori,
-                    imageUrl: row.image_url
+                    imageUrl: row.image_url,
+                    fasilitas: fasilitasMap[row.id] || []
                 }
             }))
         };
@@ -122,25 +137,22 @@ const getPropertiBySlug = async(req, res) => {
             FROM properties p 
             LEFT JOIN agen a ON p.id_agen = a.id 
             LEFT JOIN categories c ON p.id_kategori = c.id
-            WHERE p.slug = $1 ORDER BY p.id DESC
+            WHERE p.slug = $1
         `;
         const { rows } = await db.query(query, [slug]);
 
         if (rows.length === 0) return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
 
         const properti = rows[0];
-
         const images = await db.query("SELECT image_url FROM property_images WHERE id_properti = $1", [properti.id]);
-
         const fasRes = await db.query("SELECT nama_fasilitas FROM fasilitas_properti WHERE id_properti = $1", [properti.id]);
-        const daftarFasilitas = fasRes.rows.map(f => f.nama_fasilitas);
 
         res.status(200).json({
             success: true,
             data: {
                 ...properti,
                 gallery: images.rows.map(img => img.image_url),
-                fasilitas: daftarFasilitas
+                fasilitas: fasRes.rows.map(f => f.nama_fasilitas)
             }
         });
     } catch (error) {
@@ -152,7 +164,6 @@ const createProperti = async(req, res) => {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
-
         const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas } = req.body;
         const files = req.files;
 
@@ -165,16 +176,11 @@ const createProperti = async(req, res) => {
 
         const realAgenId = await getRealAgenId(id_agen, client);
         if (!realAgenId) {
-            return res.status(400).json({ success: false, message: "Profil agen tidak valid atau belum disinkronisasi!" });
+            return res.status(400).json({ success: false, message: "Profil agen tidak valid!" });
         }
 
         const slug = generateSlug(title);
         const bucketName = 'propertikita';
-
-        const bucketExists = await minioClient.bucketExists(bucketName);
-        if (!bucketExists) {
-            await minioClient.makeBucket(bucketName);
-        }
 
         const query = `INSERT INTO properties (title, slug, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, status) 
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending') RETURNING id`;
@@ -188,44 +194,27 @@ const createProperti = async(req, res) => {
         const propertiId = resProperti.rows[0].id;
 
         if (fasilitas) {
-            let fasilitasArray = [];
-            try {
-                fasilitasArray = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
-            } catch (e) {
-                fasilitasArray = [fasilitas];
-            }
-
-            for (const itemFasilitas of fasilitasArray) {
-                if (itemFasilitas && itemFasilitas.trim() !== '') {
-                    await client.query(
-                        `INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [propertiId, itemFasilitas.trim()]
-                    );
-                }
+            const daftarFasilitas = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
+            for (const f of daftarFasilitas) {
+                await client.query(`INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [propertiId, f]);
             }
         }
 
         let firstImageUrl = '';
-
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            const fileNameWithoutExt = path.parse(file.originalname).name.replace(/[^a-zA-Z0-9]/g, '-');
-            const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
-
+            const objectName = `${Date.now()}-${path.parse(file.originalname).name.replace(/[^a-zA-Z0-9]/g, '-')}.webp`;
             const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
             await minioClient.putObject(bucketName, objectName, webpBuffer, { 'Content-Type': 'image/webp' });
-
             if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
             const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
-
             if (i === 0) firstImageUrl = imageUrl;
-
             await client.query(`INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)`, [propertiId, imageUrl]);
         }
 
         await client.query(`UPDATE properties SET image_url = $1 WHERE id = $2`, [firstImageUrl, propertiId]);
-
         await client.query('COMMIT');
-        res.status(201).json({ success: true, message: "Properti berhasil dikirim dan menunggu tinjauan admin!" });
+        res.status(201).json({ success: true, message: "Properti berhasil dikirim!" });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ success: false, message: error.message });
@@ -239,7 +228,6 @@ const updateProperti = async(req, res) => {
     try {
         await client.query('BEGIN');
         const { id } = req.params;
-
         const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas, status } = req.body;
 
         const checkData = await client.query("SELECT * FROM properties WHERE id = $1", [id]);
@@ -250,7 +238,6 @@ const updateProperti = async(req, res) => {
 
         const current = checkData.rows[0];
         const slug = title ? generateSlug(title) : current.slug;
-
         let realAgenId = current.id_agen;
         if (id_agen) {
             const checkedAgen = await getRealAgenId(id_agen, client);
@@ -266,41 +253,23 @@ const updateProperti = async(req, res) => {
             title || current.title, slug, harga || current.harga, lokasi || current.lokasi, tipe || current.tipe,
             latitude || current.latitude, longitude || current.longitude, realAgenId,
             id_kategori || current.id_kategori, kamar_tidur || current.kamar_tidur, kamar_mandi || current.kamar_mandi,
-            luas || current.luas, deskripsi || current.deskripsi,
-            status || current.status,
-            id
+            luas || current.luas, deskripsi || current.deskripsi, status || current.status, id
         ];
 
         await client.query(queryUpdate, valuesUpdate);
 
-        if (fasilitas !== undefined) {
+        if (fasilitas) {
+            const daftarFasilitas = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
             await client.query(`DELETE FROM fasilitas_properti WHERE id_properti = $1`, [id]);
-
-            let fasilitasArray = [];
-            try {
-                fasilitasArray = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
-            } catch (e) {
-                fasilitasArray = [fasilitas];
-            }
-
-            for (const itemFasilitas of fasilitasArray) {
-                if (itemFasilitas && itemFasilitas.trim() !== '') {
-                    await client.query(
-                        `INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [id, itemFasilitas.trim()]
-                    );
-                }
+            for (const f of daftarFasilitas) {
+                await client.query(`INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [id, f]);
             }
         }
 
         if (req.files && req.files.length > 0) {
             const bucketName = 'propertikita';
-
-            const bucketExists = await minioClient.bucketExists(bucketName);
-            if (!bucketExists) await minioClient.makeBucket(bucketName);
-
             for (const file of req.files) {
-                const fileNameWithoutExt = path.parse(file.originalname).name.replace(/[^a-zA-Z0-9]/g, '-');
-                const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;
+                const objectName = `${Date.now()}-${path.parse(file.originalname).name.replace(/[^a-zA-Z0-9]/g, '-')}.webp`;
                 const webpBuffer = await sharp(file.path).webp({ quality: 80 }).toBuffer();
                 await minioClient.putObject(bucketName, objectName, webpBuffer, { 'Content-Type': 'image/webp' });
                 if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
@@ -319,51 +288,26 @@ const updateProperti = async(req, res) => {
     }
 };
 
-const updateStatusProperti = async(req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-
-        if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
-            return res.status(400).json({ success: false, message: "Status tidak valid" });
-        }
-
-        const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
-        const result = await db.query(query, [status, id]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-        }
-
-        const properti = result.rows[0];
-
-        if (req.io) {
-            const roomName = `agen_${properti.id_agen}`;
-
-            let msg = "";
-            if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
-            else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
-            else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
-
-            const payload = {
-                status: status,
-                message: msg,
-                title: properti.title
-            };
-
-            req.io.to(roomName).emit('notify_agen', payload);
-            console.log(`[SOCKET] Notif terkirim ke ${roomName}`);
-        }
-
-        res.status(200).json({
-            success: true,
-            message: `Status berhasil diubah menjadi ${status}`,
-            data: properti
-        });
-    } catch (error) {
-        console.error("Update Status Error:", error.message);
-        res.status(500).json({ success: false, message: error.message });
+const updateStatusProperti = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
+      return res.status(400).json({ success: false, message: "Status tidak valid" });
     }
+    const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
+    const result = await db.query(query, [status, id]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    const properti = result.rows[0];
+    if (req.io) {
+      const roomName = `agen_${properti.id_agen}`;
+      let msg = status === 'approved' ? `Listing "${properti.title}" DISETUJUI.` : status === 'rejected' ? `Listing "${properti.title}" DITOLAK.` : `Status "${properti.title}" TERJUAL.`;
+      req.io.to(roomName).emit('notify_agen', { status, message: msg, title: properti.title });
+    }
+    res.status(200).json({ success: true, message: `Status berhasil diubah`, data: properti });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 const deleteProperti = async(req, res) => {
@@ -371,7 +315,6 @@ const deleteProperti = async(req, res) => {
         const { id } = req.params;
         const check = await db.query('SELECT id FROM properties WHERE id = $1', [id]);
         if (check.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-
         await db.query('DELETE FROM properties WHERE id = $1', [id]);
         res.status(200).json({ success: true, message: "Data berhasil dihapus!" });
     } catch (error) {
