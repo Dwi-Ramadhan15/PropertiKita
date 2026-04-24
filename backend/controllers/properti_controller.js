@@ -94,8 +94,7 @@ const getProperti = async(req, res) => {
 
         if (propertyIds.length > 0) {
             const fasRes = await db.query(
-                "SELECT id_properti, nama_fasilitas FROM fasilitas_properti WHERE id_properti = ANY($1)",
-                [propertyIds]
+                "SELECT id_properti, nama_fasilitas FROM fasilitas_properti WHERE id_properti = ANY($1)", [propertyIds]
             );
             fasRes.rows.forEach(f => {
                 if (!fasilitasMap[f.id_properti]) fasilitasMap[f.id_properti] = [];
@@ -288,28 +287,55 @@ const updateProperti = async(req, res) => {
     }
 };
 
-const updateStatusProperti = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
-      return res.status(400).json({ success: false, message: "Status tidak valid" });
-    }
-    const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
-    const result = await db.query(query, [status, id]);
-    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-    const properti = result.rows[0];
-    if (req.io) {
-      const roomName = `agen_${properti.id_agen}`;
-      let msg = status === 'approved' ? `Listing "${properti.title}" DISETUJUI.` : status === 'rejected' ? `Listing "${properti.title}" DITOLAK.` : `Status "${properti.title}" TERJUAL.`;
-      req.io.to(roomName).emit('notify_agen', { status, message: msg, title: properti.title });
-    }
-    res.status(200).json({ success: true, message: `Status berhasil diubah`, data: properti });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const updateStatusProperti = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
 
+        if (!['approved', 'rejected', 'pending', 'sold'].includes(status)) {
+            return res.status(400).json({ success: false, message: "Status tidak valid" });
+        }
+
+        const query = "UPDATE properties SET status = $1 WHERE id = $2 RETURNING title, id_agen";
+        const result = await db.query(query, [status, id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+        }
+
+        const properti = result.rows[0];
+
+        // Buat pesan notifikasinya
+        let msg = "";
+        if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
+        else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
+        else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
+
+        // 1. SIMPAN KE DATABASE (Agar jadi riwayat permanen)
+        if (msg !== "") {
+            await db.query(
+                "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", [properti.id_agen, "Update Status Listing", msg, status]
+            );
+        }
+
+        // 2. KIRIM REAL-TIME VIA SOCKET.IO
+        if (req.io && msg !== "") {
+            const roomName = `agen_${properti.id_agen}`;
+            const payload = {
+                status: status,
+                message: msg,
+                title: properti.title,
+                // Kirim timestamp agar frontend langsung bisa menampilkannya dengan rapi
+                created_at: new Date()
+            };
+            req.io.to(roomName).emit('notify_agen', payload);
+        }
+
+        res.status(200).json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: properti });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 const deleteProperti = async(req, res) => {
     try {
         const { id } = req.params;
@@ -331,6 +357,37 @@ const getAgen = async(req, res) => {
     }
 };
 
+const getNotifikasiAgen = async(req, res) => {
+    try {
+        const { id_agen } = req.params;
+        const realAgenId = await getRealAgenId(id_agen);
+        if (!realAgenId) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+        const query = "SELECT * FROM notifications WHERE id_agen = $1 ORDER BY id DESC";
+        const { rows } = await db.query(query, [realAgenId]);
+        res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const tandaiNotifDibaca = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const query = "UPDATE notifications SET is_read = true WHERE id = $1 RETURNING *";
+        const result = await db.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Notifikasi tidak ditemukan" });
+        }
+
+        res.status(200).json({ success: true, message: "Notifikasi ditandai telah dibaca", data: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getProperti,
     getPropertiBySlug,
@@ -338,5 +395,7 @@ module.exports = {
     updateProperti,
     updateStatusProperti,
     deleteProperti,
-    getAgen
+    getAgen,
+    getNotifikasiAgen,
+    tandaiNotifDibaca
 };
