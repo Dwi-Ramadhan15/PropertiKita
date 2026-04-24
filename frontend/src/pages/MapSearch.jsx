@@ -73,8 +73,10 @@ export default function MapSearch() {
   return (
     <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-white">
 
+
       {/* SIDEBAR */}
       <div className="w-[400px] flex flex-col border-r border-gray-200 bg-[#F9FBFF] z-20">
+
 
         {/* FILTER */}
         <div className="p-6 border-b border-gray-200 bg-white">
