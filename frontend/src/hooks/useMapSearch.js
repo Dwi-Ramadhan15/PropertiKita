@@ -1,17 +1,11 @@
-<<<<<<< HEAD
 // src/hooks/useMapSearch.js
 import { useState, useEffect } from "react";
 import axios from "axios";
-=======
-import { useState, useEffect } from 'react';
-import axios from 'axios';
->>>>>>> ayu
 
 export default function useMapSearch() {
   const [allProperties, setAllProperties] = useState([]);
   const [filteredProperties, setFilteredProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
 
   const [mapCenter, setMapCenter] = useState([-5.397140, 105.266800]);
   const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
@@ -30,19 +24,6 @@ export default function useMapSearch() {
           "http://localhost:5000/api/properti?limit=100"
         );
 
-=======
-  const [mapCenter, setMapCenter] = useState([-5.397140, 105.266800]);
-  const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [maxHarga, setMaxHarga] = useState(2000000000);
-  const [kamarTidur, setKamarTidur] = useState(null);
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/properti?limit=100');
->>>>>>> ayu
         if (res.data.success) {
           const data = res.data.data.features || [];
           setAllProperties(data);
@@ -54,7 +35,6 @@ export default function useMapSearch() {
         setLoading(false);
       }
     };
-<<<<<<< HEAD
 
     fetchProperties();
   }, []);
@@ -90,34 +70,12 @@ export default function useMapSearch() {
         return (
           item.properties.kamar_tidur === parseInt(kamarTidur)
         );
-=======
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    let result = allProperties;
-
-    if (searchQuery) {
-      result = result.filter(item =>
-        item.properties.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.properties.lokasi.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    result = result.filter(item => item.properties.harga <= maxHarga);
-
-    if (kamarTidur) {
-      result = result.filter(item => {
-        if (kamarTidur === '3+') return item.properties.kamar_tidur >= 3;
-        return item.properties.kamar_tidur === parseInt(kamarTidur);
->>>>>>> ayu
       });
     }
 
     setFilteredProperties(result);
   }, [searchQuery, maxHarga, kamarTidur, allProperties]);
 
-<<<<<<< HEAD
   // =========================
   // FORMAT HARGA
   // =========================
@@ -134,23 +92,10 @@ export default function useMapSearch() {
   // =========================
   const handleReset = () => {
     setSearchQuery("");
-=======
-  const formatHarga = (harga) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(harga);
-  };
-
-  const handleReset = () => {
-    setSearchQuery('');
->>>>>>> ayu
     setMaxHarga(2000000000);
     setKamarTidur(null);
   };
 
-<<<<<<< HEAD
   // =========================
   // HOVER CARD
   // =========================
@@ -177,8 +122,6 @@ export default function useMapSearch() {
     return `https://www.google.com/maps?q=${lat},${lng}`;
   };
 
-=======
->>>>>>> ayu
   return {
     loading,
     mapCenter,
@@ -187,7 +130,6 @@ export default function useMapSearch() {
     maxHarga,
     kamarTidur,
     filteredProperties,
-<<<<<<< HEAD
 
     setMapCenter,
     setSearchQuery,
@@ -199,14 +141,5 @@ export default function useMapSearch() {
     handleHoverProperty,
     handleLeaveProperty,
     getGoogleMapsUrl,
-=======
-    setMapCenter,
-    setHoveredPropertyId,
-    setSearchQuery,
-    setMaxHarga,
-    setKamarTidur,
-    formatHarga,
-    handleReset
->>>>>>> ayu
   };
 }
