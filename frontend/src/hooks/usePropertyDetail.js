@@ -1,4 +1,3 @@
-// src/hooks/usePropertyDetail.js
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -11,9 +10,6 @@ export default function usePropertyDetail(slug) {
   const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
 
-  // ===============================
-  // FETCH DETAIL PROPERTI
-  // ===============================
   useEffect(() => {
     const fetchDetail = async () => {
       try {
@@ -32,9 +28,7 @@ export default function usePropertyDetail(slug) {
     fetchDetail();
   }, [slug]);
 
-  // ===============================
   // FETCH DATA AGEN
-  // ===============================
   useEffect(() => {
     if (!item?.id_agen) return;
 
@@ -57,9 +51,7 @@ export default function usePropertyDetail(slug) {
     fetchAgen();
   }, [item]);
 
-  // ===============================
-  // FORMAT FOTO AGEN
-  // ===============================
+
   const formatFotoUrl = (foto) => {
     if (!foto) return null;
 
@@ -68,9 +60,6 @@ export default function usePropertyDetail(slug) {
     return `http://127.0.0.1:9000/propertikita/${foto}`;
   };
 
-  // ===============================
-  // HANDLE IMAGE PROPERTY
-  // ===============================
   const images = item?.images?.length
     ? item.images
     : item?.gallery?.length
@@ -79,9 +68,7 @@ export default function usePropertyDetail(slug) {
     ? [item.image_url]
     : [];
 
-  // ===============================
   // AUTO SLIDE
-  // ===============================
   useEffect(() => {
     if (images.length < 2) return;
 
@@ -92,9 +79,7 @@ export default function usePropertyDetail(slug) {
     return () => clearInterval(interval);
   }, [images]);
 
-  // ===============================
   // MAP POSITION
-  // ===============================
   const position = [
     parseFloat(item?.latitude) || 0,
     parseFloat(item?.longitude) || 0,
@@ -102,26 +87,23 @@ export default function usePropertyDetail(slug) {
 
   const mapsUrl = `https://www.google.com/maps?q=${item?.latitude},${item?.longitude}`;
 
-  // ===============================
-  // WA URL
-  // ===============================
   const waUrl = `https://wa.me/${item?.no_whatsapp?.replace(
     /^0/,
     "62"
   )}`;
 
-  // ===============================
+
   // HUBUNGI AGEN
-  // ===============================
   const handleHubungiAgen = () => {
     const token = localStorage.getItem("token");
+    if (!token || !currentUser) {
+      const goLogin = window.confirm(
+        "Wajib login dulu. Mau ke halaman login sekarang?"
+      );
 
-    if (!token) {
-      navigate("/login", {
-        state: {
-          from: `/property/${slug}`,
-        },
-      });
+      if (goLogin) {
+        navigate('/login');
+      }
 
       return;
     }

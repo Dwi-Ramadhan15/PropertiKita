@@ -64,10 +64,8 @@ export default function MapSearch() {
     getGoogleMapsUrl,
   } = useMapSearch();
 
-  // ✅ STATE KLIK (WAJIB DI SINI)
   const [selectedPropertyId, setSelectedPropertyId] = React.useState(null);
 
-  // ✅ BIAR ID AMAN (hindari bug number vs string)
   const getId = (item) => String(item.properties.id);
 
   return (
@@ -168,12 +166,8 @@ export default function MapSearch() {
                 <div
                   key={id}
                   onMouseEnter={() => handleHoverProperty(item)}
-                  onMouseLeave={handleLeaveProperty}
-                  onClick={() =>
-                    setSelectedPropertyId((prev) =>
-                      prev === id ? null : id
-                    )
-                  }
+                  onMouseLeave={() => {}}
+                  onClick={() => setSelectedPropertyId(id)}
                   className="bg-white p-3 rounded-xl border hover:shadow transition cursor-pointer"
                 >
                   <div className="flex gap-3">
@@ -222,26 +216,23 @@ export default function MapSearch() {
             const id = getId(item);
 
             return (
-              <Marker
-                key={id}
-                position={[
-                  item.geometry.coordinates[1],
-                  item.geometry.coordinates[0],
-                ]}
-                icon={
-                  selectedPropertyId === id
-                    ? hoverIcon // ✅ klik → stay
-                    : hoveredPropertyId === id
-                    ? hoverIcon // ✅ hover → live
-                    : defaultIcon
-                }
-                eventHandlers={{
-                  click: () =>
-                    setSelectedPropertyId((prev) =>
-                      prev === id ? null : id
-                    ),
-                }}
-              >
+                  <Marker
+                    key={id}
+                    position={[
+                      item.geometry.coordinates[1],
+                      item.geometry.coordinates[0],
+                    ]}
+                    icon={
+                      selectedPropertyId === id
+                        ? hoverIcon
+                        : hoveredPropertyId === id
+                        ? hoverIcon
+                        : defaultIcon
+                    }
+                    eventHandlers={{
+                      click: () => setSelectedPropertyId(id), 
+                    }}
+                  >
                 <Popup>
                   <div className="w-52">
                     <img

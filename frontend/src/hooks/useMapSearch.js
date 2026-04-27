@@ -1,4 +1,3 @@
-// src/hooks/useMapSearch.js
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -14,9 +13,7 @@ export default function useMapSearch() {
   const [maxHarga, setMaxHarga] = useState(2000000000);
   const [kamarTidur, setKamarTidur] = useState(null);
 
-  // =========================
   // FETCH DATA
-  // =========================
   useEffect(() => {
     const fetchProperties = async () => {
       try {
@@ -39,9 +36,7 @@ export default function useMapSearch() {
     fetchProperties();
   }, []);
 
-  // =========================
   // FILTER
-  // =========================
   useEffect(() => {
     let result = [...allProperties];
 
@@ -76,9 +71,7 @@ export default function useMapSearch() {
     setFilteredProperties(result);
   }, [searchQuery, maxHarga, kamarTidur, allProperties]);
 
-  // =========================
-  // FORMAT HARGA
-  // =========================
+
   const formatHarga = (harga) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -87,18 +80,15 @@ export default function useMapSearch() {
     }).format(harga);
   };
 
-  // =========================
-  // RESET FILTER
-  // =========================
+
   const handleReset = () => {
     setSearchQuery("");
     setMaxHarga(2000000000);
     setKamarTidur(null);
   };
 
-  // =========================
+
   // HOVER CARD
-  // =========================
   const handleHoverProperty = (item) => {
     setHoveredPropertyId(item.properties.id);
 
@@ -112,9 +102,7 @@ export default function useMapSearch() {
     setHoveredPropertyId(null);
   };
 
-  // =========================
-  // GOOGLE MAPS URL
-  // =========================
+
   const getGoogleMapsUrl = (item) => {
     const lat = item.geometry.coordinates[1];
     const lng = item.geometry.coordinates[0];

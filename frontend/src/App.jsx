@@ -31,7 +31,7 @@ function AppContent() {
         <Route path="/tentang" element={<Tentang />} />
         <Route path="/agen" element={<Agen />} />
         <Route path="/properti" element={<DaftarPropertiAgen />} />
-        <Route path="/profile-user" element={<ProfileUser />} />
+        <Route path="/dashboard-user" element={<ProfileUser />} />
         <Route path="/dashboard-agen" element={<DashboardAgen />} />
         <Route path="/dashboard-admin" element={<DashboardAdmin />} />
         <Route path="*" element={

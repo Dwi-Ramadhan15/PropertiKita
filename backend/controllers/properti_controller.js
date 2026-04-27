@@ -12,6 +12,11 @@ const generateSlug = (title) => {
 };
 
 const getRealAgenId = async(userId, client = db) => {
+    const isAgen = await client.query('SELECT id FROM agen WHERE id = $1', [userId]);
+    if (isAgen.rows.length > 0) {
+        return userId;
+    }
+
     const userRes = await client.query('SELECT email, phone_number FROM users WHERE id = $1', [userId]);
     if (userRes.rows.length > 0) {
         const u = userRes.rows[0];
@@ -324,7 +329,15 @@ const deleteProperti = async(req, res) => {
 
 const getAgen = async(req, res) => {
     try {
-        const { rows } = await db.query('SELECT id, nama_agen, no_whatsapp, foto_profil FROM agen ORDER BY nama_agen ASC');
+        const query = `
+            SELECT a.id, a.nama_agen, a.no_whatsapp, a.foto_profil, 
+            COUNT(p.id) as total_properti
+            FROM agen a
+            LEFT JOIN properties p ON a.id = p.id_agen AND p.status = 'approved'
+            GROUP BY a.id
+            ORDER BY a.nama_agen ASC
+        `;
+        const { rows } = await db.query(query);
         res.status(200).json({ success: true, data: rows });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
