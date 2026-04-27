@@ -37,8 +37,8 @@ export default function useAgen(navigate) {
       }
     };
 
-    fetchAgen();
-  }, []);
+        fetchAgen();
+    }, []);
 
   const handleWhatsApp = (ag) => {
     const token = localStorage.getItem('token');
@@ -55,10 +55,10 @@ export default function useAgen(navigate) {
     }
   };
 
-  return {
-    daftarAgen,
-    loading,
-    formatFotoUrl,
-    handleWhatsApp,
-  };
+    return {
+        daftarAgen,
+        loading,
+        formatFotoUrl,
+        handleWhatsApp,
+    };
 }

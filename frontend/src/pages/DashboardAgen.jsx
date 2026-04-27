@@ -24,8 +24,12 @@ export default function DashboardAgen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
+  
+  // STATE NOTIFIKASI
   const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const [toast, setToast] = useState(null);
   const [tempFasilitas, setTempFasilitas] = useState('');
 
@@ -88,18 +92,61 @@ export default function DashboardAgen() {
       return;
     }
     fetchProperti();
+    fetchNotifications(); // Panggil notif dari DB saat komponen di-mount
+
     socket.emit('join_room', `agen_${user.id}`);
     
     const handleNotify = (data) => {
       setToast(data.message);
-      setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString(), status: data.status }, ...prev]);
-      fetchProperti();
+      
+      // Tambah notifikasi baru ke state (untuk Realtime)
+      const newNotif = {
+        id: Date.now(),
+        message: data.message,
+        status: data.status,
+        created_at: data.created_at || new Date(),
+        is_read: false
+      };
+      
+      setNotifications(prev => [newNotif, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      fetchProperti(); // Segarkan data jika ada perubahan status
+      
       setTimeout(() => { setToast(null); }, 5000);
     };
 
     socket.on('notify_agen', handleNotify);
     return () => { socket.off('notify_agen', handleNotify); };
   }, []);
+
+  // FUNGSI TARIK NOTIFIKASI DARI DATABASE
+  const fetchNotifications = async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, config);
+      if (res.data.success) {
+        setNotifications(res.data.data);
+        setUnreadCount(res.data.data.filter(n => !n.is_read).length);
+      }
+    } catch (err) {
+      console.error("Gagal memuat notifikasi", err);
+    }
+  };
+
+  // FUNGSI TANDAI DIBACA
+  const markNotificationsAsRead = async () => {
+    setShowNotifDropdown(!showNotifDropdown);
+    if (unreadCount === 0) return;
+    
+    try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, config);
+      setUnreadCount(0);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error("Gagal menandai dibaca", err);
+    }
+  };
 
   const fetchProperti = async () => {
     try {
@@ -246,7 +293,10 @@ export default function DashboardAgen() {
       setShowDeleteModal(false);
       fetchProperti();
       setTimeout(() => setToast(null), 5000);
-    } catch (err) { alert("Gagal memproses permintaan."); }
+    } catch (err) { 
+      console.error("Error Delete Data:", err.response || err);
+      alert("Gagal memproses permintaan: " + (err.response?.data?.message || "Akses Ditolak (Periksa Token atau Izin Role di Backend)")); 
+    }
   };
 
   const formatRupiah = (angka) => {
@@ -366,16 +416,55 @@ export default function DashboardAgen() {
             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 uppercase">
               {activeTab === 'daftar' ? 'Kelola Listing' : activeTab === 'terjual' ? 'Terjual' : 'Profil'}
             </h1>
-            <p className="text-gray-500 font-bold ml-1 mt-2">Halo {user?.name}, mari kembangkan listingmu!</p>
+            <p className="text-gray-500 font-bold ml-1 mt-2">Halo {user?.name}, selamat bekerja hari ini!</p>
           </div>
           
           <div className="flex items-center gap-4">
-            <button onClick={() => setShowNotifDropdown(!showNotifDropdown)} className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-500 relative">
-              <FiBell size={24} />
-              {notifications.length > 0 && (
-                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center">{notifications.length}</span>
+            
+            {/* WIDGET NOTIFIKASI DROPDOWN */}
+            <div className="relative">
+              <button 
+                onClick={markNotificationsAsRead} 
+                className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-500 hover:text-[#D9AB7B] transition relative"
+              >
+                <FiBell size={24} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center animate-bounce">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifDropdown && (
+                <div className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+                    <h3 className="font-black italic uppercase">Notifikasi</h3>
+                    <span className="text-[10px] bg-[#D9AB7B] text-slate-900 px-3 py-1 rounded-full font-bold">{notifications.length} Pesan</span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto p-4 space-y-3">
+                    {notifications.length === 0 ? (
+                      <p className="text-center text-gray-400 py-6 font-bold text-sm">Belum ada pemberitahuan</p>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div key={notif.id} className={`p-4 rounded-2xl transition border ${notif.is_read ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-white border-blue-100 shadow-sm'}`}>
+                          <div className="flex items-center gap-3 mb-1">
+                            <div className={`w-2 h-2 rounded-full ${
+                              notif.status === 'approved' ? 'bg-green-500' : 
+                              notif.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                            }`}></div>
+                            <p className="text-xs font-bold text-gray-500">
+                              {new Date(notif.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <p className="text-sm font-black text-gray-800 leading-tight">{notif.message}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
+
             {activeTab === 'daftar' && (
               <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#D9AB7B] text-[#1E293B] px-8 py-4 rounded-[1.5rem] font-black shadow-xl hover:-translate-y-1 transition-all h-14">
                 <FiPlus className="text-xl" /> TAMBAH UNIT
@@ -410,6 +499,7 @@ export default function DashboardAgen() {
         </div>
       )}
 
+      {/* MODAL TAMBAH/EDIT */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[250] p-4">
           <div className="bg-white rounded-[3rem] p-10 w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl">
@@ -458,6 +548,31 @@ export default function DashboardAgen() {
               <div className="col-span-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Lokasi Lengkap</label>
                 <input type="text" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-4 mb-4">              
+                  <div className="flex-1">
+                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">
+                          Latitude
+                      </label>
+                      <input 
+                          type="text" 
+                          name="latitude"
+                          placeholder="-5.450000"
+                          className="w-full bg-gray-50 text-gray-800 font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                  </div>
+                  <div className="flex-1">
+                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">
+                          Longitude
+                      </label>
+                      <input 
+                          type="text" 
+                          name="longitude"
+                          placeholder="105.266670"
+                          className="w-full bg-gray-50 text-gray-800 font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                  </div>
               </div>
 
               <div className="col-span-4">

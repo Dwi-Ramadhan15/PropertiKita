@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import PropertyDetail from './pages/PropertyDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword'; // ✅ Import file baru
 import MapSearch from './pages/MapSearch'; 
 import PropertiDijual from './pages/PropertiDijual';
 import PropertiDisewa from './pages/PropertiDisewa';
@@ -27,6 +28,7 @@ function AppContent() {
         <Route path="/properti/:slug" element={<PropertyDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/lupa-password" element={<ForgotPassword />} /> {/* ✅ Route Lupa Password */}
         <Route path="/mapsearch" element={<MapSearch />} />
         <Route path="/tentang" element={<Tentang />} />
         <Route path="/agen" element={<Agen />} />
@@ -34,6 +36,7 @@ function AppContent() {
         <Route path="/dashboard-user" element={<ProfileUser />} />
         <Route path="/dashboard-agen" element={<DashboardAgen />} />
         <Route path="/dashboard-admin" element={<DashboardAdmin />} />
+        
         <Route path="*" element={
           <div className="text-center py-20">
             <h2 className="text-4xl font-bold text-gray-800">404</h2>

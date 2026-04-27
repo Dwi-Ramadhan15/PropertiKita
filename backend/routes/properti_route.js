@@ -27,6 +27,8 @@ router.get('/properti/:slug', propertiController.getPropertiBySlug);
 router.post('/properti', upload.array('images', 10), propertiController.createProperti);
 router.put('/properti/:id', upload.array('images', 10), propertiController.updateProperti);
 router.put('/properti/:id/status', propertiController.updateStatusProperti);
+router.get('/notifications/:id_agen', propertiController.getNotifikasiAgen);
+router.put('/notifications/:id/read', propertiController.tandaiNotifDibaca);
 router.delete('/properti/:id', verifyToken, propertiController.deleteProperti);
 
 module.exports = router;
