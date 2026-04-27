@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+// ✅ Pertahankan import assets yang sudah benar
+import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
+import logoPK from '../assets/logo-pk.jpeg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -8,14 +11,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // ✅ PERTAHANKAN LOGIKA HANDLER (TIDAK BERUBAH SEDIKITPUN)
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     
     try {
       const res = await axios.post('http://localhost:5000/api/users/login', { 
-            identifier: email, 
-            password: password 
+            identifier: email || "", 
+            password: password || "" 
           });
       
       if (res.data.success) {
@@ -23,15 +27,11 @@ export default function Login() {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user)); 
         
-        alert("Login Berhasil! Halo " + user.name);
+        alert("Login Berhasil! Halo " + (user.name || "User"));
         
-        if (user.role === 'admin') {
-          navigate('/dashboard-admin');
-        } else if (user.role === 'agen') {
-          navigate('/dashboard-agen'); 
-        } else {
-          navigate('/'); 
-        }
+        if (user.role === 'admin') navigate('/dashboard-admin');
+        else if (user.role === 'agen') navigate('/dashboard-agen'); 
+        else navigate('/'); 
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Email atau password salah!";
@@ -41,55 +41,84 @@ export default function Login() {
     }
   };
 
+  // ✅ PENYESUAIAN WARNA DAN STYLE DI BAWAH INI
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] pt-20 px-4">
-      <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-gray-100">
-        <h2 className="text-4xl font-black text-gray-900 mb-2 text-center tracking-tight">Masuk</h2>
-        <p className="text-gray-500 mb-8 font-medium text-center">Silahkan masuk ke akun PropertiKita Anda</p>
+    <div 
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 relative"
+      style={{ backgroundImage: `url(${backgroundRumah})` }}
+    >
+      {/* Overlay Gelap Sesuai Referensi */}
+      <div className="absolute inset-0 bg-[#0A1A2E]/80 z-10"></div>
+
+      {/* Card UI: Penyesuaian membulat dan pading agar clean */}
+      <div className="bg-white p-8 md:p-12 rounded-[1.5rem] shadow-xl w-full max-w-[440px] relative z-20 text-center">
+        
+        {/* Header Section */}
+        <div className="flex flex-col items-center mb-10">
+          <img 
+            src={logoPK} 
+            alt="Logo PropertiKita" 
+            className="h-20 w-auto object-contain mb-5" // Sedikit margin bawah
+          />
+          {/* Judul Font Menengah */}
+          <h2 className="text-2xl font-bold text-gray-900 mb-1 tracking-tight">Masuk</h2>
+          <p className="text-gray-500 text-sm font-medium">Silahkan masuk ke akun PropertiKita Anda</p>
+        </div>
         
         <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-sm font-bold text-gray-700 ml-1">Email</label>
+          {/* Input Email: Ganti rounded dan border */}
+          <div className="space-y-1.5 text-left">
+            <label className="text-xs font-semibold text-gray-600 ml-1">Email</label>
             <input 
               type="email" 
-              placeholder="nama@email.com"
-              className="w-full p-4 bg-gray-50 rounded-2xl outline-none border border-transparent focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+              placeholder="Enter your Email"
+              className="w-full p-4 bg-white rounded-lg outline-none border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] transition-all shadow-inner text-sm placeholder:text-gray-300"
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-bold text-gray-700 ml-1">Password</label>
+          {/* Input Password: Ganti rounded dan border */}
+          <div className="space-y-1.5 text-left">
+            <label className="text-xs font-semibold text-gray-600 ml-1">Password</label>
             <input 
               type="password" 
-              placeholder="••••••••"
-              className="w-full p-4 bg-gray-50 rounded-2xl outline-none border border-transparent focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+              placeholder="Enter Your Password"
+              className="w-full p-4 bg-white rounded-lg outline-none border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] transition-all shadow-inner text-sm placeholder:text-gray-300"
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
 
+          {/* ✅ TOMBOL MASUK: GANTI WARNA JADI COKLAT EMAS */}
           <button 
             type="submit" 
             disabled={loading}
-            className={`w-full py-4 rounded-2xl font-black text-lg transition shadow-xl active:scale-95 flex justify-center items-center
-              ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+            className={`w-full py-4 rounded-lg font-medium text-lg transition flex justify-center items-center active:scale-95 shadow-md
+              ${loading ? 'bg-gray-400' : 'bg-[#C6A265] hover:bg-[#B39156] text-white'}`}
           >
-            {loading ? (
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              "Masuk Sekarang"
-            )}
+            {loading ? "Memproses..." : "Masuk"}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-gray-500 font-medium">
-          Belum punya akun?{' '}
-          <Link to="/register" className="text-blue-600 font-bold hover:underline">
-            Daftar di sini
+        {/* Footer Links */}
+        <div className="mt-10 text-center space-y-3.5">
+          {/* Warna Daftar Coklat */}
+          <p className="text-gray-500 font-medium text-sm">
+            Belum punya akun?{' '}
+            <Link to="/register" className="text-[#C6A265] font-bold hover:underline transition">
+              Daftar
+            </Link>
+          </p>
+          
+          {/* ✅ PERTAHANKAN LINK LUPA PASSWORD DENGAN WARNA BARU */}
+          <Link 
+            to="/lupa-password" 
+            className="block text-xs font-bold text-[#C6A265] hover:text-[#B39156] transition hover:underline"
+          >
+            Lupa Password?
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );
