@@ -15,6 +15,7 @@ import DaftarPropertiAgen from './pages/DaftarPropertiAgen';
 import DashboardAgen from './pages/DashboardAgen';
 import DashboardAdmin from './pages/DashboardAdmin';
 import ProfileUser from './pages/ProfileUser';
+import VerifyResetOtp from './pages/VerifyResetOtp'
 
 function AppContent() {
   return (
@@ -36,6 +37,7 @@ function AppContent() {
         <Route path="/dashboard-user" element={<ProfileUser />} />
         <Route path="/dashboard-agen" element={<DashboardAgen />} />
         <Route path="/dashboard-admin" element={<DashboardAdmin />} />
+        <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
         
         <Route path="*" element={
           <div className="text-center py-20">
