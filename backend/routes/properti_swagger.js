@@ -234,3 +234,56 @@
  *       200:
  *         description: Login berhasil, mengembalikan token
  */
+
+/**
+ * @swagger
+ * /api/users/forgot-password:
+ *   post:
+ *     summary: Mengirim OTP untuk lupa password
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *                 description: Email atau nomor WhatsApp user
+ *                 example: "08...."
+ *     responses:
+ *       200:
+ *         description: OTP berhasil dikirim
+ *       404:
+ *         description: User tidak ditemukan
+ */
+
+/**
+ * @swagger
+ * /api/users/reset-password:
+ *   post:
+ *     summary: Reset password menggunakan OTP
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *                 example: "diah@example.com"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 example: "passwordBaru123"
+ *     responses:
+ *       200:
+ *         description: Password berhasil diperbarui
+ *       400:
+ *         description: OTP salah atau kadaluwarsa
+ */

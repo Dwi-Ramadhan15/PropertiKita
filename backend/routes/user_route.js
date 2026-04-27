@@ -26,6 +26,14 @@ const authenticateToken = (req, res, next) => {
 router.post('/register', upload.single('foto_profil'), userController.register);
 router.post('/login', userController.login);
 router.post('/verify-otp', userController.verifyOtp);
+
+// ==========================================
+// [TAMBAHAN] RUTE LUPA PASSWORD & RESET
+// ==========================================
+router.post('/forgot-password', userController.forgotPassword);
+router.post('/reset-password', userController.resetPassword);
+// ==========================================
+
 router.get('/', getAllUsers);
 
 router.get('/profile', authenticateToken, userController.getProfile);

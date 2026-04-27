@@ -121,6 +121,81 @@ const verifyOtp = async(req, res) => {
     } finally { client.release(); }
 };
 
+// ==========================================
+// [TAMBAHAN] FITUR LUPA PASSWORD & RESET
+// ==========================================
+
+const forgotPassword = async (req, res) => {
+    try {
+        const { identifier } = req.body; 
+        const result = await db.query(
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", 
+            [identifier.trim().toLowerCase()]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        }
+
+        const user = result.rows[0];
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Update OTP baru ke database
+        await db.query("UPDATE users SET otp_code = $1 WHERE id = $2", [otpCode, user.id]);
+
+        // LOGIKA BARU: Prioritas kirim via WhatsApp (Fonnte)
+        if (user.phone_number) {
+            await sendWhatsAppOTP(user.phone_number, otpCode);
+            return res.json({ success: true, message: "Kode OTP reset password telah dikirim ke WhatsApp Anda!" });
+        } else if (user.email) {
+            // Backup jika nomor WA tidak ada, kirim via Email
+            await sendEmailOTP(user.email, otpCode);
+            return res.json({ success: true, message: "Kode OTP reset password telah dikirim ke Email Anda!" });
+        }
+
+        res.status(400).json({ success: false, message: "Metode pengiriman tidak ditemukan (Email/WA kosong)." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { identifier, otp, newPassword } = req.body;
+
+        const result = await db.query(
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", 
+            [identifier.trim().toLowerCase()]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        }
+
+        const user = result.rows[0];
+
+        // Validasi OTP
+        if (user.otp_code !== otp || !otp) {
+            return res.status(400).json({ success: false, message: "OTP salah atau kadaluwarsa!" });
+        }
+
+        // Hash password baru
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password dan hapus OTP
+        await db.query(
+            "UPDATE users SET password = $1, otp_code = NULL WHERE id = $2", 
+            [hashedPassword, user.id]
+        );
+
+        res.json({ success: true, message: "Password berhasil diperbarui, silakan login kembali." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ==========================================
+
 const getProfile = async(req, res) => {
     try {
         const userId = req.user ? req.user.id : req.userId;
@@ -235,4 +310,16 @@ const updateAvatar = async(req, res) => {
     }
 };
 
-module.exports = { register, login, verifyOtp, getAllUsers, getProfile, getUserProfile, updateProfile, updateAvatar };
+// Pastikan forgotPassword dan resetPassword masuk ke sini
+module.exports = { 
+    register, 
+    login, 
+    verifyOtp, 
+    forgotPassword, 
+    resetPassword, 
+    getAllUsers, 
+    getProfile, 
+    getUserProfile, 
+    updateProfile, 
+    updateAvatar 
+};
