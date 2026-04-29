@@ -64,15 +64,15 @@ export default function ForgotPassword() {
         <div className="flex flex-col items-center mb-10">
           <img src={logoPK} alt="Logo" className="h-20 w-auto object-contain mb-5" />
           <h2 className="text-2xl font-bold text-gray-900 mb-1 tracking-tight">Lupa Password</h2>
-          <p className="text-gray-500 text-sm font-medium">Masukkan Email atau No. WhatsApp Anda</p>
+          <p className="text-gray-500 text-sm font-medium">Masukkan No. WhatsApp Anda</p>
         </div>
 
         <form onSubmit={handleForgotPassword} className="space-y-6 text-left">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-600 ml-1">Email / No. WhatsApp</label>
+            <label className="text-xs font-semibold text-gray-600 ml-1">No. WhatsApp</label>
             <input 
               type="text" 
-              placeholder="Contoh: 0812xxx atau user@mail.com"
+              placeholder="Contoh: 0812xxxxxxxx"
               className="w-full p-4 bg-white rounded-lg border border-gray-200 outline-none focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] transition-all text-sm shadow-inner"
               onChange={(e) => setInputValue(e.target.value)}
               required

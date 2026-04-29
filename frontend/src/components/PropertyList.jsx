@@ -23,7 +23,6 @@ export default function PropertyList({ type = "all" }) {
 
   const isSewa = type === "sewa";
 
-  // ✅ FORMAT RUPIAH
   const formatRupiah = (number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -61,7 +60,7 @@ export default function PropertyList({ type = "all" }) {
               <input
                 type="text"
                 placeholder="Cari lokasi atau nama properti..."
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C9925F]"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -116,9 +115,7 @@ export default function PropertyList({ type = "all" }) {
                   </div>
 
                   <div className="p-6 flex flex-col">
-                    
-                    {/* ✅ PAKAI FORMAT RUPIAH */}
-                    <h3 className="text-blue-600 font-bold text-xl mb-1">
+                    <h3 className="text-[#C9925F] font-bold text-xl mb-1">
                       {formatRupiah(item.properties.harga)}
                     </h3>
 
@@ -139,7 +136,7 @@ export default function PropertyList({ type = "all" }) {
 
                     <Link
                       to={`/properti/${item.properties.slug}`}
-                      className="mt-4 block text-center py-3 bg-slate-50 rounded-xl font-bold hover:bg-blue-600 hover:text-white transition"
+                      className="mt-4 block text-center py-3 bg-slate-50 rounded-xl font-bold hover:bg-[#D9AB7B] hover:text-black transition"
                     >
                       Lihat Detail
                     </Link>

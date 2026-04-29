@@ -11,8 +11,6 @@ export default function VerifyResetOtp() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Mengambil data identifier (Email/WA) yang dikirim dari halaman ForgotPassword
   const identifier = location.state?.identifier || "";
 
   const handleResetPassword = async (e) => {

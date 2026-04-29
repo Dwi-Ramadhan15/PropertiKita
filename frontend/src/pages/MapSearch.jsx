@@ -60,7 +60,6 @@ export default function MapSearch() {
     formatHarga,
     handleReset,
     handleHoverProperty,
-    handleLeaveProperty,
     getGoogleMapsUrl,
   } = useMapSearch();
 
@@ -69,47 +68,45 @@ export default function MapSearch() {
   const getId = (item) => String(item.properties.id);
 
   return (
-    <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-white">
-
-
+    <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-gray-100">
       {/* SIDEBAR */}
-      <div className="w-[400px] flex flex-col border-r border-gray-200 bg-[#F9FBFF] z-20">
-
-
+      <div className="w-[380px] flex flex-col border-r border-gray-200 bg-white shadow-sm z-20">
         {/* FILTER */}
-        <div className="p-6 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-2 mb-6 text-[#1E293B]">
-            <FiFilter className="text-xl" />
-            <h2 className="text-xl font-bold italic uppercase tracking-tighter">
-              Filter
+        <div className="p-5 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2 mb-5 text-slate-800">
+            <FiFilter className="text-lg" />
+
+            <h2 className="text-lg font-bold uppercase tracking-tight">
+              Filter Properti
             </h2>
 
             <button
               onClick={handleReset}
-              className="ml-auto text-xs text-gray-400 hover:text-blue-600"
+              className="ml-auto text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-blue-50 hover:text-blue-600 transition"
             >
               Reset
             </button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* SEARCH */}
             <div className="relative">
               <FiSearch className="absolute left-3 top-3 text-gray-400" />
+
               <input
                 type="text"
                 placeholder="Cari lokasi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* HARGA */}
             <div>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                MAKS HARGA:{" "}
-                <span className="text-blue-600">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                Maks Harga :
+                <span className="text-[#C9925F] ml-1">
                   {formatHarga(maxHarga)}
                 </span>
               </label>
@@ -121,13 +118,13 @@ export default function MapSearch() {
                 step="100000000"
                 value={maxHarga}
                 onChange={(e) => setMaxHarga(parseInt(e.target.value))}
-                className="w-full mt-2"
+                className="w-full mt-2 accent-[#D9AB7B]"
               />
             </div>
 
             {/* KAMAR */}
             <div>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 Kamar Tidur
               </label>
 
@@ -138,10 +135,10 @@ export default function MapSearch() {
                     onClick={() =>
                       setKamarTidur(kamarTidur === v ? null : v)
                     }
-                    className={`py-2 text-xs font-bold border rounded-md ${
+                    className={`py-2 text-xs font-semibold rounded-lg border transition ${
                       kamarTidur === v
-                        ? "bg-blue-600 text-white"
-                        : "bg-white"
+                        ? "bg-[#C9925F] text-white border-blue-600"
+                        : "bg-white hover:bg-gray-50 border-gray-200"
                     }`}
                   >
                     {v === "3+" ? "3+ KT" : `${v} KT`}
@@ -152,8 +149,8 @@ export default function MapSearch() {
           </div>
         </div>
 
-        {/* LIST PROPERTY */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* PROPERTY LIST */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
           {loading ? (
             <div className="text-center py-20 text-gray-400">
               Loading...
@@ -166,9 +163,8 @@ export default function MapSearch() {
                 <div
                   key={id}
                   onMouseEnter={() => handleHoverProperty(item)}
-                  onMouseLeave={() => {}}
                   onClick={() => setSelectedPropertyId(id)}
-                  className="bg-white p-3 rounded-xl border hover:shadow transition cursor-pointer"
+                  className="bg-white p-3 rounded-xl border border-gray-200 hover:shadow-md transition cursor-pointer"
                 >
                   <div className="flex gap-3">
                     <img
@@ -177,15 +173,15 @@ export default function MapSearch() {
                     />
 
                     <div className="flex-1">
-                      <h4 className="text-sm font-bold line-clamp-2">
+                      <h4 className="text-sm font-bold text-slate-800 line-clamp-2">
                         {item.properties.title}
                       </h4>
 
-                      <p className="text-blue-600 font-bold text-sm mt-1">
+                      <p className="text-[#C9925F] font-bold text-sm mt-1">
                         {formatHarga(item.properties.harga)}
                       </p>
 
-                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-2">
                         <FiHome size={10} />
                         {item.properties.lokasi}
                       </p>
@@ -194,7 +190,7 @@ export default function MapSearch() {
 
                   <Link
                     to={`/properti/${item.properties.slug}`}
-                    className="mt-3 block text-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold"
+                    className="mt-3 block text-center bg-[#D9AB7B] hover:bg-[#c49a6e] text-[#1E293B] py-2 rounded-lg text-sm font-semibold transition"
                   >
                     Detail Property
                   </Link>
@@ -216,23 +212,22 @@ export default function MapSearch() {
             const id = getId(item);
 
             return (
-                  <Marker
-                    key={id}
-                    position={[
-                      item.geometry.coordinates[1],
-                      item.geometry.coordinates[0],
-                    ]}
-                    icon={
-                      selectedPropertyId === id
-                        ? hoverIcon
-                        : hoveredPropertyId === id
-                        ? hoverIcon
-                        : defaultIcon
-                    }
-                    eventHandlers={{
-                      click: () => setSelectedPropertyId(id), 
-                    }}
-                  >
+              <Marker
+                key={id}
+                position={[
+                  item.geometry.coordinates[1],
+                  item.geometry.coordinates[0],
+                ]}
+                icon={
+                  selectedPropertyId === id ||
+                  hoveredPropertyId === id
+                    ? hoverIcon
+                    : defaultIcon
+                }
+                eventHandlers={{
+                  click: () => setSelectedPropertyId(id),
+                }}
+              >
                 <Popup>
                   <div className="w-52">
                     <img
@@ -244,7 +239,7 @@ export default function MapSearch() {
                       {item.properties.title}
                     </p>
 
-                    <p className="text-blue-600 font-bold text-sm mb-2">
+                    <p className="text-blue-600 font-bold text-sm mb-2 mt-1">
                       {formatHarga(item.properties.harga)}
                     </p>
 
@@ -252,7 +247,7 @@ export default function MapSearch() {
                       href={getGoogleMapsUrl(item)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm font-semibold"
+                      className="flex items-center justify-center gap-2 bg-[#D9AB7B] text-white py-2 rounded-lg text-sm font-semibold transition"
                     >
                       <FiMapPin />
                       Lihat di GMaps

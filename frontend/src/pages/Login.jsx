@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-// ✅ Pertahankan import assets yang sudah benar
 import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
 import logoPK from '../assets/logo-pk.jpeg';
 
@@ -11,7 +10,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ PERTAHANKAN LOGIKA HANDLER (TIDAK BERUBAH SEDIKITPUN)
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
