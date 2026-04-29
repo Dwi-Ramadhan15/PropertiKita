@@ -6,7 +6,7 @@
  *       type: http
  *       scheme: bearer
  *       bearerFormat: JWT
- * 
+ *
  * tags:
  *   - name: Users
  *     description: Manajemen User, Autentikasi JWT, dan Verifikasi OTP
@@ -229,7 +229,6 @@
  *         description: Data properti berhasil diambil dalam format GeoJSON
  *       500:
  *         description: Internal Server Error
- * 
  *   post:
  *     summary: Menambah properti baru (Agen Only) [PRIVATE]
  *     tags: [Properti]
@@ -332,7 +331,18 @@
  *     responses:
  *       201:
  *         description: Fasilitas berhasil ditambahkan
- * 
+ *   get:
+ *     summary: Mengambil semua data fasilitas properti
+ *     tags: [Fasilitas]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil data
+ */
+
+/**
+ * @swagger
  * /api/properti/fasilitas/{id_properti}:
  *   get:
  *     summary: Mendapatkan semua fasilitas dari satu properti [PUBLIC]
@@ -346,7 +356,10 @@
  *     responses:
  *       200:
  *         description: Berhasil mengambil data fasilitas
- * 
+ */
+
+/**
+ * @swagger
  * /api/properti/fasilitas/{id}:
  *   put:
  *     summary: Update nama fasilitas (Agen Only) [PRIVATE]
@@ -372,7 +385,6 @@
  *     responses:
  *       200:
  *         description: Fasilitas berhasil diupdate
- * 
  *   delete:
  *     summary: Menghapus fasilitas (Agen Only) [PRIVATE]
  *     tags: [Fasilitas]
@@ -388,6 +400,7 @@
  *       200:
  *         description: Fasilitas berhasil dihapus
  */
+
 /**
  * @swagger
  * /api/notifications/{id_agen}:

@@ -401,6 +401,43 @@ const tandaiNotifDibaca = async(req, res) => {
     }
 };
 
+// ==========================================
+// [TAMBAHAN] CRUD FASILITAS
+// ==========================================
+
+const getAllFasilitas = async (req, res) => {
+    try {
+        // Mengambil daftar fasilitas unik dari tabel fasilitas_properti
+        // atau dari tabel master fasilitas jika kamu memilikinya
+        const query = "SELECT DISTINCT nama_fasilitas FROM fasilitas_properti ORDER BY nama_fasilitas ASC";
+        const { rows } = await db.query(query);
+        res.status(200).json({ success: true, data: rows.map(r => r.nama_fasilitas) });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const addFasilitasKeProperti = async (req, res) => {
+    try {
+        const { id_properti, nama_fasilitas } = req.body;
+        const query = "INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2) RETURNING *";
+        const result = await db.query(query, [id_properti, nama_fasilitas]);
+        res.status(201).json({ success: true, message: "Fasilitas berhasil ditambahkan", data: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const deleteFasilitasProperti = async (req, res) => {
+    try {
+        const { id } = req.params; // ID dari tabel fasilitas_properti
+        await db.query("DELETE FROM fasilitas_properti WHERE id = $1", [id]);
+        res.status(200).json({ success: true, message: "Fasilitas berhasil dihapus" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getProperti,
     getPropertiBySlug,
@@ -410,5 +447,9 @@ module.exports = {
     deleteProperti,
     getAgen,
     getNotifikasiAgen,
-    tandaiNotifDibaca
+    tandaiNotifDibaca,
+    // Export fungsi tambahan
+    getAllFasilitas,
+    addFasilitasKeProperti,
+    deleteFasilitasProperti
 };
