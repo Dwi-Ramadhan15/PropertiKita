@@ -172,8 +172,15 @@ const resetPassword = async(req, res) => {
             return res.status(400).json({ success: false, message: "OTP salah atau kadaluwarsa!" });
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Password baru tidak boleh sama dengan password lama!" 
+            });
+        }
 
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
         await db.query(
             "UPDATE users SET password = $1, otp_code = NULL WHERE id = $2", [hashedPassword, user.id]
         );

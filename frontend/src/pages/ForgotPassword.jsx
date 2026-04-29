@@ -5,11 +5,11 @@ import logoPK from '../assets/logo-pk.jpeg';
 import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
 
 export default function ForgotPassword() {
-  const [inputValue, setInputValue] = useState(''); // Email atau WA
-  const [otp, setOtp] = useState('');
+  const [inputValue, setInputValue] = useState(''); 
+  const [otp, setOtp] = useState(''); 
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false); // State untuk Popup
+  const [showModal, setShowModal] = useState(false); 
   const navigate = useNavigate();
 
   // 1. Fungsi Kirim OTP
@@ -21,7 +21,9 @@ export default function ForgotPassword() {
         identifier: inputValue.trim() 
       });
       alert("Kode OTP telah dikirim!");
-      setShowModal(true); // Tampilkan popup setelah berhasil kirim OTP
+      
+      setOtp(''); // Reset state OTP agar kosong saat modal buka
+      setShowModal(true); 
     } catch (err) {
       alert("Gagal: " + (err.response?.data?.message || "User tidak ditemukan"));
     } finally {
@@ -46,6 +48,7 @@ export default function ForgotPassword() {
         navigate('/login');
       }
     } catch (err) {
+      // ✅ Akan menampilkan "Password baru tidak boleh sama..." jika backend sudah kamu update
       alert("Gagal: " + (err.response?.data?.message || "OTP salah atau kadaluwarsa"));
     } finally {
       setLoading(false);
@@ -75,6 +78,7 @@ export default function ForgotPassword() {
               placeholder="Contoh: 0812xxxxxxxx"
               className="w-full p-4 bg-white rounded-lg border border-gray-200 outline-none focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] transition-all text-sm shadow-inner"
               onChange={(e) => setInputValue(e.target.value)}
+              autoComplete="off"
               required
             />
           </div>
@@ -91,7 +95,7 @@ export default function ForgotPassword() {
 
         <div className="mt-10">
           <p className="text-gray-500 font-medium text-sm">
-             Kembali ke <Link to="/login" className="text-[#C6A265] font-bold hover:underline">Login</Link>
+              Kembali ke <Link to="/login" className="text-[#C6A265] font-bold hover:underline">Login</Link>
           </p>
         </div>
       </div>
@@ -99,7 +103,7 @@ export default function ForgotPassword() {
       {/* --- POPUP MODAL VERIFIKASI OTP --- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-2xl relative animate-in fade-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-2xl relative">
             <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Verifikasi OTP</h2>
             <p className="text-center text-gray-500 text-sm mb-8">
               Masukkan kode yang dikirim ke <br/> <b>{inputValue}</b>
@@ -111,9 +115,12 @@ export default function ForgotPassword() {
                 <input 
                   type="text"
                   maxLength="6"
-                  placeholder="6 Digit Kode"
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-[#C6A265]"
+                  value={otp} // ✅ Terikat ke state
                   onChange={(e) => setOtp(e.target.value)}
+                  placeholder=". . . . . ." // ✅ Placeholder titik-titik
+                  autoComplete="one-time-code" // ✅ Mencegah Autofill Browser
+                  name={`otp_field_${Math.random()}`} // ✅ Nama acak biar browser tidak kenal
+                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-[#C6A265] placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300"
                   required
                 />
               </div>
@@ -123,6 +130,7 @@ export default function ForgotPassword() {
                 <input 
                   type="password"
                   placeholder="Masukkan Password Baru"
+                  autoComplete="new-password"
                   className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#C6A265] text-sm"
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
