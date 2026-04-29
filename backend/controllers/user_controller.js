@@ -122,18 +122,16 @@ const verifyOtp = async(req, res) => {
 };
 
 
-const forgotPassword = async (req, res) => {
+const forgotPassword = async(req, res) => {
     try {
-        const { identifier } = req.body; 
+        const { identifier } = req.body;
 
         if (!identifier) {
             return res.status(400).json({ success: false, message: "Email atau Nomor WA wajib diisi!" });
         }
 
-        // Cari user berdasarkan email ATAU phone_number (karena kita pakai identifier)
         const result = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", 
-            [identifier.trim().toLowerCase()]
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]
         );
 
         if (result.rows.length === 0) {
@@ -143,10 +141,7 @@ const forgotPassword = async (req, res) => {
         const user = result.rows[0];
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Update OTP baru ke database
         await db.query("UPDATE users SET otp_code = $1 WHERE id = $2", [otpCode, user.id]);
-
-        // Prioritas kirim via WhatsApp jika ada phone_number
         if (user.phone_number) {
             await sendWhatsAppOTP(user.phone_number, otpCode);
             return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
@@ -159,13 +154,12 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-const resetPassword = async (req, res) => {
+const resetPassword = async(req, res) => {
     try {
         const { identifier, otp, newPassword } = req.body;
 
         const result = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", 
-            [identifier.trim().toLowerCase()]
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]
         );
 
         if (result.rows.length === 0) {
@@ -181,8 +175,7 @@ const resetPassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         await db.query(
-            "UPDATE users SET password = $1, otp_code = NULL WHERE id = $2", 
-            [hashedPassword, user.id]
+            "UPDATE users SET password = $1, otp_code = NULL WHERE id = $2", [hashedPassword, user.id]
         );
 
         res.json({ success: true, message: "Password berhasil diperbarui!" });
@@ -199,9 +192,9 @@ const getProfile = async(req, res) => {
 };
 
 
-const getAllUsers = async (req, res) => {
+const getAllUsers = async(req, res) => {
     try {
-        const { role } = req.query; // 'user' atau 'agen'
+        const { role } = req.query;
         const query = `
             SELECT id, name, email, phone_number, role, foto_profil, is_verified 
             FROM users 
@@ -209,10 +202,10 @@ const getAllUsers = async (req, res) => {
             ORDER BY id DESC
         `;
         const { rows } = await db.query(query, [role]);
-        
-        res.status(200).json({ 
-            success: true, 
-            data: rows 
+
+        res.status(200).json({
+            success: true,
+            data: rows
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -305,15 +298,15 @@ const updateAvatar = async(req, res) => {
 };
 
 // Pastikan forgotPassword dan resetPassword masuk ke sini
-module.exports = { 
-    register, 
-    login, 
-    verifyOtp, 
-    forgotPassword, 
-    resetPassword, 
-    getAllUsers, 
-    getProfile, 
-    getUserProfile, 
-    updateProfile, 
-    updateAvatar 
+module.exports = {
+    register,
+    login,
+    verifyOtp,
+    forgotPassword,
+    resetPassword,
+    getAllUsers,
+    getProfile,
+    getUserProfile,
+    updateProfile,
+    updateAvatar
 };
