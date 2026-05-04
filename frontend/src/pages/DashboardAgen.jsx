@@ -21,8 +21,8 @@ export default function DashboardAgen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [fasilitasOptions, setFasilitasOptions] = useState([]);
   
-  // STATE NOTIFIKASI
   const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -88,15 +88,26 @@ export default function DashboardAgen() {
       navigate('/login');
       return;
     }
+    
     fetchProperti();
-    fetchNotifications(); // Panggil notif dari DB saat komponen di-mount
+    fetchNotifications(); 
+
+    const fetchFasilitas = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/fasilitas');
+        const daftarUnik = [...new Set(res.data.map(item => item.nama_fasilitas))];
+        setFasilitasOptions(daftarUnik);
+      } catch (err) {
+        console.error("Gagal mengambil data fasilitas:", err);
+      }
+    };
+    fetchFasilitas();
 
     socket.emit('join_room', `agen_${user.id}`);
     
     const handleNotify = (data) => {
       setToast(data.message);
       
-      // Tambah notifikasi baru ke state (untuk Realtime)
       const newNotif = {
         id: Date.now(),
         message: data.message,
@@ -107,7 +118,7 @@ export default function DashboardAgen() {
       
       setNotifications(prev => [newNotif, ...prev]);
       setUnreadCount(prev => prev + 1);
-      fetchProperti(); // Segarkan data jika ada perubahan status
+      fetchProperti(); 
       
       setTimeout(() => { setToast(null); }, 5000);
     };
@@ -116,7 +127,6 @@ export default function DashboardAgen() {
     return () => { socket.off('notify_agen', handleNotify); };
   }, []);
 
-  // FUNGSI TARIK NOTIFIKASI DARI DATABASE
   const fetchNotifications = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -130,7 +140,6 @@ export default function DashboardAgen() {
     }
   };
 
-  // FUNGSI TANDAI DIBACA
   const markNotificationsAsRead = async () => {
     setShowNotifDropdown(!showNotifDropdown);
     if (unreadCount === 0) return;
@@ -426,7 +435,6 @@ const renderContent = () => {
           
           <div className="flex items-center gap-4">
             
-            {/* WIDGET NOTIFIKASI DROPDOWN */}
             <div className="relative">
               <button 
                 onClick={markNotificationsAsRead} 
@@ -504,7 +512,6 @@ const renderContent = () => {
         </div>
       )}
 
-      {/* MODAL TAMBAH/EDIT */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[250] p-4">
           <div className="bg-white rounded-[3rem] p-10 w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl">
@@ -557,26 +564,12 @@ const renderContent = () => {
 
               <div className="flex flex-col md:flex-row gap-4 mb-4">              
                   <div className="flex-1">
-                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">
-                          Latitude
-                      </label>
-                      <input 
-                          type="text" 
-                          name="latitude"
-                          placeholder="-5.450000"
-                          className="w-full bg-gray-50 text-gray-800 font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      <label className="text-[10px] font-black text-gray-400 uppercase ml-2"> Latitude </label>
+                      <input type="number" name="latitude" placeholder="-5.450000" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none border border-transparent"/>
                   </div>
                   <div className="flex-1">
-                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">
-                          Longitude
-                      </label>
-                      <input 
-                          type="text" 
-                          name="longitude"
-                          placeholder="105.266670"
-                          className="w-full bg-gray-50 text-gray-800 font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      <label className="text-[10px] font-black text-gray-400 uppercase ml-2"> Longitude </label>
+                      <input type="number" name="longitude" placeholder="105.266670" className="w-full p-5 bg-gray-50 rounded-[1.5rem] font-bold outline-none border border-transparent"/>
                   </div>
               </div>
 
@@ -588,7 +581,7 @@ const renderContent = () => {
               <div className="col-span-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2 block mb-2">Pilih Fasilitas</label>
                 <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                  {FASILITAS_PRESET.map((item) => {
+                  {fasilitasOptions.map((item) => {
                     const active = formData.fasilitas.includes(item);
                     return (
                       <button
