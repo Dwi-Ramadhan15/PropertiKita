@@ -45,7 +45,7 @@
  *                 example: Diah Ayu
  *               email:
  *                 type: string
- *                 example: diah@example.com
+ *                 example: diah@gmail.com
  *               phone_number:
  *                 type: string
  *                 example: "081234567890"
@@ -81,7 +81,8 @@
  *             properties:
  *               email:
  *                 type: string
- *                 example: diah@example.com
+ *                 description: Email atau nomor WhatsApp user
+ *                 example: diah@gmail.com
  *               otp:
  *                 type: string
  *                 example: "123456"
@@ -108,7 +109,8 @@
  *             properties:
  *               email:
  *                 type: string
- *                 example: diah@example.com
+ *                 description: Email atau nomor WhatsApp user
+ *                 example: diah@gmail.com
  *               password:
  *                 type: string
  *                 format: password
@@ -131,10 +133,10 @@
  *           schema:
  *             type: object
  *             properties:
- *               identifier:
+ *               email:
  *                 type: string
  *                 description: Email atau nomor WhatsApp user
- *                 example: "diah@example.com"
+ *                 example: "diah@gmail.com"
  *     responses:
  *       200:
  *         description: OTP berhasil dikirim
@@ -155,9 +157,9 @@
  *           schema:
  *             type: object
  *             properties:
- *               identifier:
+ *               email:
  *                 type: string
- *                 example: "diah@example.com"
+ *                 example: "diah@gmail.com"
  *               otp:
  *                 type: string
  *                 example: "123456"
@@ -249,6 +251,18 @@
  *                 type: integer
  *               lokasi:
  *                 type: string
+ *               deskripsi:
+ *                 type: string
+ *               kamar_tidur:
+ *                 type: string
+ *               kamar_mandi:
+ *                 type: string
+ *               luas_tanah:
+ *                type: string
+ *               longitude:
+ *                type: numeric
+ *               latitude:
+ *                type: numeric
  *               images:
  *                 type: array
  *                 items:
@@ -310,9 +324,15 @@
 
 /**
  * @swagger
- * /api/properti/fasilitas:
+ * /api/fasilitas:
+ *   get:
+ *     summary: Mendapatkan semua daftar fasilitas [PUBLIC]
+ *     tags: [Fasilitas]
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil data fasilitas
  *   post:
- *     summary: Menambahkan fasilitas ke properti (Agen Only) [PRIVATE]
+ *     summary: Menambah fasilitas ke properti (Agen Only) [PRIVATE]
  *     tags: [Fasilitas]
  *     security:
  *       - bearerAuth: []
@@ -322,47 +342,23 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - id_properti
+ *               - nama_fasilitas
  *             properties:
  *               id_properti:
  *                 type: integer
+ *                 example: 27
  *               nama_fasilitas:
  *                 type: string
  *                 example: "Kolam Renang Indoor"
  *     responses:
  *       201:
  *         description: Fasilitas berhasil ditambahkan
- *   get:
- *     summary: Mengambil semua data fasilitas properti
- *     tags: [Fasilitas]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Berhasil mengambil data
- */
-
-/**
- * @swagger
- * /api/properti/fasilitas/{id_properti}:
- *   get:
- *     summary: Mendapatkan semua fasilitas dari satu properti [PUBLIC]
- *     tags: [Fasilitas]
- *     parameters:
- *       - in: path
- *         name: id_properti
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Berhasil mengambil data fasilitas
- */
-
-/**
- * @swagger
- * /api/properti/fasilitas/{id}:
+ * 
+ * /api/fasilitas/{id}:
  *   put:
- *     summary: Update nama fasilitas (Agen Only) [PRIVATE]
+ *     summary: Mengupdate nama fasilitas [PRIVATE]
  *     tags: [Fasilitas]
  *     security:
  *       - bearerAuth: []
@@ -386,7 +382,7 @@
  *       200:
  *         description: Fasilitas berhasil diupdate
  *   delete:
- *     summary: Menghapus fasilitas (Agen Only) [PRIVATE]
+ *     summary: Menghapus fasilitas [PRIVATE]
  *     tags: [Fasilitas]
  *     security:
  *       - bearerAuth: []

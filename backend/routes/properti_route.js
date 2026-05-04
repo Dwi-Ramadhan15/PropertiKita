@@ -21,22 +21,18 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// --- PUBLIC ROUTES ---
 router.get('/properti', propertiController.getProperti);
 router.get('/agen', propertiController.getAgen);
 router.get('/properti/:slug', propertiController.getPropertiBySlug);
 
-// --- PROTECTED ROUTES ---
 router.post('/properti', verifyToken, upload.array('images', 10), propertiController.createProperti);
 router.put('/properti/:id/status', verifyToken, propertiController.updateStatusProperti);
 router.delete('/properti/:id', verifyToken, propertiController.deleteProperti);
 
-// --- NOTIFICATION ROUTES ---
 router.get('/notifications/:id_agen', verifyToken, propertiController.getNotifikasiAgen);
 router.put('/notifications/:id/read', verifyToken, propertiController.tandaiNotifDibaca);
 
-// --- FASILITAS ROUTES (MASTER) ---
-router.get('/fasilitas', verifyToken, propertiController.getAllFasilitas);
+router.get('/fasilitas', propertiController.getAllFasilitas);
 router.post('/fasilitas', verifyToken, propertiController.createFasilitas);
 router.put('/fasilitas/:id', verifyToken, propertiController.updateFasilitas);
 router.delete('/fasilitas/:id', verifyToken, propertiController.deleteFasilitas);

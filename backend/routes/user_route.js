@@ -4,6 +4,7 @@ const userController = require('../controllers/user_controller');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { getAllUsers } = require('../controllers/user_controller');
+const refreshTokenController = require('../controllers/user_controller');;
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -25,14 +26,11 @@ const authenticateToken = (req, res, next) => {
 
 router.post('/register', upload.single('foto_profil'), userController.register);
 router.post('/login', userController.login);
+router.post('/refresh-token', userController.refreshTokenEndpoint);
 router.post('/verify-otp', userController.verifyOtp);
 
-// ==========================================
-// [TAMBAHAN] RUTE LUPA PASSWORD & RESET
-// ==========================================
 router.post('/forgot-password', userController.forgotPassword);
 router.post('/reset-password', userController.resetPassword);
-// ==========================================
 
 router.get('/', getAllUsers);
 

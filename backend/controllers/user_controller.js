@@ -81,8 +81,15 @@ const register = async(req, res) => {
 
 const login = async(req, res) => {
     try {
-        const { identifier, password } = req.body;
-        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: "Email dan Password wajib diisi!" });
+        }
+
+        const result = await db.query(
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [email.trim().toLowerCase()]
+        );
 
         if (result.rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
 
@@ -92,8 +99,61 @@ const login = async(req, res) => {
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return res.status(401).json({ success: false, message: "Password salah!" });
 
-        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1d' });
-        res.json({ success: true, token, user: { id: user.id, name: user.name, role: user.role, foto_profil: user.foto_profil } });
+        const accessToken = jwt.sign({ id: user.id, role: user.role },
+            process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' }
+        );
+
+        const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh-secretkey';
+        const refreshToken = jwt.sign({ id: user.id },
+            refreshTokenSecret, { expiresIn: '1d' }
+        );
+
+        res.json({
+            success: true,
+            token: accessToken,
+            refreshToken: refreshToken,
+            user: { id: user.id, name: user.name, role: user.role, foto_profil: user.foto_profil }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const refreshTokenEndpoint = async(req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(403).json({ success: false, message: "Refresh Token dibutuhkan!" });
+        }
+
+        const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh-secretkey';
+
+        // Verifikasi Refresh Token
+        jwt.verify(refreshToken, refreshTokenSecret, async(err, decoded) => {
+            if (err) {
+                return res.status(401).json({ success: false, message: "Refresh Token tidak valid atau kadaluwarsa!" });
+            }
+
+            // Ambil data user dari database berdasarkan ID di token
+            const { rows } = await db.query("SELECT id, role FROM users WHERE id = $1", [decoded.id]);
+            const user = rows[0];
+
+            if (!user) {
+                return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+            }
+
+            // Buat Access Token BARU
+            const newAccessToken = jwt.sign({ id: user.id, role: user.role },
+                process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' } // Kembalikan token 1 jam yang baru
+            );
+
+            res.status(200).json({
+                success: true,
+                message: "Token berhasil diperbarui",
+                token: newAccessToken
+            });
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -120,7 +180,6 @@ const verifyOtp = async(req, res) => {
         res.status(500).json({ success: false, message: error.message });
     } finally { client.release(); }
 };
-
 
 const forgotPassword = async(req, res) => {
     try {
@@ -174,9 +233,9 @@ const resetPassword = async(req, res) => {
 
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Password baru tidak boleh sama dengan password lama!" 
+            return res.status(400).json({
+                success: false,
+                message: "Password baru tidak boleh sama dengan password lama!"
             });
         }
 
@@ -197,7 +256,6 @@ const getProfile = async(req, res) => {
         res.json({ success: true, data: result.rows[0] });
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
-
 
 const getAllUsers = async(req, res) => {
     try {
@@ -304,10 +362,10 @@ const updateAvatar = async(req, res) => {
     }
 };
 
-// Pastikan forgotPassword dan resetPassword masuk ke sini
 module.exports = {
     register,
     login,
+    refreshTokenEndpoint,
     verifyOtp,
     forgotPassword,
     resetPassword,

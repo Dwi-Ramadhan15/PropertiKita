@@ -168,7 +168,8 @@ const createProperti = async(req, res) => {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas } = req.body;
+
+        const { title, harga, lokasi, tipe, latitude, longitude, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas } = req.body;
         const files = req.files;
 
         if (!title || !harga || !id_kategori) {
@@ -178,10 +179,20 @@ const createProperti = async(req, res) => {
             return res.status(400).json({ success: false, message: "Minimal dua foto wajib diunggah!" });
         }
 
-        const realAgenId = await getRealAgenId(id_agen, client);
-        if (!realAgenId) {
-            return res.status(400).json({ success: false, message: "Profil agen tidak valid!" });
+        const userId = req.user.id;
+
+        const userRes = await client.query('SELECT email FROM users WHERE id = $1', [userId]);
+        if (userRes.rows.length === 0) {
+            return res.status(401).json({ success: false, message: "User tidak ditemukan!" });
         }
+        const userEmail = userRes.rows[0].email;
+
+        const agenRes = await client.query('SELECT id FROM agen WHERE email = $1', [userEmail]);
+        if (agenRes.rows.length === 0) {
+            return res.status(400).json({ success: false, message: "Profil agen tidak valid! Email belum terdaftar di tabel agen." });
+        }
+
+        const realAgenId = agenRes.rows[0].id;
 
         const slug = generateSlug(title);
         const bucketName = 'propertikita';
@@ -218,9 +229,11 @@ const createProperti = async(req, res) => {
 
         await client.query(`UPDATE properties SET image_url = $1 WHERE id = $2`, [firstImageUrl, propertiId]);
         await client.query('COMMIT');
-        res.status(201).json({ success: true, message: "Properti berhasil dikirim!" });
+
+        res.status(201).json({ success: true, message: "Properti berhasil dikirim dan menunggu tinjauan admin" });
     } catch (error) {
         await client.query('ROLLBACK');
+        console.error("Error createProperti:", error);
         res.status(500).json({ success: false, message: error.message });
     } finally {
         client.release();
@@ -309,28 +322,23 @@ const updateStatusProperti = async(req, res) => {
         }
 
         const properti = result.rows[0];
-
-        // Buat pesan notifikasinya
         let msg = "";
         if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
         else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
         else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
 
-        // 1. SIMPAN KE DATABASE (Agar jadi riwayat permanen)
         if (msg !== "") {
             await db.query(
                 "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", [properti.id_agen, "Update Status Listing", msg, status]
             );
         }
 
-        // 2. KIRIM REAL-TIME VIA SOCKET.IO
         if (req.io && msg !== "") {
             const roomName = `agen_${properti.id_agen}`;
             const payload = {
                 status: status,
                 message: msg,
                 title: properti.title,
-                // Kirim timestamp agar frontend langsung bisa menampilkannya dengan rapi
                 created_at: new Date()
             };
             req.io.to(roomName).emit('notify_agen', payload);
@@ -364,11 +372,38 @@ const getAllFasilitas = async(req, res) => {
 
 const createFasilitas = async(req, res) => {
     try {
-        const { nama_fasilitas } = req.body;
-        const result = await db.query("INSERT INTO fasilitas_properti (nama_fasilitas) VALUES ($1) RETURNING *", [nama_fasilitas]);
-        res.status(201).json(result.rows[0]);
+        const { id_properti, nama_fasilitas } = req.body;
+
+        if (!nama_fasilitas) {
+            return res.status(400).json({
+                success: false,
+                message: "Nama fasilitas wajib diisi!"
+            });
+        }
+
+        let result;
+
+        if (id_properti) {
+            result = await db.query(
+                "INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2) RETURNING *", [id_properti, nama_fasilitas]
+            );
+        } else {
+            result = await db.query(
+                "INSERT INTO fasilitas_properti (nama_fasilitas) VALUES ($1) RETURNING *", [nama_fasilitas]
+            );
+        }
+
+        res.status(201).json({
+            success: true,
+            message: "Fasilitas berhasil ditambahkan",
+            data: result.rows[0]
+        });
     } catch (error) {
-        res.status(400).json({ success: false, message: "Data duplikat" });
+        console.error("Error createFasilitas:", error);
+        res.status(400).json({
+            success: false,
+            message: "Gagal menambahkan fasilitas: " + error.message
+        });
     }
 };
 
