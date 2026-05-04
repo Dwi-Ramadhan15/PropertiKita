@@ -511,6 +511,7 @@ const renderContent = () => {
           </div>
         </div>
       )}
+<<<<<<< HEAD
 
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[250] p-4">
@@ -667,6 +668,208 @@ const renderContent = () => {
           </div>
         </div>
       )}
+=======
+{showModal && (
+  <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4 transition-all duration-300">
+    <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in duration-300">
+      
+      {/* Header - Fixed */}
+      <div className="px-10 py-8 flex justify-between items-center bg-white border-b border-gray-50">
+        <div>
+          <h2 className="text-3xl font-black tracking-tighter text-slate-800 uppercase italic">
+            {editingId ? 'Update Listing' : 'Unit Baru'}
+          </h2>
+          <p className="text-xs font-bold text-blue-500 tracking-widest uppercase mt-1">Lengkapi informasi properti anda</p>
+        </div>
+        <button 
+          onClick={closeModal} 
+          className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm"
+        >
+          <FiX size={24}/>
+        </button>
+      </div>
+      
+      {/* Body - Scrollable */}
+      <div className="p-10 overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-x-6 gap-y-8">
+          
+          {/* Judul & Kategori */}
+          <div className="col-span-4 md:col-span-3 space-y-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Judul Listing</label>
+            <input 
+              className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 border border-slate-100 transition-all shadow-sm" 
+              placeholder="Contoh: Rumah Mewah Minimalis di Pusat Kota"
+              value={formData.title} 
+              onChange={e => setFormData({...formData, title: e.target.value})} 
+              required 
+            />
+          </div>
+          <div className="col-span-4 md:col-span-1 space-y-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Kategori</label>
+            <select 
+              className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 appearance-none shadow-sm" 
+              value={formData.id_kategori} 
+              onChange={e => setFormData({...formData, id_kategori: Number(e.target.value)})}
+            >
+              <option value={1}>Dijual</option>
+              <option value={2}>Disewakan</option>
+            </select>
+          </div>
+
+          {/* Harga & Tipe */}
+          <div className="col-span-4 md:col-span-2 space-y-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Harga (Rp)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">Rp</span>
+              <input 
+                type="number" 
+                className="w-full p-4 pl-12 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
+                value={formData.harga} 
+                onChange={e => setFormData({...formData, harga: e.target.value})} 
+                required 
+              />
+            </div>
+          </div>
+          <div className="col-span-4 md:col-span-2 space-y-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Tipe Properti</label>
+            <select 
+              className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
+              value={formData.tipe} 
+              onChange={e => setFormData({...formData, tipe: e.target.value})}
+            >
+              <option>Rumah</option><option>Apartemen</option><option>Kos-kosan</option><option>Villa</option>
+            </select>
+          </div>
+
+          {/* Spesifikasi (K.Tidur, K.Mandi, Luas) */}
+          <div className="col-span-4 grid grid-cols-3 gap-4 bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100/50">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">K. Tidur</label>
+              <input type="number" className="w-full p-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">K. Mandi</label>
+              <input type="number" className="w-full p-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.kamar_mandi} onChange={e => setFormData({...formData, kamar_mandi: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Luas (m²)</label>
+              <input type="number" className="w-full p-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.luas} onChange={e => setFormData({...formData, luas: e.target.value})} />
+            </div>
+          </div>
+
+          {/* Lokasi & Koordinat */}
+          <div className="col-span-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Lokasi Lengkap</label>
+              <input type="text" className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Latitude</label>
+                <input type="text" placeholder="-5.450000" className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Longitude</label>
+                <input type="text" placeholder="105.266670" className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" />
+              </div>
+            </div>
+          </div>
+
+          {/* Deskripsi */}
+          <div className="col-span-4 space-y-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Deskripsi</label>
+            <textarea className="w-full p-5 bg-slate-50 rounded-[2rem] font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm h-32 resize-none" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})}></textarea>
+          </div>
+
+          {/* Fasilitas */}
+          <div className="col-span-4 space-y-4">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Pilih Fasilitas</label>
+            <div className="flex flex-wrap gap-2 p-6 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
+              {fasilitasOptions.map((item) => {
+                const active = formData.fasilitas.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleFasilitas(item)}
+                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black transition-all duration-300 border-2 ${
+                      active ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-blue-200'
+                    }`}
+                  >
+                    {active && <FiCheck className="inline mr-1" />} {item.toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="flex gap-3">
+              <input 
+                type="text" 
+                className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
+                placeholder="Tambah fasilitas kustom..." 
+                value={tempFasilitas}
+                onChange={(e) => setTempFasilitas(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFasilitasKustom())}
+              />
+              <button type="button" onClick={addFasilitasKustom} className="px-6 bg-slate-800 text-white rounded-2xl font-black hover:bg-black transition-all shadow-md active:scale-95"><FiPlus size={20}/></button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {formData.fasilitas.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-[10px] shadow-sm animate-in slide-in-from-left-2 transition-all">
+                  {f.toUpperCase()} <FiX className="cursor-pointer hover:text-red-400 transition" onClick={() => removeFasilitas(i)} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Foto Upload */}
+          <div className="col-span-4 space-y-4">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 block">Foto Unit <span className="text-blue-500">(Minimal 2 Foto)</span></label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {previews.map((url, index) => (
+                <div key={index} className="relative group aspect-square">
+                  <img 
+                    src={url} 
+                    alt="preview" 
+                    className="w-full h-full object-cover rounded-[2rem] border-2 border-white shadow-md transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]"></div>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-red-500 p-2 rounded-xl shadow-lg hover:bg-red-500 hover:text-white transition-all scale-0 group-hover:scale-100"
+                  >
+                    <FiX size={16} />
+                  </button>
+                </div>
+              ))}
+              
+              <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all group overflow-hidden relative">
+                <input type="file" multiple onChange={handleFileChange} className="hidden" accept="image/*" />
+                <div className="flex flex-col items-center group-hover:-translate-y-1 transition-transform">
+                    <FiImage className="text-slate-300 text-3xl mb-2 group-hover:text-blue-400 transition-colors" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter group-hover:text-blue-500">Tambah Foto</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Footer - Fixed */}
+      <div className="px-10 py-8 bg-white border-t border-gray-50 flex gap-4">
+        <button type="submit" onClick={handleSubmit} className="flex-[2] py-5 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95 uppercase tracking-widest">
+          Simpan Data
+        </button>
+        <button type="button" onClick={closeModal} className="flex-1 py-5 bg-slate-50 text-slate-400 rounded-2xl font-black text-lg hover:bg-slate-100 transition-all active:scale-95 uppercase tracking-widest">
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+>>>>>>> a70ee19 (Frontend 1 Anjay Slewbew)
     </div>
   );
 }
