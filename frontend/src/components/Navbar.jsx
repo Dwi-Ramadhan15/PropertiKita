@@ -3,6 +3,7 @@ import { FiUser, FiLogOut } from 'react-icons/fi';
 import { BsBuildingsFill } from 'react-icons/bs';
 import { NavLink, Link } from 'react-router-dom';
 import useAuthNavbar from '../hooks/useAuthNavbar';
+import logo from '../assets/logo.png';
 
 export default function Navbar() {
 
@@ -21,9 +22,13 @@ export default function Navbar() {
     <nav className="flex justify-between items-center py-4 px-10 bg-[#1E293B] shadow-sm sticky top-0 z-50">
       
       {/* LOGO */}
-      <Link to="/" className="flex items-center gap-2 text-2xl font-bold cursor-pointer text-white">
-        <BsBuildingsFill className="text-[#D9AB7B]" />
-        <span>PropertiKita</span>
+      <Link to="/" className="flex items-center gap-3 cursor-pointer">
+        <img 
+          src={logo} 
+          alt="PropertiKita Logo" 
+          className="h-10 w-auto object-contain"
+        />
+        <span className="text-2xl font-bold text-[#D9AB7B]">PropertiKita</span>
       </Link>
 
       {/* MENU */}

@@ -1,8 +1,79 @@
-import React from 'react';
-import { MdLocationOn, MdChevronLeft, MdChevronRight, MdSearch } from 'react-icons/md';
+import React, { useState, useEffect } from 'react';
+import { MdLocationOn, MdSearch } from 'react-icons/md';
 import { FaBed, FaBath, FaRulerCombined } from 'react-icons/fa';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import useProperties from '../hooks/useProperties';
+
+function ImageSlider({ images = [] }) {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  // ✅ VALIDASI GAMBAR (INI KUNCI FIX)
+  const imgList = Array.isArray(images) && images.length > 0
+    ? images.filter(img => img && img !== "null")
+    : ['https://via.placeholder.com/400x300'];
+
+  // ✅ AUTO SLIDE STABIL
+  useEffect(() => {
+    if (imgList.length < 2) return;
+
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % imgList.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [imgList.length]); // 🔥 cuma depend ke length
+
+  return (
+    <div className="relative w-full h-full">
+      <img
+        src={imgList[currentImage]}
+        alt="property"
+        className="w-full h-full object-cover transition-all duration-500"
+      />
+
+      {imgList.length >= 2 && (
+        <>
+          {/* LEFT */}
+          <button
+            onClick={() =>
+              setCurrentImage((prev) =>
+                prev === 0 ? imgList.length - 1 : prev - 1
+              )
+            }
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow hover:scale-105 transition z-30"
+          >
+            <FiChevronLeft />
+          </button>
+
+          {/* RIGHT */}
+          <button
+            onClick={() =>
+              setCurrentImage((prev) => (prev + 1) % imgList.length)
+            }
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow hover:scale-105 transition z-30"
+          >
+            <FiChevronRight />
+          </button>
+
+          {/* DOT */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-30">
+            {imgList.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  currentImage === i
+                    ? 'w-6 bg-white'
+                    : 'w-2 bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function PropertyList({ type = "all" }) {
 
@@ -36,23 +107,25 @@ export default function PropertyList({ type = "all" }) {
 
       {/* HERO */}
       {type !== "all" && (
-        <div className={`${isSewa ? "bg-[#334155]" : "bg-[#475569]"} py-20 px-6 text-center text-white`}>
-          <h1 className="text-4xl font-extrabold mb-3 tracking-tight">
-            {type === "dijual" ? "Properti Dijual" : "Properti Disewa"}
-          </h1>
-          <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-            {type === "dijual"
-              ? "Temukan hunian terbaik dengan harga ideal."
-              : "Solusi hunian sementara yang nyaman dan strategis."}
-          </p>
+        <div className="bg-[#1E293B] py-20 px-6 text-center text-white">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-5xl font-extrabold mb-4 tracking-tight">
+              {type === "dijual" ? "Properti Dijual" : "Properti Disewa"}
+            </h1>
+            <p className="text-slate-300 text-xl font-medium">
+              {type === "dijual"
+                ? "Temukan hunian terbaik dengan harga ideal."
+                : "Solusi hunian sementara yang nyaman dan strategis."}
+            </p>
+          </div>
         </div>
       )}
 
       {/* CONTAINER */}
       <div className={`max-w-7xl mx-auto px-6 pb-20 ${type === "all" ? "-mt-20" : "-mt-10"}`}>
 
-        {/* FILTER */}
-        <div className="w-full flex justify-center mb-12 relative z-30">
+        {/* FILTER (FIX z-index) */}
+        <div className="w-full flex justify-center mb-12 relative z-10">
           <div className="bg-white p-4 md:p-5 rounded-2xl shadow-xl flex flex-col md:flex-row gap-3 items-center border border-gray-100 w-full max-w-4xl">
 
             <div className="flex-1 w-full relative">
@@ -105,13 +178,18 @@ export default function PropertyList({ type = "all" }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {currentItems.map((item) => (
                 <div key={item.properties.id} className="bg-white rounded-3xl shadow-sm hover:shadow-2xl transition-all duration-500 group overflow-hidden">
-
-                  <div className="h-60 overflow-hidden">
-                    <img
-                      src={item.properties.imageUrl || 'https://via.placeholder.com/400x300'}
-                      className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
-                      alt="properti"
-                    />
+                  <div className="h-60 overflow-hidden relative z-20">
+                  <ImageSlider
+                    images={
+                      item.properties.images && item.properties.images.length > 1
+                        ? item.properties.images
+                        : [
+                            item.properties.images?.[0] || item.properties.image_url || 'https://via.placeholder.com/400x300',
+                            item.properties.images?.[0] || item.properties.image_url || 'https://via.placeholder.com/400x300',
+                            item.properties.images?.[0] || item.properties.image_url || 'https://via.placeholder.com/400x300'
+                          ]
+                    }
+                  />
                   </div>
 
                   <div className="p-6 flex flex-col">
@@ -150,7 +228,7 @@ export default function PropertyList({ type = "all" }) {
             {/* PAGINATION */}
             <div className="flex justify-center mt-12 gap-2 items-center">
               <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
-                <MdChevronLeft size={24} />
+                <FiChevronLeft size={24} />
               </button>
 
               {[...Array(totalPages)].map((_, i) => (
@@ -168,7 +246,7 @@ export default function PropertyList({ type = "all" }) {
               ))}
 
               <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}>
-                <MdChevronRight size={24} />
+                <FiChevronRight size={24} />
               </button>
             </div>
           </>

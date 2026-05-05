@@ -13,6 +13,33 @@ export default function useProperties(type = "all") {
 
   const itemsPerPage = 6;
 
+  // 🔥 FORMAT URL GAMBAR (SAMA SEPERTI DETAIL)
+  const formatImage = (img) => {
+    if (!img) return null;
+    if (img.startsWith("http")) return img;
+    return `http://127.0.0.1:9000/propertikita/${img}`;
+  };
+
+  // 🔥 NORMALISASI IMAGES (INI KUNCI FIX)
+  const normalizeImages = (prop) => {
+    let imgs = [];
+
+    if (Array.isArray(prop.images) && prop.images.length > 0) {
+      imgs = prop.images;
+    } else if (Array.isArray(prop.gallery) && prop.gallery.length > 0) {
+      imgs = prop.gallery;
+    } else if (prop.image_url) {
+      imgs = [prop.image_url];
+    } else if (prop.imageUrl) {
+      imgs = [prop.imageUrl];
+    }
+
+    // format semua jadi URL valid
+    imgs = imgs.map(img => formatImage(img));
+
+    return imgs;
+  };
+
   // FETCH DATA
   useEffect(() => {
     const fetchData = async () => {
@@ -20,16 +47,25 @@ export default function useProperties(type = "all") {
         const res = await axios.get('http://localhost:5000/api/properti?limit=100');
         const allData = res.data.data.features || [];
 
-        let filtered = allData;
+        // 🔥 TAMBAHIN IMAGES KE SETIAP ITEM
+        const withImages = allData.map(item => ({
+          ...item,
+          properties: {
+            ...item.properties,
+            images: normalizeImages(item.properties)
+          }
+        }));
+
+        let filtered = withImages;
 
         if (type === "dijual") {
-          filtered = allData.filter(item =>
+          filtered = withImages.filter(item =>
             item.properties.kategori?.toLowerCase() === 'dijual'
           );
         }
 
         if (type === "sewa") {
-          filtered = allData.filter(item =>
+          filtered = withImages.filter(item =>
             item.properties.kategori?.toLowerCase().includes('sewa') ||
             item.properties.kategori?.toLowerCase().includes('kontrakan') ||
             item.properties.kategori?.toLowerCase().includes('kos')
