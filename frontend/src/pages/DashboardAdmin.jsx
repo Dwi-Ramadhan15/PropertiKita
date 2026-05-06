@@ -5,7 +5,7 @@ import { FiCheckCircle, FiClock, FiUser, FiLogOut, FiUsers, FiX, FiTrash2, FiBel
 import ProfileAdmin from './ProfileAdmin';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const socket = io('/_/backend');
 
 export default function DashboardAdmin() {
   const [activeTab, setActiveTab] = useState('pending');
@@ -69,7 +69,7 @@ export default function DashboardAdmin() {
 
   const fetchProperti = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/properti?status=${activeTab}&page=${page}&limit=5`);
+      const res = await axios.get(`/_/backend/api/properti?status=${activeTab}&page=${page}&limit=5`);
       setPropertiData(res.data.data.features.map(f => f.properties) || []);
       setTotalPages(res.data.data.totalPages || 1);
     } catch (err) {}
@@ -77,14 +77,14 @@ export default function DashboardAdmin() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/users?role=${subTabAccount}`);
+      const res = await axios.get(`/_/backend/api/users?role=${subTabAccount}`);
       setAccountsData(res.data.data || []);
     } catch (err) {}
   };
 
   const handleReviewClick = async (p) => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/properti/${p.slug}`);
+      const res = await axios.get(`/_/backend/api/properti/${p.slug}`);
       if (res.data.success) {
         setSelectedProperty(res.data.data);
         setCurrentImageIndex(0);
@@ -98,7 +98,7 @@ export default function DashboardAdmin() {
   const handleUpdateStatus = async (id, newStatus) => {
     if (!window.confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
     try {
-      await axios.put(`http://localhost:5000/api/properti/${id}/status`, { status: newStatus });
+      await axios.put(`/_/backend/api/properti/${id}/status`, { status: newStatus });
       
       if (selectedProperty) {
         socket.emit('property_status_changed', {
@@ -119,7 +119,7 @@ export default function DashboardAdmin() {
   const handleDeleteAccount = async (id) => {
     if (!window.confirm("Hapus akun ini secara permanen?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/users/${id}`);
+      await axios.delete(`/_/backend/api/users/${id}`);
       fetchAccounts();
     } catch (err) { 
       alert("Gagal menghapus akun"); 

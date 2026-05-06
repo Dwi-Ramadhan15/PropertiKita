@@ -19,7 +19,7 @@ export default function Register() {
     setLoading(true);
     try {
       // ✅ Logika pengiriman data tetap sama
-      const res = await axios.post('http://localhost:5000/api/users/register', { 
+      const res = await axios.post('/_/backend/api/users/register', { 
         username, email, password, whatsapp, role 
       });
       if (res.data.success) {

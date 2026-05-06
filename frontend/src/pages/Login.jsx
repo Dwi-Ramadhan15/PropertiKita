@@ -15,7 +15,7 @@ export default function Login() {
     setLoading(true);
     
     try {
-      const res = await axios.post('http://localhost:5000/api/users/login', { 
+      const res = await axios.post('/_/backend/api/users/login', { 
             email: email || "", 
             password: password || "" 
           });

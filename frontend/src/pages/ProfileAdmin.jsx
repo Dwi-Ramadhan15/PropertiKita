@@ -35,7 +35,7 @@ export default function ProfileAdmin() {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         // Endpoint sesuai dengan getUserProfile di backend kamu
-        const res = await axios.get(`http://localhost:5000/api/users/${user.id}/profile`, config);
+        const res = await axios.get(`/_/backend/api/users/${user.id}/profile`, config);
 
         if (res.data && res.data.success) {
           const data = res.data.data;
@@ -68,7 +68,7 @@ export default function ProfileAdmin() {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.put('http://localhost:5000/api/users/profile', formData, config);
+      const res = await axios.put('/_/backend/api/users/profile', formData, config);
       
       if (res.data.success) {
         // Update localStorage agar nama di navbar juga berubah
@@ -95,7 +95,7 @@ export default function ProfileAdmin() {
             Authorization: `Bearer ${token}` 
           } 
         };
-        const res = await axios.post('http://localhost:5000/api/users/avatar', uploadData, config);
+        const res = await axios.post('/_/backend/api/users/avatar', uploadData, config);
         
         if (res.data.success) {
           const newFoto = res.data.foto_profil;

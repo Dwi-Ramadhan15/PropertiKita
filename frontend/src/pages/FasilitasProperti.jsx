@@ -12,7 +12,7 @@ const FasilitasProperti = () => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/fasilitas'); 
+      const response = await axios.get('/_/backend/api/fasilitas'); 
       setListFasilitas(response.data);
     } catch (error) {
       console.error(error);
@@ -47,14 +47,14 @@ const FasilitasProperti = () => {
     try {
       if (formData.id) {
         await axios.put(
-          `http://localhost:5000/api/fasilitas/${formData.id}`, 
+          `/_/backend/api/fasilitas/${formData.id}`, 
           { nama_fasilitas: formData.nama_fasilitas }, 
           getAuthHeaders()
         );
         alert("Fasilitas berhasil diperbarui!");
       } else {
         await axios.post(
-          'http://localhost:5000/api/fasilitas', 
+          '/_/backend/api/fasilitas', 
           { nama_fasilitas: formData.nama_fasilitas }, 
           getAuthHeaders()
         );
@@ -73,7 +73,7 @@ const FasilitasProperti = () => {
     if (!window.confirm("Yakin ingin menghapus fasilitas ini?")) return;
     
     try {
-      await axios.delete(`http://localhost:5000/api/fasilitas/${id}`, getAuthHeaders());
+      await axios.delete(`/_/backend/api/fasilitas/${id}`, getAuthHeaders());
       alert("Fasilitas berhasil dihapus!");
       fetchData(); 
     } catch (error) {

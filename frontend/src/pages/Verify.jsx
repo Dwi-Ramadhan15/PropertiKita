@@ -13,7 +13,7 @@ export default function Verify() {
   const handleVerify = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/auth/verify-otp', { email, otp });
+      await axios.post('/_/backend/api/auth/verify-otp', { email, otp });
       alert("Akun Anda Berhasil Aktif! Silahkan Login.");
       navigate('/login');
     } catch (err) {

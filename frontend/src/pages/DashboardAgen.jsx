@@ -9,7 +9,7 @@ import ProfileAgen from '../pages/ProfileAgen';
 import { io } from 'socket.io-client';
 import FasilitasProperti from '../pages/FasilitasProperti';
 
-const socket = io('http://localhost:5000');
+const socket = io('/_/backend');
 
 export default function DashboardAgen() {
   const [properti, setProperti] = useState([]);
@@ -94,7 +94,7 @@ export default function DashboardAgen() {
 
     const fetchFasilitas = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/fasilitas');
+        const res = await axios.get('/_/backend/api/fasilitas');
         const daftarUnik = [...new Set(res.data.map(item => item.nama_fasilitas))];
         setFasilitasOptions(daftarUnik);
       } catch (err) {
@@ -130,7 +130,7 @@ export default function DashboardAgen() {
   const fetchNotifications = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, config);
+      const res = await axios.get(`/_/backend/api/notifications/${user.id}`, config);
       if (res.data.success) {
         setNotifications(res.data.data);
         setUnreadCount(res.data.data.filter(n => !n.is_read).length);
@@ -146,7 +146,7 @@ export default function DashboardAgen() {
     
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, config);
+      await axios.put(`/_/backend/api/notifications/${user.id}/read`, {}, config);
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {
@@ -156,7 +156,7 @@ export default function DashboardAgen() {
 
   const fetchProperti = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/properti?agen=${user.id}&status=all`);
+      const res = await axios.get(`/_/backend/api/properti?agen=${user.id}&status=all`);
       setProperti(res.data.data.features.map(f => f.properties) || []);
     } catch (err) { console.error(err); }
   };
@@ -217,10 +217,10 @@ export default function DashboardAgen() {
       };
       
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/properti/${editingId}`, data, config);
+        await axios.put(`/_/backend/api/properti/${editingId}`, data, config);
         setToast("Listing berhasil diupdate!");
       } else {
-        await axios.post('http://localhost:5000/api/properti', data, config);
+        await axios.post('/_/backend/api/properti', data, config);
         socket.emit('new_property_submitted', {
           agenName: user.name,
           title: formData.title,
@@ -290,10 +290,10 @@ export default function DashboardAgen() {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       if (deleteReason === "Properti sudah laku terjual / tersewa") {
-        await axios.put(`http://localhost:5000/api/properti/${propertyToDelete.id}/status`, { status: 'sold' }, config);
+        await axios.put(`/_/backend/api/properti/${propertyToDelete.id}/status`, { status: 'sold' }, config);
         setToast("Properti berhasil dipindahkan ke Riwayat Penjualan!");
       } else {
-        await axios.delete(`http://localhost:5000/api/properti/${propertyToDelete.id}`, config);
+        await axios.delete(`/_/backend/api/properti/${propertyToDelete.id}`, config);
         setToast("Properti berhasil dihapus permanen.");
       }
       setShowDeleteModal(false);

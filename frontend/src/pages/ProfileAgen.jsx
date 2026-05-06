@@ -33,7 +33,7 @@ export default function ProfileAgen() {
     const fetchProfileData = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const res = await axios.get(`http://localhost:5000/api/users/${user.id}/profile`, config);
+        const res = await axios.get(`/_/backend/api/users/${user.id}/profile`, config);
 
         if (res.data && res.data.success) {
           const data = res.data.data;
@@ -64,7 +64,7 @@ export default function ProfileAgen() {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.put('http://localhost:5000/api/users/profile', formData, config);
+      const res = await axios.put('/_/backend/api/users/profile', formData, config);
       
       if (res.data.success) {
         const updatedUser = { ...user, name: formData.name, email: formData.email, phone_number: formData.phone_number };
@@ -102,7 +102,7 @@ export default function ProfileAgen() {
             Authorization: `Bearer ${token}` 
           } 
         };
-        const res = await axios.post('http://localhost:5000/api/users/avatar', uploadData, config);
+        const res = await axios.post('/_/backend/api/users/avatar', uploadData, config);
         
         if (res.data.success) {
           const updatedUser = { ...user, foto_profil: res.data.foto_profil };
