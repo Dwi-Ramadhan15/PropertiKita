@@ -8,7 +8,7 @@ export default function useAgenProperties(agenIdFromQuery) {
     useEffect(() => {
         const fetchProperti = async() => {
             const user = JSON.parse(localStorage.getItem("user"));
-            const idToSearch = agenIdFromQuery || user ? .id;
+            const idToSearch = agenIdFromQuery || user ?.id;
 
             if (!idToSearch) {
                 setProperti([]);
@@ -23,7 +23,7 @@ export default function useAgenProperties(agenIdFromQuery) {
 
                 const res = await axios.get(url);
 
-                if (res.data.success && res.data.data ? .features) {
+                if (res.data.success && res.data.data ?.features) {
                     setProperti(res.data.data.features);
                 } else {
                     setProperti([]);

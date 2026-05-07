@@ -28,7 +28,7 @@ export default function usePropertyDetail(slug) {
 
     // FETCH DATA AGEN
     useEffect(() => {
-        if (!item ? .id_agen) return;
+        if (!item ?.id_agen) return;
 
         const fetchAgen = async() => {
             try {
@@ -50,11 +50,11 @@ export default function usePropertyDetail(slug) {
         return `http://127.0.0.1:9000/propertikita/${foto}`;
     };
 
-    const images = item ? .images ? .length ?
+    const images = item ?.images ?.length ?
         item.images :
-        item ? .gallery ? .length ?
+        item ?.gallery ?.length ?
         item.gallery :
-        item ? .image_url ?
+        item ?.image_url ?
         [item.image_url] :
         [];
 
@@ -69,13 +69,13 @@ export default function usePropertyDetail(slug) {
 
     // MAP POSITION
     const position = [
-        parseFloat(item ? .latitude) || 0,
-        parseFloat(item ? .longitude) || 0,
+        parseFloat(item ?.latitude) || 0,
+        parseFloat(item ?.longitude) || 0,
     ];
 
     const mapsUrl = `https://www.google.com/maps?q=${item?.latitude},${item?.longitude}`;
 
-    const rawNumber = agen ? .no_wa || item ? .no_whatsapp || "";
+    const rawNumber = agen ?.no_wa || item ?.no_whatsapp || "";
     const waUrl = `https://wa.me/${rawNumber.replace(/^0/, "62")}`;
 
     // HUBUNGI AGEN (Sudah diperbaiki)

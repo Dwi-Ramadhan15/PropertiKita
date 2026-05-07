@@ -55,8 +55,8 @@ export default function useProfileUser() {
             console.log(error);
 
             if (
-                error.response ? .status === 401 ||
-                error.response ? .status === 403
+                error.response && error.response.status === 401 ||
+                error.response && error.response.status === 403
             ) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
