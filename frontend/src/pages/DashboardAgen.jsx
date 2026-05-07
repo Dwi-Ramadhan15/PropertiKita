@@ -511,7 +511,6 @@ const renderContent = () => {
           </div>
         </div>
       )}
-<<<<<<< HEAD
 
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[250] p-4">
@@ -668,7 +667,7 @@ const renderContent = () => {
           </div>
         </div>
       )}
-=======
+
 {showModal && (
   <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4 transition-all duration-300">
     <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in duration-300">
@@ -869,7 +868,6 @@ const renderContent = () => {
     </div>
   </div>
 )}
->>>>>>> a70ee19 (Frontend 1 Anjay Slewbew)
     </div>
   );
 }
