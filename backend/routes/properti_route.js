@@ -32,7 +32,7 @@ router.delete('/properti/:id', verifyToken, propertiController.deleteProperti);
 router.get('/notifications/:id_agen', verifyToken, propertiController.getNotifikasiAgen);
 router.put('/notifications/:id/read', verifyToken, propertiController.tandaiNotifDibaca);
 
-router.get('/fasilitas', propertiController.getAllFasilitas);
+router.get('/fasilitas', verifyToken, propertiController.getAllFasilitas);
 router.post('/fasilitas', verifyToken, propertiController.createFasilitas);
 router.put('/fasilitas/:id', verifyToken, propertiController.updateFasilitas);
 router.delete('/fasilitas/:id', verifyToken, propertiController.deleteFasilitas);
