@@ -39,8 +39,6 @@ const getProperti = async(req, res) => {
         if (status && status !== 'all') {
             queryParams.push(status);
             query += ` AND p.status = $${queryParams.length}`;
-        } else if (!status) {
-            query += ` AND p.status = 'approved'`;
         }
 
         if (agen) {
@@ -96,6 +94,7 @@ const getProperti = async(req, res) => {
 
         const propertyIds = rows.map(r => r.id);
         let fasilitasMap = {};
+        let imagesMap = {};
 
         if (propertyIds.length > 0) {
             const fasRes = await db.query(
@@ -104,6 +103,14 @@ const getProperti = async(req, res) => {
             fasRes.rows.forEach(f => {
                 if (!fasilitasMap[f.id_properti]) fasilitasMap[f.id_properti] = [];
                 fasilitasMap[f.id_properti].push(f.nama_fasilitas);
+            });
+
+            const imgRes = await db.query(
+                "SELECT id_properti, image_url FROM property_images WHERE id_properti = ANY($1)", [propertyIds]
+            );
+            imgRes.rows.forEach(img => {
+                if (!imagesMap[img.id_properti]) imagesMap[img.id_properti] = [];
+                imagesMap[img.id_properti].push(img.image_url);
             });
         }
 
@@ -122,7 +129,8 @@ const getProperti = async(req, res) => {
                     ...row,
                     kategori: row.nama_kategori,
                     imageUrl: row.image_url,
-                    fasilitas: fasilitasMap[row.id] || []
+                    fasilitas: fasilitasMap[row.id] || [],
+                    images: imagesMap[row.id] || []
                 }
             }))
         };
@@ -180,19 +188,11 @@ const createProperti = async(req, res) => {
         }
 
         const userId = req.user.id;
+        const realAgenId = await getRealAgenId(userId, client);
 
-        const userRes = await client.query('SELECT email FROM users WHERE id = $1', [userId]);
-        if (userRes.rows.length === 0) {
-            return res.status(401).json({ success: false, message: "User tidak ditemukan!" });
+        if (!realAgenId) {
+            return res.status(400).json({ success: false, message: "Profil agen tidak valid!" });
         }
-        const userEmail = userRes.rows[0].email;
-
-        const agenRes = await client.query('SELECT id FROM agen WHERE email = $1', [userEmail]);
-        if (agenRes.rows.length === 0) {
-            return res.status(400).json({ success: false, message: "Profil agen tidak valid! Email belum terdaftar di tabel agen." });
-        }
-
-        const realAgenId = agenRes.rows[0].id;
 
         const slug = generateSlug(title);
         const bucketName = 'propertikita';
@@ -211,7 +211,7 @@ const createProperti = async(req, res) => {
         if (fasilitas) {
             const daftarFasilitas = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
             for (const f of daftarFasilitas) {
-                await client.query(`INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [propertiId, f]);
+                await client.query(`INSERT INTO fasilitas_properti (id_properti, id_agen, nama_fasilitas) VALUES ($1, $2, $3)`, [propertiId, realAgenId, f]);
             }
         }
 
@@ -230,10 +230,29 @@ const createProperti = async(req, res) => {
         await client.query(`UPDATE properties SET image_url = $1 WHERE id = $2`, [firstImageUrl, propertiId]);
         await client.query('COMMIT');
 
+        const userRes = await db.query("SELECT name, email FROM users WHERE id = $1", [userId]);
+        const userName = userRes.rows[0].name;
+
+        const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
+        const msgAdmin = `Agen ${userName} menambahkan properti baru: "${title}". Menunggu verifikasi.`;
+        for (const admin of adminRes.rows) {
+            await db.query(
+                "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
+                [admin.id, "Listing Baru", msgAdmin, "pending"]
+            );
+        }
+        if (req.io) {
+            req.io.to('admin_room').emit('notify_admin', {
+                title: "Listing Baru",
+                message: msgAdmin,
+                status: "pending",
+                created_at: new Date()
+            });
+        }
+
         res.status(201).json({ success: true, message: "Properti berhasil dikirim dan menunggu tinjauan admin" });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error("Error createProperti:", error);
         res.status(500).json({ success: false, message: error.message });
     } finally {
         client.release();
@@ -245,7 +264,7 @@ const updateProperti = async(req, res) => {
     try {
         await client.query('BEGIN');
         const { id } = req.params;
-        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas, status } = req.body;
+        const { title, harga, lokasi, tipe, latitude, longitude, id_agen, id_kategori, kamar_tidur, kamar_mandi, luas, deskripsi, fasilitas, status, existing_images } = req.body;
 
         const checkData = await client.query("SELECT * FROM properties WHERE id = $1", [id]);
         if (checkData.rows.length === 0) {
@@ -256,6 +275,7 @@ const updateProperti = async(req, res) => {
         const current = checkData.rows[0];
         const slug = title ? generateSlug(title) : current.slug;
         let realAgenId = current.id_agen;
+        
         if (id_agen) {
             const checkedAgen = await getRealAgenId(id_agen, client);
             if (checkedAgen) realAgenId = checkedAgen;
@@ -279,8 +299,19 @@ const updateProperti = async(req, res) => {
             const daftarFasilitas = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
             await client.query(`DELETE FROM fasilitas_properti WHERE id_properti = $1`, [id]);
             for (const f of daftarFasilitas) {
-                await client.query(`INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2)`, [id, f]);
+                await client.query(`INSERT INTO fasilitas_properti (id_properti, id_agen, nama_fasilitas) VALUES ($1, $2, $3)`, [id, realAgenId, f]);
             }
+        }
+
+        let imagesToKeep = [];
+        if (existing_images) {
+            imagesToKeep = typeof existing_images === 'string' ? JSON.parse(existing_images) : existing_images;
+        }
+
+        if (imagesToKeep.length > 0) {
+            await client.query("DELETE FROM property_images WHERE id_properti = $1 AND image_url != ALL($2::text[])", [id, imagesToKeep]);
+        } else {
+            await client.query("DELETE FROM property_images WHERE id_properti = $1", [id]);
         }
 
         if (req.files && req.files.length > 0) {
@@ -293,6 +324,13 @@ const updateProperti = async(req, res) => {
                 const imageUrl = `http://127.0.0.1:9000/${bucketName}/${objectName}`;
                 await client.query("INSERT INTO property_images (id_properti, image_url) VALUES ($1, $2)", [id, imageUrl]);
             }
+        }
+
+        const finalImages = await client.query("SELECT image_url FROM property_images WHERE id_properti = $1 ORDER BY id ASC LIMIT 1", [id]);
+        if (finalImages.rows.length > 0) {
+            await client.query("UPDATE properties SET image_url = $1 WHERE id = $2", [finalImages.rows[0].image_url, id]);
+        } else {
+            await client.query("UPDATE properties SET image_url = NULL WHERE id = $2", [id]);
         }
 
         await client.query('COMMIT');
@@ -349,6 +387,7 @@ const updateStatusProperti = async(req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 const deleteProperti = async(req, res) => {
     try {
         const { id } = req.params;
@@ -363,18 +402,21 @@ const deleteProperti = async(req, res) => {
 
 const getAllFasilitas = async (req, res) => {
   try {
-    const id_agen = req.user?.id || req.query.id_agen;
+    const userId = req.user?.id || req.query.id_agen;
+    const realAgenId = await getRealAgenId(userId);
 
-    if (!id_agen) {
-      return res.status(401).json({ success: false, message: "Akses ditolak. ID Agen tidak ditemukan." });
+    if (!realAgenId) {
+      return res.status(401).json({ success: false, message: "Akses ditolak. ID Agen tidak valid." });
     }
     const query = `
-      SELECT * FROM fasilitas_properti 
+      SELECT MAX(id) as id, nama_fasilitas 
+      FROM fasilitas_properti 
       WHERE id_agen = $1 
-      ORDER BY id DESC
+      GROUP BY LOWER(nama_fasilitas), nama_fasilitas
+      ORDER BY MAX(id) DESC
     `;
 
-    const { rows } = await db.query(query, [id_agen]);
+    const { rows } = await db.query(query, [realAgenId]);
     
     res.status(200).json(rows);
   } catch (error) {
@@ -384,10 +426,11 @@ const getAllFasilitas = async (req, res) => {
 
 const createFasilitas = async(req, res) => {
     try {
-        const id_agen = req.user?.id; 
+        const userId = req.user?.id; 
+        const realAgenId = await getRealAgenId(userId);
         const { nama_fasilitas } = req.body;
 
-        if (!id_agen) {
+        if (!realAgenId) {
             return res.status(401).json({ success: false, message: "Akses ditolak! Silakan login." });
         }
 
@@ -396,7 +439,7 @@ const createFasilitas = async(req, res) => {
         }
         const result = await db.query(
             "INSERT INTO fasilitas_properti (id_agen, nama_fasilitas) VALUES ($1, $2) RETURNING *", 
-            [id_agen, nama_fasilitas]
+            [realAgenId, nama_fasilitas]
         );
 
         res.status(201).json({
@@ -405,7 +448,6 @@ const createFasilitas = async(req, res) => {
             data: result.rows[0]
         });
     } catch (error) {
-        console.error("Error createFasilitas:", error);
         res.status(400).json({ success: false, message: "Gagal menambahkan fasilitas: " + error.message });
     }
 };
@@ -413,19 +455,22 @@ const createFasilitas = async(req, res) => {
 const updateFasilitas = async(req, res) => {
     try {
         const { id } = req.params;
-        const id_agen = req.user?.id; 
+        const userId = req.user?.id; 
+        const realAgenId = await getRealAgenId(userId);
         const { nama_fasilitas } = req.body;
+
+        const fas = await db.query("SELECT nama_fasilitas FROM fasilitas_properti WHERE id = $1", [id]);
+        if(fas.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+
+        const oldName = fas.rows[0].nama_fasilitas;
+
         const result = await db.query(
-            "UPDATE fasilitas_properti SET nama_fasilitas = $1 WHERE id = $2 AND id_agen = $3 RETURNING *", 
-            [nama_fasilitas, id, id_agen]
+            "UPDATE fasilitas_properti SET nama_fasilitas = $1 WHERE id_agen = $2 AND LOWER(nama_fasilitas) = LOWER($3) RETURNING *", 
+            [nama_fasilitas, realAgenId, oldName]
         );
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, message: "Data tidak ditemukan atau bukan milik Anda" });
-        }
         res.status(200).json({ success: true, data: result.rows[0] });
     } catch (error) {
-        console.error(error);
         res.status(400).json({ success: false, message: "Gagal update fasilitas" });
     }
 };
@@ -433,23 +478,24 @@ const updateFasilitas = async(req, res) => {
 const deleteFasilitas = async(req, res) => {
     try {
         const { id } = req.params;
-        const id_agen = req.user?.id; 
-        const result = await db.query(
-            "DELETE FROM fasilitas_properti WHERE id = $1 AND id_agen = $2 RETURNING *", 
-            [id, id_agen]
-        );
+        const userId = req.user?.id; 
+        const realAgenId = await getRealAgenId(userId);
+        
+        const fas = await db.query("SELECT nama_fasilitas FROM fasilitas_properti WHERE id = $1", [id]);
+        if(fas.rows.length === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, message: "Data tidak ditemukan atau bukan milik Anda" });
-        }
+        const oldName = fas.rows[0].nama_fasilitas;
+
+        await db.query(
+            "DELETE FROM fasilitas_properti WHERE id_agen = $1 AND LOWER(nama_fasilitas) = LOWER($2)", 
+            [realAgenId, oldName]
+        );
         
         res.status(200).json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };  
-
-
 
 const getAgen = async(req, res) => {
     try {
@@ -471,12 +517,19 @@ const getAgen = async(req, res) => {
 const getNotifikasiAgen = async(req, res) => {
     try {
         const { id_agen } = req.params;
-        const realAgenId = await getRealAgenId(id_agen);
-        if (!realAgenId) {
-            return res.status(200).json({ success: true, data: [] });
+        const userCheck = await db.query("SELECT role FROM users WHERE id = $1", [id_agen]);
+        let targetId = id_agen;
+
+        if (userCheck.rows.length > 0 && userCheck.rows[0].role !== 'admin') {
+            const realAgenId = await getRealAgenId(id_agen);
+            if (!realAgenId) {
+                return res.status(200).json({ success: true, data: [] });
+            }
+            targetId = realAgenId;
         }
+
         const query = "SELECT * FROM notifications WHERE id_agen = $1 ORDER BY id DESC";
-        const { rows } = await db.query(query, [realAgenId]);
+        const { rows } = await db.query(query, [targetId]);
         res.status(200).json({ success: true, data: rows });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -486,14 +539,18 @@ const getNotifikasiAgen = async(req, res) => {
 const tandaiNotifDibaca = async(req, res) => {
     try {
         const { id } = req.params;
-        const query = "UPDATE notifications SET is_read = true WHERE id = $1 RETURNING *";
-        const result = await db.query(query, [id]);
+        const userCheck = await db.query("SELECT role FROM users WHERE id = $1", [id]);
+        let targetId = id;
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, message: "Notifikasi tidak ditemukan" });
+        if (userCheck.rows.length > 0 && userCheck.rows[0].role !== 'admin') {
+            const realAgenId = await getRealAgenId(id);
+            if (realAgenId) targetId = realAgenId;
         }
 
-        res.status(200).json({ success: true, message: "Notifikasi ditandai telah dibaca", data: result.rows[0] });
+        const query = "UPDATE notifications SET is_read = true WHERE id_agen = $1 RETURNING *";
+        const result = await db.query(query, [targetId]);
+
+        res.status(200).json({ success: true, message: "Semua notifikasi ditandai telah dibaca" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

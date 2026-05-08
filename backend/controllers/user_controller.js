@@ -73,6 +73,24 @@ const register = async(req, res) => {
         if (userRole === 'user' && cleanWhatsapp) await sendWhatsAppOTP(cleanWhatsapp, otpCode);
         else if (cleanEmail) await sendEmailOTP(cleanEmail, otpCode);
 
+        const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
+        const msgAdmin = `Pengguna baru telah mendaftar: ${name} (${userRole})`;
+        for (const admin of adminRes.rows) {
+            await db.query(
+                "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
+                [admin.id, "Registrasi Baru", msgAdmin, "info"]
+            );
+        }
+        
+        if (req.io) {
+            req.io.to('admin_room').emit('notify_admin', {
+                title: "Registrasi Baru",
+                message: msgAdmin,
+                status: "info",
+                created_at: new Date()
+            });
+        }
+
         res.status(201).json({ success: true, message: "Registrasi berhasil!" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -260,6 +278,30 @@ const resetPassword = async(req, res) => {
     }
 };
 
+const changePassword = async(req, res) => {
+    try {
+        const userId = req.user ? req.user.id : req.userId;
+        const { currentPassword, newPassword } = req.body;
+
+        const userRes = await db.query("SELECT password FROM users WHERE id = $1", [userId]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        }
+
+        const valid = await bcrypt.compare(currentPassword, userRes.rows[0].password);
+        if (!valid) {
+            return res.status(400).json({ success: false, message: "Password saat ini salah!" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedPassword, userId]);
+
+        res.json({ success: true, message: "Password berhasil diperbarui!" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 const getProfile = async(req, res) => {
     try {
         const userId = req.user ? req.user.id : req.userId;
@@ -380,6 +422,7 @@ module.exports = {
     verifyOtp,
     forgotPassword,
     resetPassword,
+    changePassword,
     getAllUsers,
     getProfile,
     getUserProfile,

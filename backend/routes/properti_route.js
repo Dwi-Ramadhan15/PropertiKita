@@ -26,6 +26,7 @@ router.get('/agen', propertiController.getAgen);
 router.get('/properti/:slug', propertiController.getPropertiBySlug);
 
 router.post('/properti', verifyToken, upload.array('images', 10), propertiController.createProperti);
+router.put('/properti/:id', verifyToken, upload.array('images', 10), propertiController.updateProperti);
 router.put('/properti/:id/status', verifyToken, propertiController.updateStatusProperti);
 router.delete('/properti/:id', verifyToken, propertiController.deleteProperti);
 
