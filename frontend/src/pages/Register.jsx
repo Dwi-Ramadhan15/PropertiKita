@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import useRegister from '../hooks/useRegister'; // Import hook kamu
+import useRegister from '../hooks/useRegister';
 import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
 import logoPK from '../assets/logo-pk.jpeg';
 
@@ -14,6 +14,18 @@ export default function Register() {
     otpCode, setOtpCode
   } = useRegister(navigate);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmitHandler = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await handleRegister(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div 
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 relative py-10"
@@ -25,7 +37,6 @@ export default function Register() {
         <img src={logoPK} alt="Logo" className="h-16 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-6 uppercase tracking-tight">Daftar Akun</h2>
 
-        {/* Switcher Role */}
         <div className="flex bg-gray-100 p-1 rounded-xl mb-6 font-bold">
           <button 
             type="button" 
@@ -43,7 +54,7 @@ export default function Register() {
           </button>
         </div>
         
-        <form onSubmit={handleRegister} className="space-y-4 text-left">
+        <form onSubmit={onSubmitHandler} className="space-y-4 text-left">
 
           <div className="space-y-1">
             <label className="text-xs font-bold text-gray-600 ml-1 uppercase">Nama Lengkap</label>
@@ -92,9 +103,10 @@ export default function Register() {
 
           <button 
             type="submit" 
-            className="w-full py-4 rounded-lg font-black text-white bg-[#C6A265] hover:bg-[#B39156] shadow-lg transition active:scale-95 mt-4 uppercase tracking-widest text-sm"
+            disabled={isSubmitting}
+            className="w-full py-4 rounded-lg font-black text-white bg-[#C6A265] hover:bg-[#B39156] disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg transition active:scale-95 mt-4 uppercase tracking-widest text-sm"
           >
-            Daftar Sekarang
+            {isSubmitting ? 'Data Anda sedang di proses......' : 'Daftar Sekarang'}
           </button>
         </form>
 
@@ -103,7 +115,6 @@ export default function Register() {
         </p>
       </div>
 
-      {/* --- MODAL OTP (Sesuai Logic Hook Kamu) --- */}
       {showOtpModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white p-10 rounded-[2.5rem] w-full max-w-md text-center shadow-2xl animate-in zoom-in duration-300">

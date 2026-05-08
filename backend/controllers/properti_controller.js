@@ -368,13 +368,10 @@ const getAllFasilitas = async (req, res) => {
     if (!id_agen) {
       return res.status(401).json({ success: false, message: "Akses ditolak. ID Agen tidak ditemukan." });
     }
-
     const query = `
-      SELECT f.*, p.title as nama_properti 
-      FROM fasilitas_properti f
-      JOIN properties p ON f.id_properti = p.id
-      WHERE p.id_agen = $1
-      ORDER BY f.nama_fasilitas DESC
+      SELECT * FROM fasilitas_properti 
+      WHERE id_agen = $1 
+      ORDER BY id DESC
     `;
 
     const { rows } = await db.query(query, [id_agen]);
@@ -387,26 +384,20 @@ const getAllFasilitas = async (req, res) => {
 
 const createFasilitas = async(req, res) => {
     try {
-        const { id_properti, nama_fasilitas } = req.body;
+        const id_agen = req.user?.id; 
+        const { nama_fasilitas } = req.body;
+
+        if (!id_agen) {
+            return res.status(401).json({ success: false, message: "Akses ditolak! Silakan login." });
+        }
 
         if (!nama_fasilitas) {
-            return res.status(400).json({
-                success: false,
-                message: "Nama fasilitas wajib diisi!"
-            });
+            return res.status(400).json({ success: false, message: "Nama fasilitas wajib diisi!" });
         }
-
-        let result;
-
-        if (id_properti) {
-            result = await db.query(
-                "INSERT INTO fasilitas_properti (id_properti, nama_fasilitas) VALUES ($1, $2) RETURNING *", [id_properti, nama_fasilitas]
-            );
-        } else {
-            result = await db.query(
-                "INSERT INTO fasilitas_properti (nama_fasilitas) VALUES ($1) RETURNING *", [nama_fasilitas]
-            );
-        }
+        const result = await db.query(
+            "INSERT INTO fasilitas_properti (id_agen, nama_fasilitas) VALUES ($1, $2) RETURNING *", 
+            [id_agen, nama_fasilitas]
+        );
 
         res.status(201).json({
             success: true,
@@ -415,24 +406,22 @@ const createFasilitas = async(req, res) => {
         });
     } catch (error) {
         console.error("Error createFasilitas:", error);
-        res.status(400).json({
-            success: false,
-            message: "Gagal menambahkan fasilitas: " + error.message
-        });
+        res.status(400).json({ success: false, message: "Gagal menambahkan fasilitas: " + error.message });
     }
 };
 
 const updateFasilitas = async(req, res) => {
     try {
         const { id } = req.params;
+        const id_agen = req.user?.id; 
         const { nama_fasilitas } = req.body;
-
         const result = await db.query(
-            "UPDATE fasilitas_properti SET nama_fasilitas = $1 WHERE id = $2 RETURNING *", [nama_fasilitas, id]
+            "UPDATE fasilitas_properti SET nama_fasilitas = $1 WHERE id = $2 AND id_agen = $3 RETURNING *", 
+            [nama_fasilitas, id, id_agen]
         );
 
         if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan atau bukan milik Anda" });
         }
         res.status(200).json({ success: true, data: result.rows[0] });
     } catch (error) {
@@ -443,12 +432,22 @@ const updateFasilitas = async(req, res) => {
 
 const deleteFasilitas = async(req, res) => {
     try {
-        await db.query("DELETE FROM fasilitas_properti WHERE id = $1", [req.params.id]);
+        const { id } = req.params;
+        const id_agen = req.user?.id; 
+        const result = await db.query(
+            "DELETE FROM fasilitas_properti WHERE id = $1 AND id_agen = $2 RETURNING *", 
+            [id, id_agen]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan atau bukan milik Anda" });
+        }
+        
         res.status(200).json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
-};
+};  
 
 
 

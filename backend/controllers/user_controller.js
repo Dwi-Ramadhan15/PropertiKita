@@ -129,13 +129,11 @@ const refreshTokenEndpoint = async(req, res) => {
 
         const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh-secretkey';
 
-        // Verifikasi Refresh Token
         jwt.verify(refreshToken, refreshTokenSecret, async(err, decoded) => {
             if (err) {
                 return res.status(401).json({ success: false, message: "Refresh Token tidak valid atau kadaluwarsa!" });
             }
 
-            // Ambil data user dari database berdasarkan ID di token
             const { rows } = await db.query("SELECT id, role FROM users WHERE id = $1", [decoded.id]);
             const user = rows[0];
 
@@ -143,9 +141,8 @@ const refreshTokenEndpoint = async(req, res) => {
                 return res.status(404).json({ success: false, message: "User tidak ditemukan" });
             }
 
-            // Buat Access Token BARU
             const newAccessToken = jwt.sign({ id: user.id, role: user.role },
-                process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' } // Kembalikan token 1 jam yang baru
+                process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' }
             );
 
             res.status(200).json({
@@ -183,7 +180,8 @@ const verifyOtp = async(req, res) => {
 
 const forgotPassword = async(req, res) => {
     try {
-        const { identifier } = req.body;
+        const { email, whatsapp } = req.body;
+        const identifier = email || whatsapp;
 
         if (!identifier) {
             return res.status(400).json({ success: false, message: "Email atau Nomor WA wajib diisi!" });
@@ -201,13 +199,25 @@ const forgotPassword = async(req, res) => {
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
         await db.query("UPDATE users SET otp_code = $1 WHERE id = $2", [otpCode, user.id]);
-        if (user.phone_number) {
+
+        if (user.role === 'agen' && user.email) {
+            await sendEmailOTP(user.email, otpCode);
+            return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
+        } else if (user.role === 'user' && user.phone_number) {
             await sendWhatsAppOTP(user.phone_number, otpCode);
             return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
         } else {
-            await sendEmailOTP(user.email, otpCode);
-            return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
+            if (user.phone_number) {
+                await sendWhatsAppOTP(user.phone_number, otpCode);
+                return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
+            } else if (user.email) {
+                await sendEmailOTP(user.email, otpCode);
+                return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
+            }
         }
+
+        return res.status(500).json({ success: false, message: "Gagal mengirim OTP, pengguna tidak memiliki email atau WA yang valid" });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -249,6 +259,7 @@ const resetPassword = async(req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 const getProfile = async(req, res) => {
     try {
         const userId = req.user ? req.user.id : req.userId;
