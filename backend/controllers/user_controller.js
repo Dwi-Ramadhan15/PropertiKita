@@ -128,11 +128,19 @@ const refreshTokenEndpoint = async(req, res) => {
         const { refreshToken } = req.body;
         if (!refreshToken) return res.status(403).json({ success: false, message: "Refresh Token dibutuhkan!" });
         const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh-secretkey';
+
         jwt.verify(refreshToken, refreshTokenSecret, async(err, decoded) => {
-            if (err) return res.status(401).json({ success: false, message: "Refresh Token tidak valid atau kadaluwarsa!" });
+            if (err) {
+                return res.status(401).json({ success: false, message: "Refresh Token tidak valid atau kadaluwarsa!" });
+            }
+
             const { rows } = await db.query("SELECT id, role FROM users WHERE id = $1", [decoded.id]);
             const user = rows[0];
-            if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+
+            if (!user) {
+                return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+            }
+
             const newAccessToken = jwt.sign({ id: user.id, role: user.role },
                 process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' }
             );
@@ -165,20 +173,43 @@ const verifyOtp = async(req, res) => {
 
 const forgotPassword = async(req, res) => {
     try {
-        const { identifier } = req.body;
-        if (!identifier) return res.status(400).json({ success: false, message: "Email atau Nomor WA wajib diisi!" });
-        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
-        if (result.rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        const { email, whatsapp } = req.body;
+        const identifier = email || whatsapp;
+
+        if (!identifier) {
+            return res.status(400).json({ success: false, message: "Email atau Nomor WA wajib diisi!" });
+        }
+
+        const result = await db.query(
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        }
+
         const user = result.rows[0];
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
         await db.query("UPDATE users SET otp_code = $1 WHERE id = $2", [otpCode, user.id]);
-        if (user.role === 'agen') {
+
+        if (user.role === 'agen' && user.email) {
             await sendEmailOTP(user.email, otpCode);
             return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
-        } else {
+        } else if (user.role === 'user' && user.phone_number) {
             await sendWhatsAppOTP(user.phone_number, otpCode);
             return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
+        } else {
+            if (user.phone_number) {
+                await sendWhatsAppOTP(user.phone_number, otpCode);
+                return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
+            } else if (user.email) {
+                await sendEmailOTP(user.email, otpCode);
+                return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
+            }
         }
+
+        return res.status(500).json({ success: false, message: "Gagal mengirim OTP, pengguna tidak memiliki email atau WA yang valid" });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -12,8 +12,6 @@ export default function useRegister(navigate) {
 
     const [profileImage, setProfileImage] = useState(null);
     const [preview, setPreview] = useState(null);
-    const [showOtpModal, setShowOtpModal] = useState(false);
-    const [otpCode, setOtpCode] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleImageChange = (e) => {
@@ -45,33 +43,18 @@ export default function useRegister(navigate) {
 
             const targetMedia = formData.role === 'agen' ? 'Email' : 'WhatsApp';
             alert(`Registrasi Berhasil! Silahkan cek ${targetMedia} Anda untuk kode OTP.`);
-            setShowOtpModal(true);
+            
+            const targetIdentifier = formData.role === 'user' ? formData.whatsapp : formData.email;
+            
+            navigate('/verify', { 
+                state: { 
+                    identifier: targetIdentifier, 
+                    role: formData.role 
+                } 
+            });
 
         } catch (err) {
             alert("Gagal: " + (err.response?.data?.message || "Terjadi kesalahan koneksi"));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            // Tentukan identifier berdasarkan role (Agen ke email, User ke WA)
-            const identifier = formData.role === 'agen' ? formData.email : formData.whatsapp;
-
-            await axios.post('http://localhost:5000/api/users/verify-otp', {
-                identifier,
-                otp: otpCode
-            });
-
-            alert("Verifikasi Berhasil! Silakan Login.");
-            setShowOtpModal(false);
-            navigate('/login');
-
-        } catch (err) {
-            alert("Verifikasi Gagal: " + (err.response?.data?.message || "OTP Salah"));
         } finally {
             setLoading(false);
         }
@@ -84,11 +67,6 @@ export default function useRegister(navigate) {
         preview,
         loading,
         handleImageChange,
-        handleRegister,
-        handleVerifyOtp,
-        showOtpModal,
-        setShowOtpModal,
-        otpCode,
-        setOtpCode
+        handleRegister
     };
 }

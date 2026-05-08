@@ -194,15 +194,6 @@ export default function DashboardAgen() {
               </button>
             )}
 
-            {/* TAMBAH FASILITAS - WARNA NAVY (SEJAJAR LONCENG) */}
-            {activeTab === 'fasilitasproperti' && (
-              <button 
-                onClick={() => window.dispatchEvent(new CustomEvent('openFasilitasModal'))} 
-                className="flex items-center gap-2 bg-[#1A314D] text-white px-8 py-4 rounded-2xl font-black shadow-2xl shadow-blue-900/40 hover:-translate-y-1 transition-all h-14 uppercase tracking-widest text-[11px]"
-              >
-                <FiPlus size={18} /> Tambah Fasilitas
-              </button>
-            )}
           </div>
         </header>
 
