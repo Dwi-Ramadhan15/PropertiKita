@@ -1,20 +1,19 @@
 const Minio = require('minio');
 const sharp = require('sharp');
+require('dotenv').config();
 
 const minioClient = new Minio.Client({
-    endPoint: '127.0.0.1', // Sesuai dengan dashboard kamu
-    port: 9000,
-    useSSL: false,
-    accessKey: 'minioadmin', 
-    secretKey: 'minioadmin', 
+    endPoint: process.env.MINIO_ENDPOINT || '127.0.0.1',
+    port: parseInt(process.env.MINIO_PORT) || 9000,
+    useSSL: process.env.MINIO_USE_SSL === 'true',
+    accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+    secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
 });
 
-// Fungsi untuk membuat bucket otomatis jadi PUBLIC
-const setBucketPublic = async (bucketName) => {
+const setBucketPublic = async(bucketName) => {
     const policy = {
         Version: "2012-10-17",
-        Statement: [
-            {
+        Statement: [{
                 Effect: "Allow",
                 Principal: { AWS: ["*"] },
                 Action: ["s3:GetBucketLocation", "s3:ListBucket"],
@@ -37,7 +36,7 @@ const setBucketPublic = async (bucketName) => {
     }
 };
 
-const uploadToMinio = async (file) => {
+const uploadToMinio = async(file) => {
     const bucketName = 'propertikita';
     const fileNameWithoutExt = file.originalname.split('.').slice(0, -1).join('.').replace(/\s/g, '-');
     const objectName = `${Date.now()}-${fileNameWithoutExt}.webp`;

@@ -15,7 +15,7 @@ export default function Agen() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="bg-[#475569] py-20 px-10 text-center mb-16">
+      <div className="bg-[#1E293B]  py-20 px-10 text-center mb-16">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           Agen Properti Profesional
         </h1>

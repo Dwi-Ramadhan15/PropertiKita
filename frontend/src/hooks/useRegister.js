@@ -1,92 +1,94 @@
-// src/hooks/useRegister.js
 import { useState } from 'react';
 import axios from 'axios';
 
 export default function useRegister(navigate) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    whatsapp: '',
-    password: '',
-    role: 'user'
-  });
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        whatsapp: '',
+        password: '',
+        role: 'user'
+    });
 
-  const [profileImage, setProfileImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+    const [profileImage, setProfileImage] = useState(null);
+    const [preview, setPreview] = useState(null);
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [loading, setLoading] = useState(false);
 
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProfileImage(file);
+            setPreview(URL.createObjectURL(file));
+        }
+    };
 
-  // HANDLE IMAGE
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProfileImage(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  };
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const data = new FormData();
+            data.append('name', formData.name);
+            data.append('email', formData.email);
+            data.append('whatsapp', formData.whatsapp);
+            data.append('password', formData.password);
+            data.append('role', formData.role);
 
-  // REGISTER
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      const data = new FormData();
-      data.append('name', formData.name);
-      data.append('email', formData.email);
-      data.append('whatsapp', formData.whatsapp);
-      data.append('password', formData.password);
-      data.append('role', formData.role);
+            if (profileImage) {
+                data.append('image', profileImage); 
+            }
 
-      if (profileImage) {
-        data.append('image', profileImage);
-      }
+            await axios.post('http://localhost:5000/api/users/register', data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
 
-      await axios.post('http://localhost:5000/api/users/register', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+            const targetMedia = formData.role === 'agen' ? 'Email' : 'WhatsApp';
+            alert(`Registrasi Berhasil! Silahkan cek ${targetMedia} Anda untuk kode OTP.`);
+            setShowOtpModal(true);
 
-      alert(`Anda telah mendapatkan pesan WhatsApp berisi kode OTP.`);
-      setShowOtpModal(true);
+        } catch (err) {
+            alert("Gagal: " + (err.response?.data?.message || "Terjadi kesalahan koneksi"));
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    } catch (err) {
-      alert("Gagal: " + (err.response?.data?.message || "Terjadi kesalahan koneksi"));
-    }
-  };
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            // Tentukan identifier berdasarkan role (Agen ke email, User ke WA)
+            const identifier = formData.role === 'agen' ? formData.email : formData.whatsapp;
 
-  // VERIFY OTP
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    try {
-      const identifier =
-        formData.role === 'user'
-          ? formData.whatsapp
-          : formData.email;
+            await axios.post('http://localhost:5000/api/users/verify-otp', {
+                identifier,
+                otp: otpCode
+            });
 
-      await axios.post('http://localhost:5000/api/users/verify-otp', {
-        identifier,
-        otp: otpCode
-      });
+            alert("Verifikasi Berhasil! Silakan Login.");
+            setShowOtpModal(false);
+            navigate('/login');
 
-      alert("Verifikasi Berhasil! Silakan Login.");
-      setShowOtpModal(false);
-      navigate('/login');
+        } catch (err) {
+            alert("Verifikasi Gagal: " + (err.response?.data?.message || "OTP Salah"));
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    } catch (err) {
-      alert("Verifikasi Gagal: " + (err.response?.data?.message || "OTP Salah"));
-    }
-  };
-
-  return {
-    formData,
-    setFormData,
-    profileImage,
-    preview,
-    handleImageChange,
-    handleRegister,
-    handleVerifyOtp,
-    showOtpModal,
-    setShowOtpModal,
-    otpCode,
-    setOtpCode
-  };
+    return {
+        formData,
+        setFormData,
+        profileImage,
+        preview,
+        loading,
+        handleImageChange,
+        handleRegister,
+        handleVerifyOtp,
+        showOtpModal,
+        setShowOtpModal,
+        otpCode,
+        setOtpCode
+    };
 }

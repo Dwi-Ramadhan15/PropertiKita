@@ -293,11 +293,20 @@ export default function PropertyDetail() {
               {/* BUTTON */}
               <button
                 onClick={handleHubungiAgen}
-                className="mt-7 w-full bg-[#D9AB7B] text-[#1E293B] py-3.5 rounded-2xl font-bold hover:bg-[#c49a6e] transition shadow-md"
+                className="mt-7 w-full bg-[#22C55E] text-white py-3.5 rounded-2xl font-bold hover:bg-green-600 transition shadow-md"
               >
                 <MdWhatsapp className="inline mr-2 text-lg" />
                 Chat WhatsApp
               </button>
+
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex gap-3">
+              <div className="text-blue-500 text-xl mt-0.5">
+                <MdVerifiedUser /> 
+              </div>
+              <p className="text-blue-600 text-sm leading-relaxed">
+                Hati-hati terhadap penipuan. Jangan transfer uang sebelum survei langsung dan pastikan dokumen sah.
+              </p>
+            </div>
             </div>
           </div>
         </div>

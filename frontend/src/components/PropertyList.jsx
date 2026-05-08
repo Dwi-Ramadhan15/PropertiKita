@@ -1,11 +1,88 @@
-import React from 'react';
-import { MdLocationOn, MdChevronLeft, MdChevronRight, MdSearch } from 'react-icons/md';
+import React, { useState, useEffect } from 'react';
+import { MdLocationOn, MdSearch } from 'react-icons/md';
 import { FaBed, FaBath, FaRulerCombined } from 'react-icons/fa';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import useProperties from '../hooks/useProperties';
 
-export default function PropertyList({ type = "all" }) {
+function ImageSlider({ images, fallbackImage }) {
+  const [currentImage, setCurrentImage] = useState(0);
 
+  let finalImgList = [];
+  if (Array.isArray(images)) {
+    finalImgList = images;
+  } else if (typeof images === 'string') {
+    try {
+      finalImgList = JSON.parse(images);
+    } catch (e) {
+      if (images.startsWith('{') && images.endsWith('}')) {
+        finalImgList = images.slice(1, -1).split(',').map(s => s.replace(/(^"|"$|\\")/g, '').trim());
+      } else if (images.includes(',')) {
+        finalImgList = images.split(',').map(s => s.trim());
+      } else {
+        finalImgList = [images];
+      }
+    }
+  }
+
+  finalImgList = finalImgList
+    .filter(img => img && String(img).trim() !== "" && img !== "null")
+    .map(img => img.startsWith('http') ? img : `http://127.0.0.1:9000/propertikita/${img}`);
+
+  if (finalImgList.length === 0 && fallbackImage) {
+    const validFallback = fallbackImage.startsWith('http') 
+      ? fallbackImage 
+      : `http://127.0.0.1:9000/propertikita/${fallbackImage}`;
+    finalImgList = [validFallback];
+  } else if (finalImgList.length === 0) {
+    finalImgList = ['https://via.placeholder.com/400x300'];
+  }
+
+  finalImgList = [...new Set(finalImgList)];
+
+  useEffect(() => {
+    if (finalImgList.length < 2) return;
+
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % finalImgList.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [finalImgList.length]);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-gray-100">
+      <div
+        className="flex w-full h-full transition-transform duration-700 ease-in-out"
+        style={{ transform: `translateX(-${currentImage * 100}%)` }}
+      >
+        {finalImgList.map((img, index) => (
+          <img
+            key={index}
+            src={img}
+            alt={`property-slide-${index}`}
+            className="w-full h-full flex-shrink-0 object-cover"
+          />
+        ))}
+      </div>
+
+      {finalImgList.length > 1 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 bg-black/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
+          {finalImgList.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                currentImage === i ? 'w-5 bg-white shadow-md' : 'w-1.5 bg-white/60'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PropertyList({ type = "all" }) {
   const {
     loading,
     search,
@@ -33,28 +110,24 @@ export default function PropertyList({ type = "all" }) {
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen">
-
-      {/* HERO */}
       {type !== "all" && (
-        <div className={`${isSewa ? "bg-[#334155]" : "bg-[#475569]"} py-20 px-6 text-center text-white`}>
-          <h1 className="text-4xl font-extrabold mb-3 tracking-tight">
-            {type === "dijual" ? "Properti Dijual" : "Properti Disewa"}
-          </h1>
-          <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-            {type === "dijual"
-              ? "Temukan hunian terbaik dengan harga ideal."
-              : "Solusi hunian sementara yang nyaman dan strategis."}
-          </p>
+        <div className="bg-[#1E293B] py-20 px-6 text-center text-white">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-5xl font-extrabold mb-4 tracking-tight">
+              {type === "dijual" ? "Properti Dijual" : "Properti Disewa"}
+            </h1>
+            <p className="text-slate-300 text-xl font-medium">
+              {type === "dijual"
+                ? "Temukan hunian terbaik dengan harga ideal."
+                : "Solusi hunian sementara yang nyaman dan strategis."}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* CONTAINER */}
       <div className={`max-w-7xl mx-auto px-6 pb-20 ${type === "all" ? "-mt-20" : "-mt-10"}`}>
-
-        {/* FILTER */}
-        <div className="w-full flex justify-center mb-12 relative z-30">
+        <div className="w-full flex justify-center mb-12 relative z-10">
           <div className="bg-white p-4 md:p-5 rounded-2xl shadow-xl flex flex-col md:flex-row gap-3 items-center border border-gray-100 w-full max-w-4xl">
-
             <div className="flex-1 w-full relative">
               <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={22} />
               <input
@@ -93,24 +166,21 @@ export default function PropertyList({ type = "all" }) {
             }`}>
               {filteredProperties.length} Unit
             </div>
-
           </div>
         </div>
 
-        {/* CONTENT */}
         {loading ? (
-          <div className="text-center py-20">Loading...</div>
+          <div className="text-center py-20 font-bold text-gray-400">Loading...</div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {currentItems.map((item) => (
                 <div key={item.properties.id} className="bg-white rounded-3xl shadow-sm hover:shadow-2xl transition-all duration-500 group overflow-hidden">
-
-                  <div className="h-60 overflow-hidden">
-                    <img
-                      src={item.properties.imageUrl || 'https://via.placeholder.com/400x300'}
-                      className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
-                      alt="properti"
+                  
+                  <div className="h-60 overflow-hidden relative z-20">
+                    <ImageSlider
+                      images={item.properties.images || item.properties.gallery}
+                      fallbackImage={item.properties.image_url || item.properties.imageUrl}
                     />
                   </div>
 
@@ -140,35 +210,32 @@ export default function PropertyList({ type = "all" }) {
                     >
                       Lihat Detail
                     </Link>
-
                   </div>
-
                 </div>
               ))}
             </div>
 
-            {/* PAGINATION */}
             <div className="flex justify-center mt-12 gap-2 items-center">
-              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
-                <MdChevronLeft size={24} />
+              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="text-gray-500 hover:text-black disabled:opacity-30">
+                <FiChevronLeft size={24} />
               </button>
 
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i}
                   onClick={() => paginate(i + 1)}
-                  className={`w-10 h-10 rounded-lg ${
+                  className={`w-10 h-10 rounded-lg font-bold transition-all ${
                     currentPage === i + 1
-                      ? "bg-blue-600 text-white"
-                      : "bg-white border"
+                      ? "bg-[#1E293B] text-white shadow-md"
+                      : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   {i + 1}
                 </button>
               ))}
 
-              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}>
-                <MdChevronRight size={24} />
+              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="text-gray-500 hover:text-black disabled:opacity-30">
+                <FiChevronRight size={24} />
               </button>
             </div>
           </>

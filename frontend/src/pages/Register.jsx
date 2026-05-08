@@ -1,141 +1,139 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-// ✅ Pastikan import assets sudah sesuai dengan folder kamu
+import useRegister from '../hooks/useRegister'; // Import hook kamu
 import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
 import logoPK from '../assets/logo-pk.jpeg';
 
 export default function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [role, setRole] = useState('user'); // Default role
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      // ✅ Logika pengiriman data tetap sama
-      const res = await axios.post('http://localhost:5000/api/users/register', { 
-        username, email, password, whatsapp, role 
-      });
-      if (res.data.success) {
-        alert("Registrasi Berhasil! Silahkan Login.");
-        navigate('/login');
-      }
-    } catch (err) {
-      alert("Registrasi Gagal: " + (err.response?.data?.message || "Terjadi kesalahan"));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    formData, setFormData,
+    preview, handleImageChange,
+    handleRegister, handleVerifyOtp,
+    showOtpModal, setShowOtpModal,
+    otpCode, setOtpCode
+  } = useRegister(navigate);
 
   return (
     <div 
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 relative py-10"
       style={{ backgroundImage: `url(${backgroundRumah})` }}
     >
-      {/* Overlay Gelap Elegan */}
       <div className="absolute inset-0 bg-[#0A1A2E]/80 z-10"></div>
 
       <div className="bg-white p-8 md:p-10 rounded-[1.5rem] shadow-xl w-full max-w-[480px] relative z-20 text-center">
-        
-        {/* Header */}
-        <div className="flex flex-col items-center mb-6">
-          <img src={logoPK} alt="Logo" className="h-16 w-auto object-contain mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Daftar Akun Baru</h2>
-          <p className="text-gray-500 text-sm font-medium">Buat akun untuk memulai</p>
-        </div>
+        <img src={logoPK} alt="Logo" className="h-16 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 uppercase tracking-tight">Daftar Akun</h2>
 
-        {/* ✅ Switcher Role (Warna Coklat Keemasan) */}
-        <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
+        {/* Switcher Role */}
+        <div className="flex bg-gray-100 p-1 rounded-xl mb-6 font-bold">
           <button 
-            type="button"
-            onClick={() => setRole('user')}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${role === 'user' ? 'bg-[#C6A265] text-white shadow-sm' : 'text-gray-500'}`}
+            type="button" 
+            onClick={() => setFormData({...formData, role: 'user'})}
+            className={`flex-1 py-2 rounded-lg transition ${formData.role === 'user' ? 'bg-[#C6A265] text-white shadow-sm' : 'text-gray-500'}`}
           >
             User
           </button>
           <button 
-            type="button"
-            onClick={() => setRole('agen')}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition ${role === 'agen' ? 'bg-[#C6A265] text-white shadow-sm' : 'text-gray-500'}`}
+            type="button" 
+            onClick={() => setFormData({...formData, role: 'agen'})}
+            className={`flex-1 py-2 rounded-lg transition ${formData.role === 'agen' ? 'bg-[#C6A265] text-white shadow-sm' : 'text-gray-500'}`}
           >
             Agen Properti
           </button>
         </div>
         
-        <form onSubmit={handleRegister} className="space-y-4">
-          {/* Input Username */}
-          <div className="space-y-1 text-left">
-            <label className="text-xs font-semibold text-gray-600 ml-1">Username</label>
+        <form onSubmit={handleRegister} className="space-y-4 text-left">
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-600 ml-1 uppercase">Nama Lengkap</label>
             <input 
               type="text" 
-              placeholder="Enter Your Username"
-              className="w-full p-3 bg-white rounded-lg border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] outline-none text-sm"
-              onChange={(e) => setUsername(e.target.value)}
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#C6A265]"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
               required
             />
           </div>
 
-          {/* Input Email */}
-          <div className="space-y-1 text-left">
-            <label className="text-xs font-semibold text-gray-600 ml-1">Email</label>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-600 ml-1 uppercase">Email</label>
             <input 
               type="email" 
-              placeholder="Enter your Email"
-              className="w-full p-3 bg-white rounded-lg border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] outline-none text-sm"
-              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#C6A265]"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Input Password */}
-            <div className="space-y-1 text-left">
-              <label className="text-xs font-semibold text-gray-600 ml-1">Password</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 ml-1 uppercase">Password</label>
               <input 
                 type="password" 
-                placeholder="Password"
-                className="w-full p-3 bg-white rounded-lg border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] outline-none text-sm"
-                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#C6A265]"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
                 required
               />
             </div>
-            {/* Input WhatsApp */}
-            <div className="space-y-1 text-left">
-              <label className="text-xs font-semibold text-gray-600 ml-1">No. WhatsApp</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 ml-1 uppercase">WhatsApp</label>
               <input 
                 type="text" 
-                placeholder="08xxxx"
-                className="w-full p-3 bg-white rounded-lg border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] outline-none text-sm"
-                onChange={(e) => setWhatsapp(e.target.value)}
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#C6A265]"
+                value={formData.whatsapp}
+                onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
                 required
               />
             </div>
           </div>
 
-          {/* ✅ Tombol Daftar (Coklat Keemasan) */}
           <button 
             type="submit" 
-            disabled={loading}
-            className={`w-full py-4 rounded-lg font-bold text-white shadow-lg transition active:scale-95 mt-2
-              ${loading ? 'bg-gray-400' : 'bg-[#C6A265] hover:bg-[#B39156]'}`}
+            className="w-full py-4 rounded-lg font-black text-white bg-[#C6A265] hover:bg-[#B39156] shadow-lg transition active:scale-95 mt-4 uppercase tracking-widest text-sm"
           >
-            {loading ? "Memproses..." : "Daftar Sekarang"}
+            Daftar Sekarang
           </button>
         </form>
 
         <p className="mt-6 text-sm font-medium text-gray-500">
-          Sudah punya akun?{' '}
-          <Link to="/login" className="text-[#C6A265] font-bold hover:underline">
-            Login Disini
-          </Link>
+          Sudah punya akun? <Link to="/login" className="text-[#C6A265] font-bold">Login Disini</Link>
         </p>
       </div>
+
+      {/* --- MODAL OTP (Sesuai Logic Hook Kamu) --- */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white p-10 rounded-[2.5rem] w-full max-w-md text-center shadow-2xl animate-in zoom-in duration-300">
+            <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase italic">Verifikasi Akun</h3>
+            <p className="text-gray-400 text-xs font-bold mb-8 uppercase tracking-tighter">
+              Masukkan 6 digit kode yang dikirim ke <br/> 
+              <span className="text-[#C6A265]">{formData.role === 'user' ? formData.whatsapp : formData.email}</span>
+            </p>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <input 
+                type="text" 
+                maxLength="6"
+                className="w-full p-5 text-center text-4xl tracking-[0.4em] font-black bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-[#C6A265] outline-none transition-all shadow-inner"
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                required
+              />
+              <button 
+                type="submit"
+                className="w-full bg-[#1A314D] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition"
+              >
+                Konfirmasi
+              </button>
+            </form>
+            <button onClick={() => setShowOtpModal(false)} className="mt-6 text-gray-400 text-xs font-bold uppercase hover:text-gray-600">Batal</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

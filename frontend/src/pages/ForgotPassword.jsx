@@ -17,7 +17,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/users/forgot-password', { 
+      await axios.post('/_/backend/api/users/forgot-password', { 
         identifier: inputValue.trim() 
       });
       alert("Kode OTP telah dikirim!");
@@ -51,7 +51,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/users/reset-password', { 
+      const res = await axios.post('/_/backend/api/users/reset-password', { 
         identifier: inputValue.trim(),
         otp: otp.join(''), 
         newPassword: newPassword

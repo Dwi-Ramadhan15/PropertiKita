@@ -361,13 +361,28 @@ const deleteProperti = async(req, res) => {
     }
 };
 
-const getAllFasilitas = async(req, res) => {
-    try {
-        const { rows } = await db.query("SELECT * FROM fasilitas_properti ORDER BY nama_fasilitas DESC");
-        res.status(200).json(rows);
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+const getAllFasilitas = async (req, res) => {
+  try {
+    const id_agen = req.user?.id || req.query.id_agen;
+
+    if (!id_agen) {
+      return res.status(401).json({ success: false, message: "Akses ditolak. ID Agen tidak ditemukan." });
     }
+
+    const query = `
+      SELECT f.*, p.title as nama_properti 
+      FROM fasilitas_properti f
+      JOIN properties p ON f.id_properti = p.id
+      WHERE p.id_agen = $1
+      ORDER BY f.nama_fasilitas DESC
+    `;
+
+    const { rows } = await db.query(query, [id_agen]);
+    
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 const createFasilitas = async(req, res) => {
