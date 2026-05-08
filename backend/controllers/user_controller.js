@@ -73,22 +73,26 @@ const register = async(req, res) => {
         if (userRole === 'user' && cleanWhatsapp) await sendWhatsAppOTP(cleanWhatsapp, otpCode);
         else if (cleanEmail) await sendEmailOTP(cleanEmail, otpCode);
 
-        const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
-        const msgAdmin = `Pengguna baru telah mendaftar: ${name} (${userRole})`;
-        for (const admin of adminRes.rows) {
-            await db.query(
-                "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
-                [admin.id, "Registrasi Baru", msgAdmin, "info"]
-            );
-        }
-        
-        if (req.io) {
-            req.io.to('admin_room').emit('notify_admin', {
-                title: "Registrasi Baru",
-                message: msgAdmin,
-                status: "info",
-                created_at: new Date()
-            });
+        try {
+            const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
+            const msgAdmin = `Pengguna baru telah mendaftar: ${name} (${userRole})`;
+            for (const admin of adminRes.rows) {
+                await db.query(
+                    "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
+                    [admin.id, "Registrasi Baru", msgAdmin, "info"]
+                );
+            }
+            
+            if (req.io) {
+                req.io.to('admin_room').emit('notify_admin', {
+                    title: "Registrasi Baru",
+                    message: msgAdmin,
+                    status: "info",
+                    created_at: new Date()
+                });
+            }
+        } catch (notifErr) {
+            console.error("Gagal simpan notifikasi registrasi:", notifErr);
         }
 
         res.status(201).json({ success: true, message: "Registrasi berhasil!" });

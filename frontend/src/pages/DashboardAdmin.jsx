@@ -42,8 +42,8 @@ export default function DashboardAdmin() {
       const newNotif = {
         id: Date.now(),
         message: data.message,
-        title: data.title,
-        status: data.status,
+        title: data.title || 'Informasi Sistem',
+        status: data.status || 'info',
         created_at: data.created_at || new Date(),
         is_read: false
       };
@@ -55,6 +55,7 @@ export default function DashboardAdmin() {
       fetchAllPropertiForStats();
       setTimeout(() => setToast(null), 5000);
     };
+    
     socket.on('notify_admin', handleNotify);
     return () => socket.off('notify_admin', handleNotify);
   }, []);
@@ -65,7 +66,7 @@ export default function DashboardAdmin() {
     } else {
       fetchData();
       fetchAllPropertiForStats();
-      fetchNotifications();
+      fetchNotifications(); 
     }
   }, [page, activeTab, subTabAccount, filterStatus]);
 
@@ -131,6 +132,18 @@ export default function DashboardAdmin() {
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {}
+  };
+
+  const handleClearNotifications = async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.delete(`http://localhost:5000/api/notifications/${user.id}/clear`, config);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
   };
 
   const handleReviewClick = async (p) => {
@@ -272,20 +285,21 @@ export default function DashboardAdmin() {
               {unreadCount > 0 && <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center animate-bounce">{unreadCount}</span>}
             </button>
             {showNotifDropdown && (
-              <div className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden z-50">
+              <div className="absolute right-0 mt-4 w-[350px] bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden z-50">
                 <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
                   <span className="font-black italic uppercase">Pemberitahuan</span>
-                  <button onClick={() => setNotifications([])} className="text-[10px] text-[#D9AB7B] hover:text-white font-bold uppercase">Bersihkan</button>
+                  <button onClick={handleClearNotifications} className="text-[10px] text-[#D9AB7B] hover:text-white font-bold uppercase">Bersihkan</button>
                 </div>
-                <div className="max-h-72 overflow-y-auto custom-scrollbar">
+                <div className="max-h-80 overflow-y-auto custom-scrollbar">
                   {notifications.length === 0 ? (
                     <div className="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">Kosong</div>
                   ) : (
                     notifications.map(n => (
                       <div key={n.id} onClick={handleNotificationClick} className={`p-5 border-b border-gray-50 flex gap-4 transition-all cursor-pointer ${n.is_read ? 'bg-white' : 'bg-blue-50/30 hover:bg-blue-50'}`}>
-                        <div className={`mt-1 ${n.status === 'info' ? 'text-blue-500' : 'text-[#D9AB7B]'}`}><FiInfo size={18}/></div>
+                        <div className={`mt-1 ${n.status === 'info' || n.status === 'pending' ? 'text-blue-500' : 'text-[#D9AB7B]'}`}><FiInfo size={18}/></div>
                         <div>
-                          <p className="text-xs font-bold text-gray-800">{n.message}</p>
+                          <p className="text-xs font-black text-gray-900 mb-1">{n.title || 'Informasi'}</p>
+                          <p className="text-xs font-bold text-gray-600">{n.message}</p>
                           <p className="text-[9px] text-gray-400 font-bold mt-2 uppercase tracking-widest">{new Date(n.created_at).toLocaleString('id-ID')}</p>
                         </div>
                       </div>
@@ -427,7 +441,7 @@ export default function DashboardAdmin() {
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Halaman {page} / {totalPages === 0 ? 1 : totalPages}</span>
               <div className="flex gap-2">
                 <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl font-bold text-xs disabled:opacity-50 transition uppercase tracking-widest">Prev</button>
-                <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl font-bold text-xs disabled:opacity-50 transition uppercase tracking-widest">Next</button>
+                <button disabled={page >= totalPages || totalPages === 0} onClick={() => setPage(p => p + 1)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl font-bold text-xs disabled:opacity-50 transition uppercase tracking-widest">Next</button>
               </div>
             </div>
           </div>
