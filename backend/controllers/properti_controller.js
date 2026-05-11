@@ -230,25 +230,28 @@ const createProperti = async(req, res) => {
         await client.query(`UPDATE properties SET image_url = $1 WHERE id = $2`, [firstImageUrl, propertiId]);
         await client.query('COMMIT');
 
-        const userRes = await db.query("SELECT name, email FROM users WHERE id = $1", [userId]);
-        const userName = userRes.rows[0].name;
+        try {
+            const userRes = await db.query("SELECT name, email FROM users WHERE id = $1", [userId]);
+            const userName = userRes.rows[0].name;
 
-        const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
-        const msgAdmin = `Agen ${userName} menambahkan properti baru: "${title}". Menunggu verifikasi.`;
-        for (const admin of adminRes.rows) {
-            await db.query(
-                "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
-                [admin.id, "Listing Baru", msgAdmin, "pending"]
-            );
-        }
-        if (req.io) {
-            req.io.to('admin_room').emit('notify_admin', {
-                title: "Listing Baru",
-                message: msgAdmin,
-                status: "pending",
-                created_at: new Date()
-            });
-        }
+            const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
+            const msgAdmin = `Agen ${userName} menambahkan properti baru: "${title}". Menunggu verifikasi.`;
+            for (const admin of adminRes.rows) {
+                await db.query(
+                    "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
+                    [admin.id, "Listing Baru", msgAdmin, "pending"]
+                );
+            }
+            
+            if (req.io) {
+                req.io.to('admin_room').emit('notify_admin', {
+                    title: "Listing Baru",
+                    message: msgAdmin,
+                    status: "pending",
+                    created_at: new Date()
+                });
+            }
+        } catch (notifError) {}
 
         res.status(201).json({ success: true, message: "Properti berhasil dikirim dan menunggu tinjauan admin" });
     } catch (error) {
@@ -361,25 +364,50 @@ const updateStatusProperti = async(req, res) => {
 
         const properti = result.rows[0];
         let msg = "";
-        if (status === 'approved') msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
-        else if (status === 'rejected') msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
-        else if (status === 'sold') msg = `Status "${properti.title}" kini: TERJUAL.`;
+        let notifTitle = "Update Status Listing";
+        if (status === 'approved') {
+            msg = `Listing "${properti.title}" telah DISETUJUI oleh admin.`;
+        } else if (status === 'rejected') {
+            msg = `Listing "${properti.title}" DITOLAK oleh admin.`;
+        } else if (status === 'sold') {
+            msg = `Status "${properti.title}" kini: TERJUAL.`;
+        }
 
         if (msg !== "") {
-            await db.query(
-                "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", [properti.id_agen, "Update Status Listing", msg, status]
-            );
+            try {
+                await db.query(
+                    "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", 
+                    [properti.id_agen, notifTitle, msg, status]
+                );
+
+                const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
+                const msgAdminLog = `Anda merubah status "${properti.title}" menjadi ${status.toUpperCase()}.`;
+                for (const admin of adminRes.rows) {
+                    await db.query(
+                        "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", 
+                        [admin.id, "Riwayat Aktivitas", msgAdminLog, status]
+                    );
+                }
+            } catch (err) {}
         }
 
         if (req.io && msg !== "") {
-            const roomName = `agen_${properti.id_agen}`;
             const payload = {
+                title: notifTitle,
                 status: status,
                 message: msg,
-                title: properti.title,
                 created_at: new Date()
             };
-            req.io.to(roomName).emit('notify_agen', payload);
+
+            req.io.to(`agen_${properti.id_agen}`).emit('notify_agen', payload);
+
+            const agenEmailRes = await db.query("SELECT email FROM agen WHERE id = $1", [properti.id_agen]);
+            if (agenEmailRes.rows.length > 0) {
+                const uRes = await db.query("SELECT id FROM users WHERE email = $1", [agenEmailRes.rows[0].email]);
+                if (uRes.rows.length > 0) {
+                    req.io.to(`agen_${uRes.rows[0].id}`).emit('notify_agen', payload);
+                }
+            }
         }
 
         res.status(200).json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: properti });
@@ -556,6 +584,24 @@ const tandaiNotifDibaca = async(req, res) => {
     }
 };
 
+const clearNotifications = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const userCheck = await db.query("SELECT role FROM users WHERE id = $1", [id]);
+        let targetId = id;
+
+        if (userCheck.rows.length > 0 && userCheck.rows[0].role !== 'admin') {
+            const realAgenId = await getRealAgenId(id);
+            if (realAgenId) targetId = realAgenId;
+        }
+
+        await db.query("DELETE FROM notifications WHERE id_agen = $1", [targetId]);
+        res.status(200).json({ success: true, message: "Notifikasi dibersihkan" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getProperti,
     getPropertiBySlug,
@@ -569,5 +615,6 @@ module.exports = {
     deleteFasilitas,
     getAgen,
     getNotifikasiAgen,
-    tandaiNotifDibaca
+    tandaiNotifDibaca,
+    clearNotifications
 };
