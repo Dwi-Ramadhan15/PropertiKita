@@ -3,8 +3,6 @@ const router = express.Router();
 const userController = require('../controllers/user_controller');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const { getAllUsers } = require('../controllers/user_controller');
-const refreshTokenController = require('../controllers/user_controller');;
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -24,7 +22,7 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-router.post('/register', upload.single('foto_profil'), userController.register);
+router.post('/register', upload.single('image'), userController.register);
 router.post('/login', userController.login);
 router.post('/refresh-token', userController.refreshTokenEndpoint);
 router.post('/verify-otp', userController.verifyOtp);
@@ -32,16 +30,12 @@ router.post('/verify-otp', userController.verifyOtp);
 router.post('/forgot-password', userController.forgotPassword);
 router.post('/reset-password', userController.resetPassword);
 
-router.get('/', getAllUsers);
+router.get('/', userController.getAllUsers);
 
 router.get('/profile', authenticateToken, userController.getProfile);
 router.get('/:id/profile', userController.getUserProfile);
 router.put('/profile', authenticateToken, userController.updateProfile);
-router.post('/avatar', authenticateToken, upload.single('avatar'), userController.updateAvatar);
-
-router.get('/users/profile', authenticateToken, userController.getProfile);
-router.get('/users/:id/profile', userController.getUserProfile);
-router.put('/users/profile', authenticateToken, userController.updateProfile);
-router.post('/users/avatar', authenticateToken, upload.single('avatar'), userController.updateAvatar);
+router.put('/change-password', authenticateToken, userController.changePassword);
+router.put('/avatar', authenticateToken, upload.single('image'), userController.updateAvatar);
 
 module.exports = router;

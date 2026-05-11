@@ -13,11 +13,14 @@ export default function ProfileAgen() {
     phone_number: '',
   });
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [previewFoto, setPreviewFoto] = useState('https://via.placeholder.com/150');
 
-  // Format URL Foto dari MinIO atau Backend
   const formatFotoUrl = (foto) => {
-    if (!foto) return 'https://via.placeholder.com/150';
+    if (!foto) return `https://ui-avatars.com/api/?name=${user?.name || 'Agen'}&background=1A314D&color=fff`;
     if (foto.startsWith('http')) return foto;
     return `http://127.0.0.1:9000/propertikita/${foto}`;
   };
@@ -38,7 +41,6 @@ export default function ProfileAgen() {
           setPreviewFoto(formatFotoUrl(data.foto_profil));
         }
       } catch (err) {
-        // Fallback ke data localStorage jika API gagal
         setFormData({
           name: user.name || '',
           email: user.email || '',
@@ -61,9 +63,39 @@ export default function ProfileAgen() {
         const updatedUser = { ...user, ...formData };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         alert("Profil berhasil diperbarui!");
+        window.location.reload();
       }
     } catch (err) {
       alert("Gagal memperbarui profil.");
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      return alert('Konfirmasi password tidak cocok!');
+    }
+
+    if (newPassword.length < 8) {
+      return alert('Password baru minimal 8 karakter!');
+    }
+
+    try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.put('http://localhost:5000/api/users/change-password', {
+        currentPassword,
+        newPassword
+      }, config);
+
+      if (res.data.success) {
+        alert('Password berhasil diperbarui!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Gagal memperbarui password');
     }
   };
 
@@ -71,7 +103,7 @@ export default function ProfileAgen() {
     const file = e.target.files[0];
     if (file) {
       const uploadData = new FormData();
-      uploadData.append('avatar', file);
+      uploadData.append('image', file);
 
       try {
         const config = { 
@@ -80,14 +112,15 @@ export default function ProfileAgen() {
             Authorization: `Bearer ${token}` 
           } 
         };
-        const res = await axios.post('http://localhost:5000/api/users/avatar', uploadData, config);
+        const res = await axios.put('http://localhost:5000/api/users/avatar', uploadData, config);
         
         if (res.data.success) {
           const newFoto = res.data.foto_profil;
           setPreviewFoto(formatFotoUrl(newFoto));
           const updatedUser = { ...user, foto_profil: newFoto };
           localStorage.setItem('user', JSON.stringify(updatedUser));
-          window.location.reload(); // Refresh agar foto di sidebar ikut berubah
+          alert("Foto profil berhasil diperbarui!");
+          window.location.reload(); 
         }
       } catch (err) {
         alert("Gagal upload foto.");
@@ -98,7 +131,6 @@ export default function ProfileAgen() {
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500">
       
-      {/* CARD 1: INFORMASI PRIBADI */}
       <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_15px_50px_-15px_rgba(0,0,0,0.05)] border border-gray-100">
         <div className="flex items-center gap-3 mb-10">
           <div className="p-2.5 bg-gray-100 rounded-xl text-slate-500 border border-gray-200">
@@ -108,7 +140,6 @@ export default function ProfileAgen() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12 items-start">
-          {/* Sisi Kiri: Foto Profil */}
           <div className="relative group mx-auto lg:mx-0">
             <div className="w-40 h-40 rounded-full border-[6px] border-[#F1F3F6] shadow-xl overflow-hidden relative ring-1 ring-gray-200">
               <img src={previewFoto} alt="Profil" className="w-full h-full object-cover" />
@@ -119,7 +150,6 @@ export default function ProfileAgen() {
             </label>
           </div>
 
-          {/* Sisi Kanan: Form Input */}
           <form onSubmit={handleUpdateProfil} className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="md:col-span-2 space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Nama Lengkap Agen</label>
@@ -154,7 +184,6 @@ export default function ProfileAgen() {
               />
             </div>
 
-            {/* Tombol Simpan - Warna Emas (Sesuai Tombol Dashboard) */}
             <div className="md:col-span-2 flex justify-end mt-4">
               <button 
                 type="submit" 
@@ -167,7 +196,6 @@ export default function ProfileAgen() {
         </div>
       </div>
 
-      {/* CARD 2: KEAMANAN AKUN */}
       <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_15px_50px_-15px_rgba(0,0,0,0.05)] border border-gray-100">
         <div className="flex items-center gap-3 mb-10">
           <div className="p-2.5 bg-gray-100 rounded-xl text-slate-500 border border-gray-200">
@@ -176,22 +204,43 @@ export default function ProfileAgen() {
           <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Keamanan Akun</h3>
         </div>
 
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <form onSubmit={handleUpdatePassword} className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-2">
             <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Password Saat Ini</label>
-            <input type="password" placeholder="********" className="w-full p-5 bg-[#F8F9FA] border border-gray-200 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-red-400 transition-all shadow-inner" />
+            <input 
+              type="password" 
+              placeholder="********" 
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full p-5 bg-[#F8F9FA] border border-gray-200 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-red-400 transition-all shadow-inner" 
+              required
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Password Baru</label>
-            <input type="password" placeholder="Min. 8 Karakter" className="w-full p-5 bg-[#F8F9FA] border border-gray-200 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-[#D9AB7B] transition-all shadow-inner" />
+            <input 
+              type="password" 
+              placeholder="Min. 8 Karakter" 
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full p-5 bg-[#F8F9FA] border border-gray-200 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-[#D9AB7B] transition-all shadow-inner" 
+              required
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Ulangi Password</label>
-            <input type="password" placeholder="Konfirmasi" className="w-full p-5 bg-[#F8F9FA] border border-gray-200 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-[#D9AB7B] transition-all shadow-inner" />
+            <input 
+              type="password" 
+              placeholder="Konfirmasi" 
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full p-5 bg-[#F8F9FA] border border-gray-200 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-[#D9AB7B] transition-all shadow-inner" 
+              required
+            />
           </div>
 
           <div className="md:col-span-3 flex justify-end mt-4">
-            <button type="button" className="flex items-center gap-3 border-2 border-[#D9AB7B] text-[#D9AB7B] px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#D9AB7B] hover:text-white transition-all active:scale-95">
+            <button type="submit" className="flex items-center gap-3 border-2 border-[#D9AB7B] text-[#D9AB7B] px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#D9AB7B] hover:text-white transition-all active:scale-95">
               Perbarui Password <FiRefreshCw size={18} />
             </button>
           </div>
