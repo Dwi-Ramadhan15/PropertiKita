@@ -17,8 +17,9 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('/_/backend/api/users/forgot-password', { 
-        identifier: inputValue.trim() 
+      await axios.post('http://localhost:5000/api/users/forgot-password', { 
+        email: inputValue.trim(),
+        whatsapp: inputValue.trim()
       });
       alert("Kode OTP telah dikirim!");
       setOtp(['', '', '', '', '', '']); 
@@ -51,7 +52,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post('/_/backend/api/users/reset-password', { 
+      const res = await axios.post('http://localhost:5000/api/users/reset-password', { 
         identifier: inputValue.trim(),
         otp: otp.join(''), 
         newPassword: newPassword
@@ -69,15 +70,25 @@ export default function ForgotPassword() {
     }
   };
 
+  const handleResendOtp = async () => {
+    try {
+      await axios.post('http://localhost:5000/api/users/forgot-password', { 
+        email: inputValue.trim(),
+        whatsapp: inputValue.trim()
+      });
+      alert("Kode OTP baru telah dikirim!");
+    } catch (err) {
+      alert("Gagal kirim ulang: " + (err.response?.data?.message || "Terjadi kesalahan server"));
+    }
+  };
+
   return (
     <div 
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 relative"
       style={{ backgroundImage: `url(${backgroundRumah})` }}
     >
-      {/* Overlay Gelap - Dibuat lebih tipis (60%) supaya background lebih terang */}
       <div className="absolute inset-0 bg-[#0A1A2E]/60 z-10"></div>
 
-      {/* --- FORM UTAMA LUPA PASSWORD --- */}
       <div className="bg-white p-8 md:p-12 rounded-[1.5rem] shadow-2xl w-full max-w-[440px] relative z-20 text-center border border-white/20">
         <div className="flex flex-col items-center mb-10">
           <img src={logoPK} alt="Logo" className="h-20 w-auto object-contain mb-5" />
@@ -114,13 +125,10 @@ export default function ForgotPassword() {
         </div>
       </div>
 
-      {/* --- POPUP MODAL VERIFIKASI OTP --- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          {/* Box Putih Modal - Blur dihapus agar background tajam */}
           <div className="bg-white w-full max-w-lg p-10 rounded-[2.5rem] shadow-[0_25px_70px_rgba(0,0,0,0.5)] relative border border-gray-100 text-center animate-in fade-in zoom-in duration-300">
             
-            {/* Logo Emas */}
             <div className="flex flex-col items-center mb-6">
               <img src={logoPK} alt="Logo" className="h-14 w-auto object-contain mb-2" />
               <h1 className="text-[#C6A265] font-bold text-xl tracking-tighter">PropertiKita</h1>
@@ -170,6 +178,7 @@ export default function ForgotPassword() {
                 Tidak terima kode? <br />
                 <button 
                   type="button"
+                  onClick={handleResendOtp}
                   className="text-[#C6A265] hover:underline mt-1 flex items-center justify-center gap-1 mx-auto font-bold"
                 >
                   <span className="text-lg">↻</span> Kirim ulang kode
