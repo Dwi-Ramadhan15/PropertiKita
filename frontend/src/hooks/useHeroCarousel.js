@@ -11,7 +11,7 @@ export default function useHeroCarousel() {
     useEffect(() => {
         const fetchHighlightProperties = async() => {
             try {
-                const res = await axios.get('/_/backend/api/properti');
+                const res = await axios.get(import.meta.env.VITE_API_URL + '/properti');
                 const allProperties = res.data.data.features || [];
 
                 const highlightData = allProperties

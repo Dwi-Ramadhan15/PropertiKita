@@ -14,8 +14,8 @@ export default function usePropertyDetail(slug) {
         const fetchDetail = async() => {
             try {
                 const res = await axios.get(
-                    `/_/backend/api/properti/${slug}`
-                );
+    `${import.meta.env.VITE_API_URL}/properti/${slug}`
+);
                 setItem(res.data.data);
             } catch (error) {
                 console.error(error);
@@ -32,7 +32,7 @@ export default function usePropertyDetail(slug) {
 
         const fetchAgen = async() => {
             try {
-                const res = await axios.get("/_/backend/api/agen");
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/agen`);
                 const found = res.data.data.find(
                     (a) => Number(a.id) === Number(item.id_agen)
                 );

@@ -17,7 +17,7 @@ export default function useAgen(navigate) {
     useEffect(() => {
         const fetchAgen = async() => {
             try {
-                const res = await axios.get('/_/backend/api/agen');
+                const res = await axios.get(import.meta.env.VITE_API_URL + '/agen');
 
                 if (res.data.success || res.data.data) {
                     const data = res.data.data || res.data;

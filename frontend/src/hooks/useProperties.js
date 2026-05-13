@@ -40,7 +40,7 @@ export default function useProperties(type = "all") {
     useEffect(() => {
         const fetchData = async() => {
             try {
-                const res = await axios.get('/_/backend/api/properti?limit=100');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/properti?limit=100`);
                 const allData = res.data.data.features || [];
 
                 const withImages = allData.map(item => ({

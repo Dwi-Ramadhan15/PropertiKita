@@ -6,14 +6,14 @@ export default function useLogin(navigate) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e) => {
+    const handleLogin = async(e) => {
         // Mencegah reload halaman
         if (e) e.preventDefault();
-        
+
         setLoading(true);
 
         try {
-            const res = await axios.post('/_/backend/api/users/login', {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/users/login`, {
                 email: email,
                 password: password
             });
@@ -39,7 +39,7 @@ export default function useLogin(navigate) {
 
         } catch (err) {
             // PERBAIKAN DI SINI: Tanda tanya dan titik harus rapat (?.), tidak boleh ada spasi
-            const errorMsg = err.response?.data?.message || "Email atau password salah!";
+            const errorMsg = err.response ? .data ? .message || "Email atau password salah!";
             alert("Login Gagal: " + errorMsg);
             console.error("Login Error:", err);
         } finally {
