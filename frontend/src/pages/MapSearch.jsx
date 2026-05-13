@@ -137,7 +137,7 @@ export default function MapSearch() {
                     }
                     className={`py-2 text-xs font-semibold rounded-lg border transition ${
                       kamarTidur === v
-                        ? "bg-[#C9925F] text-white border-blue-600"
+                        ? "bg-slate-800 text-white border-blue-600"
                         : "bg-white hover:bg-gray-50 border-gray-200"
                     }`}
                   >

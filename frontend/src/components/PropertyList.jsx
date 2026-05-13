@@ -173,23 +173,43 @@ export default function PropertyList({ type = "all" }) {
           <div className="text-center py-20 font-bold text-gray-400">Loading...</div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {currentItems.map((item) => (
-                <div key={item.properties.id} className="bg-white rounded-3xl shadow-sm hover:shadow-2xl transition-all duration-500 group overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {currentItems.map((item) => {
+              const kategori = item.properties.kategori ? item.properties.kategori.toLowerCase() : "";
+              const isDijual = kategori === "dijual";
+
+              return (
+                <Link 
+                  key={item.properties.id} 
+                  to={`/properti/${item.properties.slug}`}
+                  className="bg-white rounded-3xl shadow-sm hover:shadow-2xl hover:scale-[1.01] transition-all duration-500 group overflow-hidden flex flex-col relative"
+                >
                   
                   <div className="h-60 overflow-hidden relative z-20">
+                    
+                    {/* LOGIKA: Hanya tampil jika type adalah "all" (Beranda) */}
+                    {type === "all" && (
+                      <div className={`absolute top-4 left-4 z-30 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm ${
+                        isDijual 
+                          ? "bg-[#C9925F] text-white" 
+                          : "bg-slate-800/80 text-white backdrop-blur-sm"
+                      }`}>
+                        {item.properties.kategori || "Properti"}
+                      </div>
+                    )}
+
                     <ImageSlider
                       images={item.properties.images || item.properties.gallery}
                       fallbackImage={item.properties.image_url || item.properties.imageUrl}
                     />
                   </div>
 
-                  <div className="p-6 flex flex-col">
+                  <div className="p-6 flex flex-col flex-grow">
                     <h3 className="text-[#C9925F] font-bold text-xl mb-1">
                       {formatRupiah(item.properties.harga)}
                     </h3>
 
-                    <p className="font-bold text-slate-800 line-clamp-1">
+                    <p className="font-bold text-slate-800 line-clamp-1 group-hover:text-[#C9925F] transition-colors">
                       {item.properties.title}
                     </p>
 
@@ -198,22 +218,16 @@ export default function PropertyList({ type = "all" }) {
                       {item.properties.lokasi}
                     </p>
 
-                    <div className="flex justify-between text-sm text-slate-500 border-t pt-4">
+                    <div className="flex justify-between text-sm text-slate-500 border-t pt-4 mt-auto">
                       <span className="flex items-center gap-1"><FaBed /> {item.properties.kamar_tidur || 0}</span>
                       <span className="flex items-center gap-1"><FaBath /> {item.properties.kamar_mandi || 0}</span>
                       <span className="flex items-center gap-1"><FaRulerCombined /> {item.properties.luas || 0}</span>
                     </div>
-
-                    <Link
-                      to={`/properti/${item.properties.slug}`}
-                      className="mt-4 block text-center py-3 bg-slate-50 rounded-xl font-bold hover:bg-[#D9AB7B] hover:text-black transition"
-                    >
-                      Lihat Detail
-                    </Link>
                   </div>
-                </div>
-              ))}
-            </div>
+                </Link>
+              );
+            })}
+          </div>
 
             <div className="flex justify-center mt-12 gap-2 items-center">
               <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="text-gray-500 hover:text-black disabled:opacity-30">
