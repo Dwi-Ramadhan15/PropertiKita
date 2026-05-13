@@ -39,7 +39,7 @@ export default function useLogin(navigate) {
 
         } catch (err) {
             // PERBAIKAN DI SINI: Tanda tanya dan titik harus rapat (?.), tidak boleh ada spasi
-            const errorMsg = err.response ? .data ? .message || "Email atau password salah!";
+            const errorMsg = err.response ?.data ?.message || "Email atau password salah!";
             alert("Login Gagal: " + errorMsg);
             console.error("Login Error:", err);
         } finally {
