@@ -16,7 +16,7 @@ const server = http.createServer(app);
 const allowedOrigins = [
     "http://localhost:5173",
     "https://properti-kita-eight.vercel.app",
-    "https://properti-kita-p0l475d35-dwi-ramadhan15s-projects.vercel.app/"
+    "https://properti-kita-p0l475d35-dwi-ramadhan15s-projects.vercel.app"
 ];
 
 const io = new Server(server, {
