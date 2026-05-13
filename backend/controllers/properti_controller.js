@@ -39,6 +39,8 @@ const getProperti = async(req, res) => {
         if (status && status !== 'all') {
             queryParams.push(status);
             query += ` AND p.status = $${queryParams.length}`;
+        } else if (!status) {
+            query += ` AND p.status = 'approved'`;
         }
 
         if (agen) {
