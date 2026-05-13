@@ -365,7 +365,7 @@ export default function DashboardAgen() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {currentItems.length === 0 ? (
-              <tr><td colSpan="5" className="p-20 text-center font-bold text-gray-300 uppercase italic">Belum ada data unit</td></tr>
+              <tr><td colSpan="5" className="p-20 text-center font-bold text-gray-300 uppercase">Belum ada data unit</td></tr>
             ) : (
               currentItems.map((p) => (
                 <tr key={p.id} className="hover:bg-blue-50/20 transition group text-sm">
@@ -503,7 +503,7 @@ export default function DashboardAgen() {
       <div className="flex-1 ml-0 md:ml-72 p-6 md:p-12 overflow-x-hidden relative min-h-[calc(100vh-5rem)]">
         <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-10 gap-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase italic">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase">
               {activeTab === 'daftar' && "Daftar Properti"}
               {activeTab === 'terjual' && "Riwayat Penjualan"}
               {activeTab === 'fasilitasproperti' && "Kelola Fasilitas"}
@@ -525,7 +525,7 @@ export default function DashboardAgen() {
                 {showNotifDropdown && (
                   <div className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 z-[100] overflow-hidden">
                     <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                      <h3 className="font-black italic uppercase">Notifikasi</h3>
+                      <h3 className="font-black uppercase">Notifikasi</h3>
                       <span className="text-[10px] bg-blue-500 text-white px-3 py-1 rounded-full font-bold">{notifications.length} Pesan</span>
                     </div>
                     <div className="max-h-80 overflow-y-auto p-4 space-y-3 custom-scrollbar">
@@ -568,7 +568,7 @@ export default function DashboardAgen() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4">
           <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in duration-300">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black italic uppercase text-gray-900">Konfirmasi Hapus</h3>
+              <h3 className="text-2xl font-black uppercase text-gray-900">Konfirmasi Hapus</h3>
               <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-red-500"><FiX size={24} /></button>
             </div>
             <div className="space-y-3 mb-8">
@@ -593,7 +593,7 @@ export default function DashboardAgen() {
             
             <div className="px-10 py-8 flex justify-between items-center bg-white border-b border-gray-50">
               <div>
-                <h2 className="text-3xl font-black tracking-tighter text-slate-800 uppercase italic">
+                <h2 className="text-3xl font-black tracking-tighter text-slate-800 uppercase">
                   {editingId ? 'Update Listing' : 'Unit Baru'}
                 </h2>
                 <p className="text-xs font-bold text-blue-500 tracking-widest uppercase mt-1">Lengkapi informasi properti anda</p>

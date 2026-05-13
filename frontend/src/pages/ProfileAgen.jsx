@@ -136,7 +136,7 @@ export default function ProfileAgen() {
           <div className="p-2.5 bg-gray-100 rounded-xl text-slate-500 border border-gray-200">
              <FiUser size={22} />
           </div>
-          <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Detail Pribadi</h3>
+          <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Detail Pribadi</h3>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12 items-start">
@@ -201,7 +201,7 @@ export default function ProfileAgen() {
           <div className="p-2.5 bg-gray-100 rounded-xl text-slate-500 border border-gray-200">
              <FiLock size={22} />
           </div>
-          <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Keamanan Akun</h3>
+          <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Keamanan Akun</h3>
         </div>
 
         <form onSubmit={handleUpdatePassword} className="grid grid-cols-1 md:grid-cols-3 gap-8">
