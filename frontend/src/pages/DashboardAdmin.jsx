@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -21,7 +21,6 @@ export default function DashboardAdmin() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedProperty, setSelectedProperty] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -103,6 +102,7 @@ export default function DashboardAdmin() {
     } catch (err) {}
   };
 
+  // Ambil Data Akun
   const fetchAccounts = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -160,6 +160,36 @@ export default function DashboardAdmin() {
     }
   };
 
+  // FUNGSI PUSAT UNTUK REFRESH SEMUA DATA
+  const refreshAllData = useCallback(() => {
+    if (activeTab === 'pending' || activeTab === 'approved') {
+      fetchProperti();
+    }
+    if (activeTab === 'accounts') {
+      fetchAccounts();
+    }
+    fetchAllPropertiForStats(); // Statistik selalu di-refresh
+  }, [activeTab, page, subTabAccount]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      navigate('/login');
+    } else {
+      refreshAllData();
+    }
+  }, [refreshAllData]);
+
+  useEffect(() => {
+    socket.emit('join_room', 'admin_room');
+    socket.on('notify_admin', (data) => {
+      setToast(data.message);
+      setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString() }, ...prev]);
+      refreshAllData();
+      setTimeout(() => setToast(null), 5000);
+    });
+    return () => socket.off('notify_admin');
+  }, [refreshAllData]);
+
   const handleUpdateStatus = async (id, newStatus) => {
     if (!window.confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
     try {
@@ -176,8 +206,7 @@ export default function DashboardAdmin() {
       }
 
       setSelectedProperty(null);
-      fetchData();
-      fetchAllPropertiForStats();
+      refreshAllData(); // Refresh tabel dan statistik kotak atas
       setToast(`Listing berhasil di-${newStatus === 'approved' ? 'terima' : 'tolak'}`);
     } catch (err) { 
       alert("Gagal update status"); 
@@ -245,7 +274,7 @@ export default function DashboardAdmin() {
             <FiList size={20} /> <span className="text-sm uppercase">Semua Properti</span>
           </button>
           <button onClick={() => {setActiveTab('pending'); setPage(1);}} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'pending' ? 'bg-[#D9AB7B] text-slate-900 shadow-lg' : 'text-gray-400 hover:bg-white/5'}`}>
-            <FiClock size={20} /> <span className="text-sm uppercase">Belum Verifikasi</span>
+            <FiClock size={20} /> <span className="text-sm uppercase tracking-tight">Belum Verifikasi</span>
           </button>
           <button onClick={() => {setActiveTab('approved'); setPage(1);}} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'approved' ? 'bg-[#D9AB7B] text-slate-900 shadow-lg' : 'text-gray-400 hover:bg-white/5'}`}>
             <FiCheckCircle size={20} /> <span className="text-sm uppercase">Terverifikasi</span>
@@ -256,12 +285,12 @@ export default function DashboardAdmin() {
 
           <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest px-5 mt-6 mb-2">Manajemen Akun</p>
           <button onClick={() => {setActiveTab('accounts'); setPage(1);}} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'accounts' ? 'bg-[#D9AB7B] text-slate-900 shadow-lg' : 'text-gray-400 hover:bg-white/5'}`}>
-            <FiUsers size={20} /> <span className="text-sm uppercase">Kelola Akun</span>
+            <FiUsers size={20} /> <span className="text-sm uppercase tracking-tight">Kelola Akun</span>
           </button>
 
           <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest px-5 mt-6 mb-2">Sistem</p>
           <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'profile' ? 'bg-[#D9AB7B] text-slate-900 shadow-lg' : 'text-gray-400 hover:bg-white/5'}`}>
-            <FiUser size={20} /> <span className="text-sm uppercase">Profil Admin</span>
+            <FiUser size={20} /> <span className="text-sm uppercase tracking-tight">Profil Admin</span>
           </button>
         </nav>
         <div className="p-6 mt-auto">
@@ -320,12 +349,12 @@ export default function DashboardAdmin() {
 
             <button onClick={() => {setActiveTab('approved'); setPage(1);}} className={`bg-white p-6 rounded-[2rem] shadow-sm border flex items-center gap-5 transition-all active:scale-95 text-left border-b-4 ${activeTab === 'approved' ? 'border-green-500 shadow-md ring-2 ring-green-100' : 'border-gray-100'}`}>
               <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-500"><FiCheckCircle size={24}/></div>
-              <div><p className="text-[10px] font-black text-gray-400 uppercase">Diterima</p><h3 className="text-2xl font-black text-gray-900">{allPropertiForStats.filter(p => p.status === 'approved').length} Units</h3></div>
+              <div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Diterima</p><h3 className="text-2xl font-black text-gray-900">{allPropertiForStats.filter(p => p.status === 'approved').length} Units</h3></div>
             </button>
 
             <button onClick={() => {setActiveTab('pending'); setPage(1);}} className={`bg-white p-6 rounded-[2rem] shadow-sm border flex items-center gap-5 transition-all active:scale-95 text-left border-b-4 ${activeTab === 'pending' ? 'border-amber-500 shadow-md ring-2 ring-amber-100' : 'border-gray-100'}`}>
               <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500"><FiClock size={24}/></div>
-              <div><p className="text-[10px] font-black text-gray-400 uppercase">Pending</p><h3 className="text-2xl font-black text-gray-900">{allPropertiForStats.filter(p => p.status === 'pending').length} Units</h3></div>
+              <div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pending</p><h3 className="text-2xl font-black text-gray-900">{allPropertiForStats.filter(p => p.status === 'pending').length} Units</h3></div>
             </button>
 
             <button onClick={() => {setActiveTab('rejected'); setPage(1);}} className={`bg-white p-6 rounded-[2rem] shadow-sm border flex items-center gap-5 transition-all active:scale-95 text-left border-b-4 ${activeTab === 'rejected' ? 'border-red-500 shadow-md ring-2 ring-red-100' : 'border-gray-100'}`}>
@@ -353,25 +382,22 @@ export default function DashboardAdmin() {
                     <th className="p-6 text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {accountsData.map((u) => (
-                    <tr key={u.id} className="hover:bg-blue-50/30 transition">
-                      <td className="p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-[#D9AB7B]/20 text-[#D9AB7B] flex items-center justify-center font-black uppercase">{u.name.charAt(0)}</div>
-                          <span className="font-black text-gray-800 uppercase text-sm">{u.name}</span>
-                        </div>
+                <tbody className="divide-y divide-gray-50 uppercase text-xs font-bold">
+                  {accountsData.map(u => (
+                    <tr key={u.id} className="hover:bg-blue-50/20 transition">
+                      <td className="p-8 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[#D9AB7B]/20 text-[#D9AB7B] flex items-center justify-center font-black">{u.name.charAt(0)}</div>
+                        <span className="text-slate-800">{u.name}</span>
                       </td>
-                      <td className="p-6 text-gray-500 font-medium">{u.email}</td>
-                      <td className="p-6 text-center"><span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[9px] font-black uppercase tracking-tighter">Verified</span></td>
-                      <td className="p-6 text-center">
+                      <td className="p-8 text-slate-500 normal-case">{u.email}</td>
+                      <td className="p-8 text-center"><span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[9px] font-black uppercase tracking-tighter">Verified</span></td>
+                      <td className="p-8 text-center">
                         <button onClick={() => handleDeleteAccount(u.id)} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition"><FiTrash2 size={16} /></button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {accountsData.length === 0 && <div className="p-20 text-center text-gray-300 font-black italic uppercase tracking-widest">Data {subTabAccount} Kosong</div>}
             </div>
           </div>
         ) : (
@@ -390,7 +416,7 @@ export default function DashboardAdmin() {
                  )}
                </div>
                <div className="relative">
-                 <input type="text" placeholder="Cari..." className="pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold w-64 outline-none focus:ring-2 focus:ring-[#D9AB7B]/20 transition-all" />
+                 <input type="text" placeholder="Cari unit..." className="pl-10 pr-4 py-3 bg-[#F1F3F6] border-none rounded-xl text-xs font-bold w-64 outline-none focus:ring-2 focus:ring-[#D9AB7B]/50 transition-all" />
                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                </div>
             </div>
@@ -403,15 +429,15 @@ export default function DashboardAdmin() {
                   <th className="p-6 text-center">Tindakan Admin</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 uppercase text-xs font-bold">
                 {propertiData.map((p) => (
-                  <tr key={p.id} className="hover:bg-blue-50/30 transition">
-                    <td className="p-6">
+                  <tr key={p.id} className="hover:bg-blue-50/20 transition">
+                    <td className="p-8">
                       <div className="flex items-center gap-5">
                         <img src={p.imageUrl || p.image_url} className="w-24 h-20 rounded-[1.2rem] object-cover bg-gray-100 shadow-sm" alt="" />
                         <div>
-                          <div className="font-black text-xl text-gray-800 leading-tight">{p.title}</div>
-                          <div className="text-[10px] font-bold text-blue-500 uppercase flex items-center gap-1 mt-1"><FiMapPin /> {p.lokasi}</div>
+                          <div className="font-black text-xl text-slate-800 leading-tight italic tracking-tighter mb-1">{p.title}</div>
+                          <div className="text-[10px] font-black text-blue-500 uppercase flex items-center gap-1 tracking-tighter"><FiMapPin /> {p.lokasi}</div>
                         </div>
                       </div>
                     </td>
