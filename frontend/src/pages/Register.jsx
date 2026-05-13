@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react'; // Tambahkan useState di sini
 import { useNavigate, Link } from 'react-router-dom';
-import useRegister from '../hooks/useRegister'; // Hook asli kamu, jangan diubah path-nya
+import useRegister from '../hooks/useRegister'; 
 import backgroundRumah from '../assets/rumah.megah.jpg';
 import logoPK from '../assets/logo.png'; 
-import { FiUser, FiMail, FiLock, FiPhone } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi'; // Tambahkan icon mata
 
 export default function Register() {
   const navigate = useNavigate();
   
-  // Mengambil state dan fungsi dari hook pendaftaran kamu
+  // State lokal untuk toggle password
+  const [showPassword, setShowPassword] = useState(false);
+  
   const {
     formData,
     setFormData,
@@ -19,24 +21,18 @@ export default function Register() {
   return (
     <div className="min-h-screen flex bg-white font-sans overflow-hidden">
       
-      {/* --- BAGIAN KIRI: HERO SECTION (Gede & Mewah) --- */}
+      {/* --- BAGIAN KIRI: HERO SECTION --- */}
       <div 
         className="hidden lg:flex w-1/2 bg-cover bg-center relative items-center justify-center" 
         style={{ backgroundImage: `url(${backgroundRumah})` }}
       >
-        {/* Overlay Biru Gelap agar kontras dengan warna emas */}
         <div className="absolute inset-0 bg-[#0A1A2E]/65"></div>
-        
-        {/* Kontainer Logo & Teks - Disamakan ukurannya dengan Login */}
         <div className="relative z-20 flex items-center gap-6 translate-y-[-10%]"> 
           <img 
             src={logoPK} 
             alt="Logo PK" 
             className="h-40 w-auto object-contain drop-shadow-2xl" 
           />
-          <h1 className="text-[#C6A265] text-6xl font-bold tracking-tighter drop-shadow-lg">
-            
-          </h1>
         </div>
       </div>
 
@@ -44,13 +40,11 @@ export default function Register() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-12 overflow-y-auto bg-white">
         <div className="w-full max-w-[450px] py-6">
           
-          {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Daftar Akun Baru</h2>
             <p className="text-gray-500 text-sm">Buat akun untuk mulai menjelajah properti impian</p>
           </div>
 
-          {/* Toggle Role (User / Agen) */}
           <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-8 font-bold shadow-sm">
             <button 
               type="button" 
@@ -105,7 +99,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Password Field dengan Toggle */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-600 ml-1 uppercase tracking-wider">Password</label>
               <div className="relative group">
@@ -113,13 +107,21 @@ export default function Register() {
                   <FiLock size={18} />
                 </span>
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} // Dinamis berdasarkan state
                   placeholder="Enter Your Password"
-                  className="w-full p-4 pl-12 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-4 focus:ring-[#C6A265]/10 outline-none text-sm transition-all shadow-sm"
+                  className="w-full p-4 pl-12 pr-12 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-4 focus:ring-[#C6A265]/10 outline-none text-sm transition-all shadow-sm"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   required
                 />
+                {/* Tombol Mata */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#C6A265] transition-colors focus:outline-none"
+                >
+                  {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                </button>
               </div>
             </div>
 

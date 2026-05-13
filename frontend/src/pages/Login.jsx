@@ -1,30 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react'; // Tambah useState di sini
 import { useNavigate, Link } from 'react-router-dom';
 import useLogin from '../hooks/useLogin'; 
 import backgroundRumah from '../assets/rumah.megah.jpg';
 import logoPK from '../assets/logo.png';
-import { FiMail, FiLock } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'; // Tambah ikon mata
 
 export default function Login() {
   const navigate = useNavigate();
   const { email, setEmail, password, setPassword, loading, handleLogin } = useLogin(navigate);
+  
+  // State lokal untuk toggle liat password
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-white font-sans">
-      {/* --- BAGIAN KIRI: GAMBAR + LOGO (SPLIT) --- */}
+      {/* --- BAGIAN KIRI: GAMBAR + LOGO (Gede & Mewah) --- */}
       <div 
         className="hidden lg:flex lg:w-1/2 bg-cover bg-center relative items-center justify-center"
         style={{ backgroundImage: `url(${backgroundRumah})` }}
       >
-        {/* Overlay Biru Gelap (Biar logo emasnya makin kontras/nyala) */}
         <div className="absolute inset-0 bg-[#0A1A2E]/50"></div>
         
-        {/* LOGO DI TENGAH GAMBAR */}
         <div className="relative z-20 flex flex-col items-center">
           <img 
             src={logoPK} 
             alt="Logo PropertiKita" 
-            className="w-80 h-auto drop-shadow-2xl" // Ukuran logo diperbesar biar gagah
+            className="w-80 h-auto drop-shadow-2xl" 
           />
         </div>
       </div>
@@ -33,7 +34,6 @@ export default function Login() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16">
         <div className="w-full max-w-[400px]">
           
-          {/* Header Text */}
           <div className="text-center mb-10">
             <h2 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">Selamat Datang</h2>
             <p className="text-gray-500 text-sm font-medium">Silakan login untuk melanjutkan</p>
@@ -43,8 +43,8 @@ export default function Login() {
             {/* Input Email */}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 ml-1">Email</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              <div className="relative group">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#C6A265]">
                   <FiMail size={18} />
                 </span>
                 <input 
@@ -58,21 +58,32 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Input Password */}
+            {/* Input Password dengan Fitur Intip (Show/Hide) */}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 ml-1">Password</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              <div className="relative group">
+                {/* Ikon Gembok Kiri */}
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#C6A265]">
                   <FiLock size={18} />
                 </span>
+                
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} // Dinamis: text atau password
                   placeholder="Enter Your Password"
-                  className="w-full p-4 pl-12 bg-white rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-2 focus:ring-[#C6A265]/20 outline-none transition-all text-sm"
+                  className="w-full p-4 pl-12 pr-12 bg-white rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-2 focus:ring-[#C6A265]/20 outline-none transition-all text-sm"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+
+                {/* Tombol Mata di Kanan */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#C6A265] transition-colors"
+                >
+                  {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                </button>
               </div>
             </div>
 
@@ -92,7 +103,7 @@ export default function Login() {
               type="submit" 
               disabled={loading}
               className={`w-full py-4 rounded-xl font-bold text-white transition-all active:scale-95 shadow-lg
-                ${loading ? 'bg-gray-400' : 'bg-[#C6A265] hover:bg-[#B39156]'}`}
+                ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#C6A265] hover:bg-[#B39156]'}`}
             >
               {loading ? "Memproses..." : "Masuk"}
             </button>
