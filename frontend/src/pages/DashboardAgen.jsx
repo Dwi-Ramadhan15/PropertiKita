@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, 
   FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck, FiImage, 
-  FiSettings, FiMapPin 
+  FiSettings, FiMapPin, FiMenu, FiLogOut 
 } from 'react-icons/fi';
 import ProfileAgen from '../pages/ProfileAgen'; 
 import { io } from 'socket.io-client';
@@ -32,6 +32,7 @@ export default function DashboardAgen() {
 
   const [toast, setToast] = useState(null);
   const [tempFasilitas, setTempFasilitas] = useState('');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const navigate = useNavigate();
   const userStr = localStorage.getItem('user');
@@ -352,98 +353,102 @@ export default function DashboardAgen() {
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
-      <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in duration-500">
-        <table className="w-full">
-          <thead className="bg-gray-50/50 border-b">
-            <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              <th className="p-6">Detail Unit</th>
-              <th className="p-6">Lokasi</th>
-              <th className="p-6 text-center">Harga</th>
-              <th className="p-6 text-center">Status</th>
-              <th className="p-6 text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {currentItems.length === 0 ? (
-              <tr><td colSpan="5" className="p-20 text-center font-bold text-gray-300 uppercase">Belum ada data unit</td></tr>
-            ) : (
-              currentItems.map((p) => (
-                <tr key={p.id} className="hover:bg-blue-50/20 transition group text-sm">
-                  <td className="p-6">
-                    <div className="flex items-center gap-4">
-                      <img src={p.image_url || p.imageUrl} className="w-20 h-16 rounded-[1rem] object-cover bg-gray-100 shadow-sm" alt="prop" />
-                      <div>
-                        <div className="font-black text-slate-800 leading-tight mb-1">{p.title}</div>
-                        <div className="text-[10px] font-black text-blue-500 uppercase tracking-tighter bg-blue-50 w-fit px-2 py-0.5 rounded-md">{p.tipe}</div>
+      <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in duration-500 w-full">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left min-w-[700px]">
+            <thead className="bg-gray-50/50 border-b">
+              <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                <th className="p-4 md:p-6">Detail Unit</th>
+                <th className="p-4 md:p-6">Lokasi</th>
+                <th className="p-4 md:p-6 text-center">Harga</th>
+                <th className="p-4 md:p-6 text-center">Status</th>
+                <th className="p-4 md:p-6 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {currentItems.length === 0 ? (
+                <tr><td colSpan="5" className="p-16 md:p-20 text-center font-bold text-gray-300 uppercase text-xs md:text-sm">Belum ada data unit</td></tr>
+              ) : (
+                currentItems.map((p) => (
+                  <tr key={p.id} className="hover:bg-blue-50/20 transition group text-xs md:text-sm">
+                    <td className="p-4 md:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4">
+                        <img src={p.image_url || p.imageUrl} className="w-20 h-16 rounded-xl md:rounded-[1rem] object-cover bg-gray-100 shadow-sm flex-shrink-0" alt="prop" />
+                        <div>
+                          <div className="font-black text-slate-800 leading-tight mb-1 line-clamp-2">{p.title}</div>
+                          <div className="text-[9px] md:text-[10px] font-black text-blue-500 uppercase tracking-tighter bg-blue-50 w-fit px-2 py-0.5 rounded-md">{p.tipe}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="p-6">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium max-w-[200px]">
-                      <FiMapPin className="text-[#1A314D] shrink-0" />
-                      <span className="truncate">{p.lokasi}</span>
-                    </div>
-                  </td>
-                  <td className="p-6 text-center font-black text-slate-800">
-                    {formatRupiah(p.harga)}
-                  </td>
-                  <td className="p-6 text-center">
-                    <span className={`text-[8px] px-3 py-1.5 rounded-full font-black uppercase tracking-tighter border ${
-                      p.status === 'approved' ? 'bg-green-100 text-green-600 border-green-200' : 
-                      p.status === 'pending' ? 'bg-amber-100 text-amber-600 border-amber-200' : 
-                      p.status === 'sold' ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-red-100 text-red-600 border-red-200'
-                    }`}>
-                      {p.status === 'sold' ? 'Terjual' : p.status}
-                    </span>
-                  </td>
-                  <td className="p-6 text-center">
-                    <div className="flex justify-center gap-2">
-                      {p.status !== 'sold' ? (
-                        <>
-                          <button onClick={() => openEditModal(p)} className="p-2.5 bg-gray-50 text-slate-400 rounded-xl hover:bg-[#1A314D] hover:text-white transition shadow-sm"><FiEdit3 size={14}/></button>
-                          <button onClick={() => handleDeleteClick(p)} className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition shadow-sm"><FiTrash2 size={14}/></button>
-                        </>
-                      ) : (
-                        <span className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase">
-                          <FiCheck /> Selesai
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="p-4 md:p-6">
+                      <div className="flex items-center gap-2 text-slate-500 font-medium max-w-[150px] md:max-w-[200px]">
+                        <FiMapPin className="text-[#1A314D] shrink-0" />
+                        <span className="truncate">{p.lokasi}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 md:p-6 text-center font-black text-slate-800 whitespace-nowrap">
+                      {formatRupiah(p.harga)}
+                    </td>
+                    <td className="p-4 md:p-6 text-center">
+                      <span className={`text-[8px] md:text-[9px] px-2.5 py-1 md:px-3 md:py-1.5 rounded-full font-black uppercase tracking-tighter border ${
+                        p.status === 'approved' ? 'bg-green-100 text-green-600 border-green-200' : 
+                        p.status === 'pending' ? 'bg-amber-100 text-amber-600 border-amber-200' : 
+                        p.status === 'sold' ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-red-100 text-red-600 border-red-200'
+                      }`}>
+                        {p.status === 'sold' ? 'Terjual' : p.status}
+                      </span>
+                    </td>
+                    <td className="p-4 md:p-6 text-center">
+                      <div className="flex justify-center gap-1.5 md:gap-2">
+                        {p.status !== 'sold' ? (
+                          <>
+                            <button onClick={() => openEditModal(p)} className="p-2 md:p-2.5 bg-gray-50 text-slate-400 rounded-lg md:rounded-xl hover:bg-[#1A314D] hover:text-white transition shadow-sm"><FiEdit3 size={14}/></button>
+                            <button onClick={() => handleDeleteClick(p)} className="p-2 md:p-2.5 bg-red-50 text-red-500 rounded-lg md:rounded-xl hover:bg-red-500 hover:text-white transition shadow-sm"><FiTrash2 size={14}/></button>
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase">
+                            <FiCheck /> Selesai
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {totalPages > 1 && (
-          <div className="flex justify-between items-center p-6 bg-white border-t border-gray-50">
-            <span className="text-xs font-bold text-gray-400">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-4 md:p-6 bg-white border-t border-gray-50 gap-4 sm:gap-0">
+            <span className="text-[10px] md:text-xs font-bold text-gray-400 text-center sm:text-left">
               Menampilkan {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, dataToDisplay.length)} dari {dataToDisplay.length} data
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 md:gap-2">
               <button 
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 rounded-xl border border-gray-100 font-bold text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition"
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border border-gray-100 font-bold text-[10px] md:text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition"
               >
-                SEBELUMNYA
+                PREV
               </button>
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => paginate(i + 1)}
-                  className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center transition ${currentPage === i + 1 ? 'bg-[#1A314D] text-white' : 'border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-[120px] md:max-w-none">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => paginate(i + 1)}
+                    className={`w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl font-bold text-[10px] md:text-xs flex items-center justify-center transition flex-shrink-0 ${currentPage === i + 1 ? 'bg-[#1A314D] text-white' : 'border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
               <button 
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-xl border border-gray-100 font-bold text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition"
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border border-gray-100 font-bold text-[10px] md:text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition"
               >
-                SELANJUTNYA
+                NEXT
               </button>
             </div>
           </div>
@@ -453,97 +458,112 @@ export default function DashboardAgen() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F1F3F6] flex pt-20">
+    <div className="min-h-screen bg-[#F1F3F6] flex pt-16 md:pt-20">
       {toast && (
-        <div className="fixed top-28 right-10 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-right duration-300">
-          <div className="bg-[#1A314D] p-2 rounded-full text-white"><FiInfo size={20} /></div>
-          <div>
-            <p className="text-[10px] text-blue-300 font-black uppercase tracking-widest">Informasi Sistem</p>
-            <p className="font-bold text-sm">{toast}</p>
+        <div className="fixed top-20 right-4 lg:right-10 bg-slate-900 text-white px-4 lg:px-6 py-3 lg:py-4 rounded-2xl shadow-2xl flex items-center gap-3 lg:gap-4 z-[200] animate-in slide-in-from-right duration-300 w-[90%] lg:w-auto">
+          <div className="bg-[#1A314D] p-2 rounded-full text-white flex-shrink-0"><FiInfo size={16} className="md:w-5 md:h-5" /></div>
+          <div className="flex-1">
+            <p className="text-[8px] md:text-[10px] text-blue-300 font-black uppercase tracking-widest">Informasi Sistem</p>
+            <p className="font-bold text-xs md:text-sm">{toast}</p>
           </div>
-          <button onClick={() => setToast(null)} className="ml-4 text-gray-400 hover:text-white"><FiX size={20}/></button>
+          <button onClick={() => setToast(null)} className="ml-2 text-gray-400 hover:text-white flex-shrink-0"><FiX size={18} className="md:w-5 md:h-5"/></button>
         </div>
       )}
 
-      <div className="w-72 bg-white border-r border-blue-50 shadow-sm flex-col z-40 hidden md:flex fixed left-0 top-20 bottom-0 overflow-y-auto custom-scrollbar">
-        <div className="p-6 mt-4">
-          <div className="bg-[#EBF5FF] p-4 rounded-3xl flex items-center gap-4 border border-white shadow-sm">
-            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white shadow-md">
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        ></div>
+      )}
+
+      <div className={`fixed top-16 md:top-20 left-0 h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] w-64 md:w-72 bg-white border-r border-blue-50 shadow-2xl md:shadow-sm flex flex-col z-50 md:z-40 overflow-y-auto custom-scrollbar transform transition-transform duration-300 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="p-4 md:p-6 flex justify-between items-center md:block">
+          <div className="bg-[#EBF5FF] p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4 border border-white shadow-sm w-full">
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl overflow-hidden border-2 border-white shadow-md flex-shrink-0">
               <img src={getAvatar()} alt="Profile" className="w-full h-full object-cover" />
             </div>
-            <div className="overflow-hidden">
-              <h3 className="font-bold text-slate-800 text-sm truncate uppercase tracking-tight">{user?.name || 'Agen'}</h3>
-              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Agen Properti</p>
+            <div className="overflow-hidden flex-1">
+              <h3 className="font-bold text-slate-800 text-xs md:text-sm truncate uppercase tracking-tight">{user?.name || 'Agen'}</h3>
+              <p className="text-[8px] md:text-[10px] text-blue-400 font-bold uppercase tracking-wider">Agen Properti</p>
             </div>
           </div>
+          <button onClick={() => setIsMobileSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-red-500 ml-2">
+            <FiX size={24} />
+          </button>
         </div>
 
-        <nav className="flex flex-col gap-2 px-6 flex-1 mt-4">
-          <button onClick={() => setActiveTab('daftar')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeTab === 'daftar' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
-            <FiList className="text-xl" /> <span className="text-sm">Daftar Properti</span>
+        <nav className="flex flex-col gap-1.5 md:gap-2 px-4 md:px-6 flex-1 mt-2 md:mt-4">
+          <button onClick={() => {setActiveTab('daftar'); setIsMobileSidebarOpen(false);}} className={`flex items-center gap-3 md:gap-4 px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all duration-300 ${activeTab === 'daftar' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
+            <FiList className="text-lg md:text-xl" /> <span className="text-xs md:text-sm">Daftar Properti</span>
           </button>
-          <button onClick={() => setActiveTab('terjual')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeTab === 'terjual' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
-            <FiCheckSquare className="text-xl" /> <span className="text-sm">Riwayat Penjualan</span>
+          <button onClick={() => {setActiveTab('terjual'); setIsMobileSidebarOpen(false);}} className={`flex items-center gap-3 md:gap-4 px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all duration-300 ${activeTab === 'terjual' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
+            <FiCheckSquare className="text-lg md:text-xl" /> <span className="text-xs md:text-sm">Riwayat Penjualan</span>
           </button>
-          <button onClick={() => setActiveTab('fasilitasproperti')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeTab === 'fasilitasproperti' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
-            <FiSettings className="text-xl" /> <span className="text-sm">Fasilitas</span>
+          <button onClick={() => {setActiveTab('fasilitasproperti'); setIsMobileSidebarOpen(false);}} className={`flex items-center gap-3 md:gap-4 px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all duration-300 ${activeTab === 'fasilitasproperti' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
+            <FiSettings className="text-lg md:text-xl" /> <span className="text-xs md:text-sm">Fasilitas</span>
           </button>
-          <button onClick={() => setActiveTab('profil')} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeTab === 'profil' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
-            <FiUser className="text-xl" /> <span className="text-sm">Profil Saya</span>
+          <button onClick={() => {setActiveTab('profil'); setIsMobileSidebarOpen(false);}} className={`flex items-center gap-3 md:gap-4 px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all duration-300 ${activeTab === 'profil' ? 'bg-[#1A314D] text-white shadow-xl shadow-blue-900/20' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
+            <FiUser className="text-lg md:text-xl" /> <span className="text-xs md:text-sm">Profil Saya</span>
           </button>
         </nav>
 
-        <div className="p-8 border-t border-blue-50 mt-auto">
-          <button onClick={() => { localStorage.clear(); navigate('/login'); }} className="flex items-center gap-3 text-red-400 font-black text-xs hover:text-red-600 transition uppercase tracking-widest">
-            Logout Sistem
+        <div className="p-6 md:p-8 border-t border-blue-50 mt-auto">
+          <button onClick={() => { localStorage.clear(); navigate('/login'); }} className="flex items-center justify-center md:justify-start gap-2 md:gap-3 text-red-400 font-black text-[10px] md:text-xs hover:text-red-600 transition uppercase tracking-widest w-full">
+            <FiLogOut /> Logout Sistem
           </button>
         </div>
       </div>
 
-      <div className="flex-1 ml-0 md:ml-72 p-6 md:p-12 overflow-x-hidden relative min-h-[calc(100vh-5rem)]">
-        <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-10 gap-6">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase">
-              {activeTab === 'daftar' && "Daftar Properti"}
-              {activeTab === 'terjual' && "Riwayat Penjualan"}
-              {activeTab === 'fasilitasproperti' && "Kelola Fasilitas"}
-              {activeTab === 'profil' && "Informasi Profil"}
-            </h1>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2 ml-1">
-              Dashboard / {activeTab === 'fasilitasproperti' ? 'Fasilitas' : activeTab}
-            </p>
+      <div className="flex-1 ml-0 md:ml-72 p-4 md:p-12 overflow-x-hidden relative min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] w-full">
+        <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 md:mb-10 gap-4 md:gap-6">
+          <div className="flex items-center gap-3 md:gap-0">
+            <button onClick={() => setIsMobileSidebarOpen(true)} className="md:hidden text-gray-800 text-2xl p-2 bg-white rounded-xl shadow-sm border border-gray-100">
+              <FiMenu />
+            </button>
+            <div>
+              <h1 className="text-2xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase">
+                {activeTab === 'daftar' && "Daftar Properti"}
+                {activeTab === 'terjual' && "Riwayat Penjualan"}
+                {activeTab === 'fasilitasproperti' && "Kelola Fasilitas"}
+                {activeTab === 'profil' && "Informasi Profil"}
+              </h1>
+              <p className="text-slate-400 font-bold text-[9px] md:text-xs uppercase tracking-widest mt-1 md:mt-2 ml-1">
+                Dashboard / {activeTab === 'fasilitasproperti' ? 'Fasilitas' : activeTab}
+              </p>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 w-full md:w-auto mt-2 md:mt-0">
             {activeTab !== 'profil' && (
-              <div className="relative z-50">
-                <button onClick={markNotificationsAsRead} className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-blue-50 flex items-center justify-center text-slate-400 hover:text-blue-600 transition relative">
-                  <FiBell size={24} />
-                  {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-4 border-[#F1F3F6]">{unreadCount}</span>}
+              <div className="relative z-30">
+                <button onClick={markNotificationsAsRead} className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl shadow-sm border border-blue-50 flex items-center justify-center text-slate-400 hover:text-blue-600 transition relative">
+                  <FiBell size={20} className="md:w-6 md:h-6" />
+                  {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 md:w-6 md:h-6 bg-red-500 text-white text-[8px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 md:border-4 border-[#F1F3F6]">{unreadCount}</span>}
                 </button>
 
                 {showNotifDropdown && (
-                  <div className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 z-[100] overflow-hidden">
-                    <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                      <h3 className="font-black uppercase">Notifikasi</h3>
-                      <span className="text-[10px] bg-blue-500 text-white px-3 py-1 rounded-full font-bold">{notifications.length} Pesan</span>
+                  <div className="absolute left-0 md:left-auto md:right-0 mt-3 md:mt-4 w-[280px] md:w-80 bg-white rounded-2xl md:rounded-[2rem] shadow-2xl border border-gray-100 z-[100] overflow-hidden">
+                    <div className="p-4 md:p-6 bg-slate-900 text-white flex justify-between items-center">
+                      <h3 className="font-black uppercase text-xs md:text-sm">Notifikasi</h3>
+                      <span className="text-[8px] md:text-[10px] bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full font-bold">{notifications.length} Pesan</span>
                     </div>
-                    <div className="max-h-80 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                    <div className="max-h-64 md:max-h-80 overflow-y-auto p-3 md:p-4 space-y-2 md:space-y-3 custom-scrollbar">
                       {notifications.length === 0 ? (
-                        <p className="text-center text-gray-400 py-6 font-bold text-sm">Belum ada pemberitahuan</p>
+                        <p className="text-center text-gray-400 py-4 md:py-6 font-bold text-xs md:text-sm">Belum ada pemberitahuan</p>
                       ) : (
                         notifications.map((notif) => (
-                          <div key={notif.id} className={`p-4 rounded-2xl transition border ${notif.is_read ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-white border-blue-100 shadow-sm'}`}>
-                            <div className="flex items-center gap-3 mb-1">
-                              <div className={`w-2 h-2 rounded-full ${
+                          <div key={notif.id} className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition border ${notif.is_read ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-white border-blue-100 shadow-sm'}`}>
+                            <div className="flex items-center gap-2 md:gap-3 mb-1">
+                              <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full flex-shrink-0 ${
                                 notif.status === 'approved' ? 'bg-green-500' : 
                                 notif.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
                               }`}></div>
-                              <p className="text-xs font-bold text-gray-500">
+                              <p className="text-[9px] md:text-xs font-bold text-gray-500">
                                 {new Date(notif.created_at).toLocaleDateString()}
                               </p>
                             </div>
-                            <p className="text-sm font-black text-gray-800 leading-tight">{notif.message}</p>
+                            <p className="text-xs md:text-sm font-black text-gray-800 leading-tight pl-3 md:pl-5">{notif.message}</p>
                           </div>
                         ))
                       )}
@@ -554,8 +574,8 @@ export default function DashboardAgen() {
             )}
 
             {(activeTab === 'daftar' || activeTab === 'terjual') && (
-              <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#1A314D] text-white px-8 py-4 rounded-2xl font-black shadow-2xl shadow-blue-900/40 hover:-translate-y-1 transition-all h-14 uppercase tracking-widest text-[11px]">
-                <FiPlus size={18} /> Tambah Unit
+              <button onClick={() => setShowModal(true)} className="flex items-center justify-center gap-1.5 md:gap-2 bg-[#1A314D] text-white px-4 md:px-8 py-2 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg md:shadow-2xl shadow-blue-900/40 hover:-translate-y-1 transition-all h-10 md:h-14 uppercase tracking-widest text-[9px] md:text-[11px] flex-1 md:flex-none">
+                <FiPlus size={16} className="md:w-[18px] md:h-[18px]" /> Tambah Unit
               </button>
             )}
           </div>
@@ -566,63 +586,63 @@ export default function DashboardAgen() {
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4">
-          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black uppercase text-gray-900">Konfirmasi Hapus</h3>
-              <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-red-500"><FiX size={24} /></button>
+          <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 w-full max-w-lg shadow-2xl animate-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-4 md:mb-6">
+              <h3 className="text-xl md:text-2xl font-black uppercase text-gray-900">Konfirmasi Hapus</h3>
+              <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-red-500"><FiX size={20} className="md:w-6 md:h-6" /></button>
             </div>
-            <div className="space-y-3 mb-8">
+            <div className="space-y-2 md:space-y-3 mb-6 md:mb-8">
               {deleteReasons.map((reason, idx) => (
-                <label key={idx} className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${deleteReason === reason ? 'border-red-500 bg-red-50' : 'border-gray-100 hover:border-red-200'}`}>
-                  <input type="radio" name="deleteReason" value={reason} checked={deleteReason === reason} onChange={(e) => setDeleteReason(e.target.value)} className="w-5 h-5 accent-red-600" />
-                  <span className={`font-bold text-sm ${deleteReason === reason ? 'text-red-700' : 'text-gray-600'}`}>{reason}</span>
+                <label key={idx} className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all ${deleteReason === reason ? 'border-red-500 bg-red-50' : 'border-gray-100 hover:border-red-200'}`}>
+                  <input type="radio" name="deleteReason" value={reason} checked={deleteReason === reason} onChange={(e) => setDeleteReason(e.target.value)} className="w-4 h-4 md:w-5 md:h-5 accent-red-600 flex-shrink-0" />
+                  <span className={`font-bold text-xs md:text-sm leading-snug ${deleteReason === reason ? 'text-red-700' : 'text-gray-600'}`}>{reason}</span>
                 </label>
               ))}
             </div>
-            <div className="flex gap-4">
-              <button onClick={confirmDelete} className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black shadow-xl hover:bg-red-700 transition">KONFIRMASI</button>
-              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition">BATAL</button>
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+              <button onClick={confirmDelete} className="w-full sm:flex-[2] py-3 md:py-4 bg-red-600 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base shadow-xl hover:bg-red-700 transition order-1 sm:order-2">KONFIRMASI</button>
+              <button onClick={() => setShowDeleteModal(false)} className="w-full sm:flex-1 py-3 md:py-4 bg-gray-100 text-gray-500 rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-gray-200 transition order-2 sm:order-1">BATAL</button>
             </div>
           </div>
         </div>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4 transition-all duration-300">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-2 md:p-4 transition-all duration-300">
+          <div className="bg-white rounded-2xl md:rounded-[2.5rem] w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in duration-300">
             
-            <div className="px-10 py-8 flex justify-between items-center bg-white border-b border-gray-50">
+            <div className="px-5 py-4 md:px-10 md:py-8 flex justify-between items-center bg-white border-b border-gray-50 flex-shrink-0">
               <div>
-                <h2 className="text-3xl font-black tracking-tighter text-slate-800 uppercase">
+                <h2 className="text-xl md:text-3xl font-black tracking-tighter text-slate-800 uppercase">
                   {editingId ? 'Update Listing' : 'Unit Baru'}
                 </h2>
-                <p className="text-xs font-bold text-blue-500 tracking-widest uppercase mt-1">Lengkapi informasi properti anda</p>
+                <p className="text-[9px] md:text-xs font-bold text-blue-500 tracking-widest uppercase mt-0.5 md:mt-1">Lengkapi informasi properti anda</p>
               </div>
               <button 
                 onClick={closeModal} 
-                className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm"
+                className="w-10 h-10 md:w-12 md:h-12 bg-gray-50 rounded-xl md:rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm"
               >
-                <FiX size={24}/>
+                <FiX size={20} className="md:w-6 md:h-6"/>
               </button>
             </div>
             
-            <div className="p-10 overflow-y-auto custom-scrollbar">
-              <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-x-6 gap-y-8">
+            <div className="p-5 md:p-10 overflow-y-auto custom-scrollbar">
+              <form id="propertyForm" onSubmit={handleSubmit} className="grid grid-cols-4 gap-x-4 md:gap-x-6 gap-y-5 md:gap-y-8">
                 
-                <div className="col-span-4 md:col-span-3 space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Judul Listing</label>
+                <div className="col-span-4 md:col-span-3 space-y-1.5 md:space-y-2">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Judul Listing</label>
                   <input 
-                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 border border-slate-100 transition-all shadow-sm" 
-                    placeholder="Contoh: Rumah Mewah Minimalis di Pusat Kota"
+                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 border border-slate-100 transition-all shadow-sm" 
+                    placeholder="Contoh: Rumah Mewah..."
                     value={formData.title} 
                     onChange={e => setFormData({...formData, title: e.target.value})} 
                     required 
                   />
                 </div>
-                <div className="col-span-4 md:col-span-1 space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Kategori</label>
+                <div className="col-span-4 md:col-span-1 space-y-1.5 md:space-y-2">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Kategori</label>
                   <select 
-                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 appearance-none shadow-sm" 
+                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
                     value={formData.id_kategori} 
                     onChange={e => setFormData({...formData, id_kategori: Number(e.target.value)})}
                   >
@@ -631,23 +651,23 @@ export default function DashboardAgen() {
                   </select>
                 </div>
 
-                <div className="col-span-4 md:col-span-2 space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Harga (Rp)</label>
+                <div className="col-span-4 md:col-span-2 space-y-1.5 md:space-y-2">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Harga (Rp)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">Rp</span>
+                    <span className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xs md:text-sm">Rp</span>
                     <input 
                       type="number" 
-                      className="w-full p-4 pl-12 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
+                      className="w-full p-3 md:p-4 pl-9 md:pl-12 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
                       value={formData.harga} 
                       onChange={e => setFormData({...formData, harga: e.target.value})} 
                       required 
                     />
                   </div>
                 </div>
-                <div className="col-span-4 md:col-span-2 space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Tipe Properti</label>
+                <div className="col-span-4 md:col-span-2 space-y-1.5 md:space-y-2">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Tipe Properti</label>
                   <select 
-                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
+                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
                     value={formData.tipe} 
                     onChange={e => setFormData({...formData, tipe: e.target.value})}
                   >
@@ -655,46 +675,47 @@ export default function DashboardAgen() {
                   </select>
                 </div>
 
-                <div className="col-span-4 grid grid-cols-3 gap-4 bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100/50">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">K. Tidur</label>
-                    <input type="number" className="w-full p-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} />
+                <div className="col-span-4 grid grid-cols-3 gap-2 md:gap-4 bg-blue-50/50 p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-blue-100/50">
+                  <div className="space-y-1 md:space-y-2">
+                    <label className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest md:ml-1">K. Tidur</label>
+                    <input type="number" className="w-full p-2.5 md:p-4 bg-white rounded-lg md:rounded-xl font-bold text-sm md:text-base text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center md:text-left" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">K. Mandi</label>
-                    <input type="number" className="w-full p-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.kamar_mandi} onChange={e => setFormData({...formData, kamar_mandi: e.target.value})} />
+                  <div className="space-y-1 md:space-y-2">
+                    <label className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest md:ml-1">K. Mandi</label>
+                    <input type="number" className="w-full p-2.5 md:p-4 bg-white rounded-lg md:rounded-xl font-bold text-sm md:text-base text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center md:text-left" value={formData.kamar_mandi} onChange={e => setFormData({...formData, kamar_mandi: e.target.value})} />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Luas (m²)</label>
-                    <input type="number" className="w-full p-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.luas} onChange={e => setFormData({...formData, luas: e.target.value})} />
+                  <div className="space-y-1 md:space-y-2">
+                    <label className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest md:ml-1">Luas (m²)</label>
+                    <input type="number" className="w-full p-2.5 md:p-4 bg-white rounded-lg md:rounded-xl font-bold text-sm md:text-base text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center md:text-left" value={formData.luas} onChange={e => setFormData({...formData, luas: e.target.value})} />
                   </div>
                 </div>
 
-                <div className="col-span-4 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Lokasi Lengkap</label>
-                    <input type="text" className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
+                <div className="col-span-4 space-y-3 md:space-y-4">
+                  <div className="space-y-1.5 md:space-y-2">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Lokasi Lengkap</label>
+                    <input type="text" className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Latitude</label>
-                      <input type="text" placeholder="-5.450000" className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})}/>
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-1">Latitude</label>
+                      <input type="text" placeholder="-5.450000" className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})}/>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Longitude</label>
-                      <input type="text" placeholder="105.266670" className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})}/>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-1">Longitude</label>
+                      <input type="text" placeholder="105.266670" className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})}/>
                     </div>
                   </div>
                 </div>
 
-                <div className="col-span-4 space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Deskripsi</label>
-                  <textarea className="w-full p-5 bg-slate-50 rounded-[2rem] font-bold text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm h-32 resize-none" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})}></textarea>
+                <div className="col-span-4 space-y-1.5 md:space-y-2">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Deskripsi</label>
+                  <textarea className="w-full p-4 md:p-5 bg-slate-50 rounded-2xl md:rounded-[2rem] font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm h-24 md:h-32 resize-none" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})}></textarea>
                 </div>
 
-                <div className="col-span-4 space-y-4">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Pilih Fasilitas</label>
-                  <div className="flex flex-wrap gap-2 p-6 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
+                <div className="col-span-4 space-y-3 md:space-y-4">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Pilih Fasilitas</label>
+                  <div className="flex flex-wrap gap-2 p-4 md:p-6 bg-slate-50/50 rounded-2xl md:rounded-[2rem] border border-dashed border-slate-200 max-h-40 overflow-y-auto custom-scrollbar">
+                    {fasilitasOptions.length === 0 && <span className="text-xs text-gray-400 italic">Belum ada pilihan fasilitas, silakan ketik di bawah.</span>}
                     {fasilitasOptions.map((item) => {
                       const active = formData.fasilitas.includes(item);
                       return (
@@ -702,7 +723,7 @@ export default function DashboardAgen() {
                           key={item}
                           type="button"
                           onClick={() => toggleFasilitas(item)}
-                          className={`px-5 py-2.5 rounded-xl text-[10px] font-black transition-all duration-300 border-2 ${
+                          className={`px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 border-2 ${
                             active ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-blue-200'
                           }`}
                         >
@@ -712,53 +733,53 @@ export default function DashboardAgen() {
                     })}
                   </div>
                   
-                  <div className="flex gap-3">
+                  <div className="flex gap-2 md:gap-3">
                     <input 
                       type="text" 
-                      className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
+                      className="flex-1 p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
                       placeholder="Tambah fasilitas kustom..." 
                       value={tempFasilitas}
                       onChange={(e) => setTempFasilitas(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFasilitasKustom())}
                     />
-                    <button type="button" onClick={addFasilitasKustom} className="px-6 bg-slate-800 text-white rounded-2xl font-black hover:bg-black transition-all shadow-md active:scale-95"><FiPlus size={20}/></button>
+                    <button type="button" onClick={addFasilitasKustom} className="px-4 md:px-6 bg-slate-800 text-white rounded-xl md:rounded-2xl font-black hover:bg-black transition-all shadow-md active:scale-95"><FiPlus size={20}/></button>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 md:gap-2">
                     {formData.fasilitas.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-[10px] shadow-sm animate-in slide-in-from-left-2 transition-all">
+                      <div key={i} className="flex items-center gap-1.5 md:gap-2 bg-slate-800 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl font-bold text-[9px] md:text-[10px] shadow-sm animate-in slide-in-from-left-2 transition-all">
                         {f.toUpperCase()} <FiX className="cursor-pointer hover:text-red-400 transition" onClick={() => removeFasilitas(i)} />
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="col-span-4 space-y-4">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 block">Foto Unit <span className="text-blue-500">(Minimal 2 Foto)</span></label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="col-span-4 space-y-3 md:space-y-4">
+                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 block">Foto Unit <span className="text-blue-500 normal-case ml-1">(Minimal 2 Foto)</span></label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {previews.map((url, index) => (
                       <div key={index} className="relative group aspect-square">
                         <img 
                           src={url} 
                           alt="preview" 
-                          className="w-full h-full object-cover rounded-[2rem] border-2 border-white shadow-md transition-transform duration-500 group-hover:scale-105"
+                          className="w-full h-full object-cover rounded-xl md:rounded-[2rem] border-2 border-white shadow-md transition-transform duration-500 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]"></div>
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-[2rem]"></div>
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
-                          className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-red-500 p-2 rounded-xl shadow-lg hover:bg-red-500 hover:text-white transition-all scale-0 group-hover:scale-100"
+                          className="absolute top-2 md:top-3 right-2 md:right-3 bg-white/90 backdrop-blur-md text-red-500 p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg hover:bg-red-500 hover:text-white transition-all scale-100 md:scale-0 group-hover:scale-100"
                         >
-                          <FiX size={16} />
+                          <FiX size={14} className="md:w-4 md:h-4" />
                         </button>
                       </div>
                     ))}
                     
-                    <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all group overflow-hidden relative">
+                    <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl md:rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all group overflow-hidden relative">
                       <input type="file" multiple onChange={handleFileChange} className="hidden" accept="image/*" />
                       <div className="flex flex-col items-center group-hover:-translate-y-1 transition-transform">
-                          <FiImage className="text-slate-300 text-3xl mb-2 group-hover:text-blue-400 transition-colors" />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter group-hover:text-blue-500">Tambah Foto</span>
+                          <FiImage className="text-slate-300 text-2xl md:text-3xl mb-1.5 md:mb-2 group-hover:text-blue-400 transition-colors" />
+                          <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter group-hover:text-blue-500">Tambah Foto</span>
                       </div>
                     </label>
                   </div>
@@ -766,11 +787,11 @@ export default function DashboardAgen() {
               </form>
             </div>
 
-            <div className="px-10 py-8 bg-white border-t border-gray-50 flex gap-4">
-              <button type="submit" onClick={handleSubmit} className="flex-[2] py-5 bg-[#1A314D] text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-900/20 hover:bg-black hover:-translate-y-0.5 transition-all active:scale-95 uppercase tracking-widest">
+            <div className="px-5 py-4 md:px-10 md:py-8 bg-white border-t border-gray-50 flex flex-col sm:flex-row gap-3 md:gap-4 flex-shrink-0">
+              <button form="propertyForm" type="submit" className="w-full sm:flex-[2] py-3 md:py-5 bg-[#1A314D] text-white rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-xl shadow-blue-900/20 hover:bg-black hover:-translate-y-0.5 transition-all active:scale-95 uppercase tracking-widest order-1 sm:order-2">
                 Simpan Data
               </button>
-              <button type="button" onClick={closeModal} className="flex-1 py-5 bg-slate-50 text-slate-400 rounded-2xl font-black text-lg hover:bg-slate-100 transition-all active:scale-95 uppercase tracking-widest">
+              <button type="button" onClick={closeModal} className="w-full sm:flex-1 py-3 md:py-5 bg-slate-50 text-slate-400 rounded-xl md:rounded-2xl font-black text-sm md:text-lg hover:bg-slate-100 transition-all active:scale-95 uppercase tracking-widest order-2 sm:order-1">
                 Batal
               </button>
             </div>
