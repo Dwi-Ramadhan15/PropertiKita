@@ -18,12 +18,11 @@ export default function useProfileUser() {
         phone_number: ''
     });
 
-    const API_URL = '/_/backend/api/users';
+    const API_URL = 'http://localhost:5000/api/users';
 
     useEffect(() => {
         fetchProfile();
     }, []);
-
 
     const fetchProfile = async() => {
         try {
@@ -80,7 +79,6 @@ export default function useProfileUser() {
         }
     };
 
-
     const handleFileChange = (e) => {
         const file = e.target.files[0];
 
@@ -95,9 +93,9 @@ export default function useProfileUser() {
             const token = localStorage.getItem('token');
 
             const data = new FormData();
-            data.append('avatar', selectedFile);
+            data.append('image', selectedFile);
 
-            const res = await axios.post(`${API_URL}/avatar`, data, {
+            const res = await axios.put(`${API_URL}/avatar`, data, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
@@ -149,7 +147,7 @@ export default function useProfileUser() {
         } catch (error) {
             Swal.fire(
                 'Gagal',
-                'Update profil gagal.',
+                error.response ?.data ?.message || 'Update profil gagal.',
                 'error'
             );
         }
