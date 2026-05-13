@@ -1,5 +1,5 @@
 const db = require('../utils/db');
-const bcrypt = require('bcrypt');
+const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const sharp = require('sharp');
@@ -52,8 +52,17 @@ const register = async(req, res) => {
             return res.status(400).json({ success: false, message: "Nama & Password wajib!" });
         }
 
-        const cleanEmail = email ? email.trim().toLowerCase() : null;
-        const cleanWhatsapp = whatsapp ? whatsapp.trim() : null;
+        const cleanEmail = email ? String(email).trim().toLowerCase() : null;
+        const cleanWhatsapp = whatsapp ? String(whatsapp).trim() : null;
+
+        const checkDup = await db.query(
+            "SELECT id FROM users WHERE (email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)",
+            [cleanEmail, cleanWhatsapp]
+        );
+
+        if (checkDup.rows.length > 0) {
+            return res.status(400).json({ success: false, message: "Email atau Nomor WhatsApp sudah terdaftar!" });
+        }
 
         if (req.file) {
             const bucketName = 'propertikita';
@@ -63,15 +72,20 @@ const register = async(req, res) => {
             foto_profil = objectName;
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await argon2.hash(password);
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiredAt = new Date(Date.now() + 5 * 60000);
 
         await db.query(
-            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil]
+            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil, otp_expired_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, 
+            [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil, expiredAt]
         );
 
-        if (userRole === 'user' && cleanWhatsapp) await sendWhatsAppOTP(cleanWhatsapp, otpCode);
-        else if (cleanEmail) await sendEmailOTP(cleanEmail, otpCode);
+        if (cleanWhatsapp) {
+            await sendWhatsAppOTP(cleanWhatsapp, otpCode);
+        } else if (cleanEmail) {
+            await sendEmailOTP(cleanEmail, otpCode);
+        }
 
         try {
             const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
@@ -91,9 +105,7 @@ const register = async(req, res) => {
                     created_at: new Date()
                 });
             }
-        } catch (notifErr) {
-            console.error("Gagal simpan notifikasi registrasi:", notifErr);
-        }
+        } catch (notifErr) {}
 
         res.status(201).json({ success: true, message: "Registrasi berhasil!" });
     } catch (error) {
@@ -110,7 +122,7 @@ const login = async(req, res) => {
         }
 
         const result = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [email.trim().toLowerCase()]
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [String(email).trim().toLowerCase()]
         );
 
         if (result.rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
@@ -118,7 +130,7 @@ const login = async(req, res) => {
         const user = result.rows[0];
         if (!user.is_verified) return res.status(401).json({ success: false, message: "Belum verifikasi!" });
 
-        const valid = await bcrypt.compare(password, user.password);
+        const valid = await argon2.verify(user.password, password);
         if (!valid) return res.status(401).json({ success: false, message: "Password salah!" });
 
         const accessToken = jwt.sign({ id: user.id, role: user.role },
@@ -182,13 +194,31 @@ const verifyOtp = async(req, res) => {
     const client = await db.connect();
     try {
         const { identifier, otp } = req.body;
-        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
+        
+        if (!identifier || !otp) {
+            return res.status(400).json({ success: false, message: "Data OTP tidak lengkap!" });
+        }
 
-        if (result.rows.length === 0 || result.rows[0].otp_code !== otp) return res.status(400).json({ success: false, message: "OTP Salah!" });
+        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [String(identifier).trim().toLowerCase()]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        }
 
         const user = result.rows[0];
+
+        if (!user.otp_code || String(user.otp_code).trim() !== String(otp).trim()) {
+            return res.status(400).json({ success: false, message: "OTP Salah!" });
+        }
+
+        const now = new Date();
+        const expired = new Date(user.otp_expired_at);
+        if (now > expired) {
+            return res.status(400).json({ success: false, message: "OTP sudah kadaluarsa! Silakan minta kode baru." });
+        }
+
         await client.query('BEGIN');
-        await client.query("UPDATE users SET is_verified = true, otp_code = NULL WHERE id = $1", [user.id]);
+        await client.query("UPDATE users SET is_verified = true, otp_code = NULL, otp_expired_at = NULL WHERE id = $1", [user.id]);
         if (user.role === 'agen') {
             await client.query("INSERT INTO agen (nama_agen, email, no_whatsapp, foto_profil) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING", [user.name, user.email, user.phone_number, user.foto_profil]);
         }
@@ -197,7 +227,9 @@ const verifyOtp = async(req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ success: false, message: error.message });
-    } finally { client.release(); }
+    } finally { 
+        client.release(); 
+    }
 };
 
 const forgotPassword = async(req, res) => {
@@ -210,7 +242,7 @@ const forgotPassword = async(req, res) => {
         }
 
         const result = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [String(identifier).trim().toLowerCase()]
         );
 
         if (result.rows.length === 0) {
@@ -219,23 +251,16 @@ const forgotPassword = async(req, res) => {
 
         const user = result.rows[0];
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiredAt = new Date(Date.now() + 5 * 60000);
 
-        await db.query("UPDATE users SET otp_code = $1 WHERE id = $2", [otpCode, user.id]);
+        await db.query("UPDATE users SET otp_code = $1, otp_expired_at = $2 WHERE id = $3", [otpCode, expiredAt, user.id]);
 
-        if (user.role === 'agen' && user.email) {
-            await sendEmailOTP(user.email, otpCode);
-            return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
-        } else if (user.role === 'user' && user.phone_number) {
+        if (user.phone_number) {
             await sendWhatsAppOTP(user.phone_number, otpCode);
             return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
-        } else {
-            if (user.phone_number) {
-                await sendWhatsAppOTP(user.phone_number, otpCode);
-                return res.json({ success: true, message: "OTP berhasil dikirim ke WhatsApp!" });
-            } else if (user.email) {
-                await sendEmailOTP(user.email, otpCode);
-                return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
-            }
+        } else if (user.email) {
+            await sendEmailOTP(user.email, otpCode);
+            return res.json({ success: true, message: "OTP berhasil dikirim ke Email!" });
         }
 
         return res.status(500).json({ success: false, message: "Gagal mengirim OTP, pengguna tidak memiliki email atau WA yang valid" });
@@ -249,8 +274,12 @@ const resetPassword = async(req, res) => {
     try {
         const { identifier, otp, newPassword } = req.body;
 
+        if (!identifier || !otp || !newPassword) {
+            return res.status(400).json({ success: false, message: "Data tidak lengkap!" });
+        }
+
         const result = await db.query(
-            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [String(identifier).trim().toLowerCase()]
         );
 
         if (result.rows.length === 0) {
@@ -259,11 +288,17 @@ const resetPassword = async(req, res) => {
 
         const user = result.rows[0];
 
-        if (user.otp_code !== otp || !otp) {
-            return res.status(400).json({ success: false, message: "OTP salah atau kadaluwarsa!" });
+        if (!user.otp_code || String(user.otp_code).trim() !== String(otp).trim()) {
+            return res.status(400).json({ success: false, message: "OTP Salah!" });
         }
 
-        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        const now = new Date();
+        const expired = new Date(user.otp_expired_at);
+        if (now > expired) {
+            return res.status(400).json({ success: false, message: "OTP sudah kadaluarsa! Silakan minta kode baru." });
+        }
+
+        const isSamePassword = await argon2.verify(user.password, newPassword);
         if (isSamePassword) {
             return res.status(400).json({
                 success: false,
@@ -271,9 +306,9 @@ const resetPassword = async(req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await argon2.hash(newPassword);
         await db.query(
-            "UPDATE users SET password = $1, otp_code = NULL WHERE id = $2", [hashedPassword, user.id]
+            "UPDATE users SET password = $1, otp_code = NULL, otp_expired_at = NULL WHERE id = $2", [hashedPassword, user.id]
         );
 
         res.json({ success: true, message: "Password berhasil diperbarui!" });
@@ -292,12 +327,12 @@ const changePassword = async(req, res) => {
             return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
         }
 
-        const valid = await bcrypt.compare(currentPassword, userRes.rows[0].password);
+        const valid = await argon2.verify(userRes.rows[0].password, currentPassword);
         if (!valid) {
             return res.status(400).json({ success: false, message: "Password saat ini salah!" });
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await argon2.hash(newPassword);
         await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedPassword, userId]);
 
         res.json({ success: true, message: "Password berhasil diperbarui!" });
@@ -368,6 +403,16 @@ const updateProfile = async(req, res) => {
         await client.query('BEGIN');
         const { name, email, phone_number } = req.body;
         const userId = req.user ? req.user.id : req.userId;
+
+        const checkDup = await client.query(
+            "SELECT id FROM users WHERE ((email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)) AND id != $3",
+            [email ? String(email).trim().toLowerCase() : null, phone_number ? String(phone_number).trim() : null, userId]
+        );
+
+        if (checkDup.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: "Email atau Nomor WhatsApp sudah digunakan pengguna lain!" });
+        }
 
         const oldUser = await client.query("SELECT email, phone_number FROM users WHERE id = $1", [userId]);
         if (oldUser.rows.length > 0) {
