@@ -1,121 +1,112 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
-import logoPK from '../assets/logo-pk.jpeg';
+import useLogin from '../hooks/useLogin'; 
+import backgroundRumah from '../assets/rumah.megah.jpg';
+import logoPK from '../assets/logo.png';
+import { FiMail, FiLock } from 'react-icons/fi';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { email, setEmail, password, setPassword, loading, handleLogin } = useLogin(navigate);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const res = await axios.post('/_/backend/api/users/login', { 
-            email: email || "", 
-            password: password || "" 
-          });
-      
-      if (res.data.success) {
-        const { token, user } = res.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user)); 
-        
-        alert("Login Berhasil! Halo " + (user.name || "User"));
-        
-        if (user.role === 'admin') navigate('/dashboard-admin');
-        else if (user.role === 'agen') navigate('/dashboard-agen'); 
-        else navigate('/'); 
-      }
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Email atau password salah!";
-      alert("Login Gagal: " + errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ PENYESUAIAN WARNA DAN STYLE DI BAWAH INI
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 relative"
-      style={{ backgroundImage: `url(${backgroundRumah})` }}
-    >
-      {/* Overlay Gelap Sesuai Referensi */}
-      <div className="absolute inset-0 bg-[#0A1A2E]/80 z-10"></div>
-
-      {/* Card UI: Penyesuaian membulat dan pading agar clean */}
-      <div className="bg-white p-8 md:p-12 rounded-[1.5rem] shadow-xl w-full max-w-[440px] relative z-20 text-center">
+    <div className="min-h-screen flex bg-white font-sans">
+      {/* --- BAGIAN KIRI: GAMBAR + LOGO (SPLIT) --- */}
+      <div 
+        className="hidden lg:flex lg:w-1/2 bg-cover bg-center relative items-center justify-center"
+        style={{ backgroundImage: `url(${backgroundRumah})` }}
+      >
+        {/* Overlay Biru Gelap (Biar logo emasnya makin kontras/nyala) */}
+        <div className="absolute inset-0 bg-[#0A1A2E]/50"></div>
         
-        {/* Header Section */}
-        <div className="flex flex-col items-center mb-10">
+        {/* LOGO DI TENGAH GAMBAR */}
+        <div className="relative z-20 flex flex-col items-center">
           <img 
             src={logoPK} 
             alt="Logo PropertiKita" 
-            className="h-20 w-auto object-contain mb-5" // Sedikit margin bawah
+            className="w-80 h-auto drop-shadow-2xl" // Ukuran logo diperbesar biar gagah
           />
-          {/* Judul Font Menengah */}
-          <h2 className="text-2xl font-bold text-gray-900 mb-1 tracking-tight">Masuk</h2>
-          <p className="text-gray-500 text-sm font-medium">Silahkan masuk ke akun PropertiKita Anda</p>
         </div>
-        
-        <form onSubmit={handleLogin} className="space-y-6">
-          {/* Input Email: Ganti rounded dan border */}
-          <div className="space-y-1.5 text-left">
-            <label className="text-xs font-semibold text-gray-600 ml-1">Email</label>
-            <input 
-              type="email" 
-              placeholder="Enter your Email"
-              className="w-full p-4 bg-white rounded-lg outline-none border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] transition-all shadow-inner text-sm placeholder:text-gray-300"
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+      </div>
 
-          {/* Input Password: Ganti rounded dan border */}
-          <div className="space-y-1.5 text-left">
-            <label className="text-xs font-semibold text-gray-600 ml-1">Password</label>
-            <input 
-              type="password" 
-              placeholder="Enter Your Password"
-              className="w-full p-4 bg-white rounded-lg outline-none border border-gray-200 focus:border-[#C6A265] focus:ring-1 focus:ring-[#C6A265] transition-all shadow-inner text-sm placeholder:text-gray-300"
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* ✅ TOMBOL MASUK: GANTI WARNA JADI COKLAT EMAS */}
-          <button 
-            type="submit" 
-            disabled={loading}
-            className={`w-full py-4 rounded-lg font-medium text-lg transition flex justify-center items-center active:scale-95 shadow-md
-              ${loading ? 'bg-gray-400' : 'bg-[#C6A265] hover:bg-[#B39156] text-white'}`}
-          >
-            {loading ? "Memproses..." : "Masuk"}
-          </button>
-        </form>
-
-        {/* Footer Links */}
-        <div className="mt-10 text-center space-y-3.5">
-          {/* Warna Daftar Coklat */}
-          <p className="text-gray-500 font-medium text-sm">
-            Belum punya akun?{' '}
-            <Link to="/register" className="text-[#C6A265] font-bold hover:underline transition">
-              Daftar
-            </Link>
-          </p>
+      {/* --- BAGIAN KANAN: FORM LOGIN --- */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16">
+        <div className="w-full max-w-[400px]">
           
-          {/* ✅ PERTAHANKAN LINK LUPA PASSWORD DENGAN WARNA BARU */}
-          <Link 
-            to="/lupa-password" 
-            className="block text-xs font-bold text-[#C6A265] hover:text-[#B39156] transition hover:underline"
-          >
-            Lupa Password?
-          </Link>
+          {/* Header Text */}
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">Selamat Datang</h2>
+            <p className="text-gray-500 text-sm font-medium">Silakan login untuk melanjutkan</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            {/* Input Email */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 ml-1">Email</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <FiMail size={18} />
+                </span>
+                <input 
+                  type="email" 
+                  placeholder="Enter your Email"
+                  className="w-full p-4 pl-12 bg-white rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-2 focus:ring-[#C6A265]/20 outline-none transition-all text-sm"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Input Password */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 ml-1">Password</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <FiLock size={18} />
+                </span>
+                <input 
+                  type="password" 
+                  placeholder="Enter Your Password"
+                  className="w-full p-4 pl-12 bg-white rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-2 focus:ring-[#C6A265]/20 outline-none transition-all text-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between px-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 accent-[#C6A265]" />
+                <span className="text-[11px] text-gray-500 font-bold">Ingat Saya</span>
+              </label>
+              <Link to="/lupa-password" internal className="text-[11px] font-bold text-[#C6A265] hover:underline">
+                Lupa Password?
+              </Link>
+            </div>
+
+            {/* Submit Button */}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className={`w-full py-4 rounded-xl font-bold text-white transition-all active:scale-95 shadow-lg
+                ${loading ? 'bg-gray-400' : 'bg-[#C6A265] hover:bg-[#B39156]'}`}
+            >
+              {loading ? "Memproses..." : "Masuk"}
+            </button>
+          </form>
+
+          {/* Register Link */}
+          <div className="mt-8 text-center">
+            <p className="text-gray-500 text-sm font-medium">
+              Belum punya akun?{' '}
+              <Link to="/register" className="text-[#C6A265] font-bold hover:underline transition">
+                Daftar Akun baru
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
