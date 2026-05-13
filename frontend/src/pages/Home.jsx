@@ -3,11 +3,8 @@ import PropertyList from "../components/PropertyList";
 
 export default function Home() {
   return (
-    <main>
-      {/* HERO MASUK LAGI */}
+    <main className="overflow-x-hidden w-full">
       <HeroCarousel />
-
-      {/* LIST PROPERTI */}
       <PropertyList type="all" />
     </main>
   );
