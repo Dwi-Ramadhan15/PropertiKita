@@ -77,16 +77,6 @@ const register = async(req, res) => {
         const expiredAt = new Date(Date.now() + 5 * 60000);
 
         await db.query(
-<<<<<<< HEAD
-            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil) VALUES ($1, $2, $3, $4, $5, $6, $7)`, 
-            [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil]
-        );
-
-        if (userRole === 'agen') {
-            if (cleanEmail) await sendEmailOTP(cleanEmail, otpCode);
-        } else {
-            if (cleanWhatsapp) await sendWhatsAppOTP(cleanWhatsapp, otpCode);
-=======
             `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil, otp_expired_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, 
             [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil, expiredAt]
         );
@@ -95,7 +85,6 @@ const register = async(req, res) => {
             await sendWhatsAppOTP(cleanWhatsapp, otpCode);
         } else if (cleanEmail) {
             await sendEmailOTP(cleanEmail, otpCode);
->>>>>>> 9de25f248e18c284127c581430f53d5e5baae65e
         }
 
         try {
@@ -167,7 +156,11 @@ const login = async(req, res) => {
 const refreshTokenEndpoint = async(req, res) => {
     try {
         const { refreshToken } = req.body;
-        if (!refreshToken) return res.status(403).json({ success: false, message: "Refresh Token dibutuhkan!" });
+
+        if (!refreshToken) {
+            return res.status(403).json({ success: false, message: "Refresh Token dibutuhkan!" });
+        }
+
         const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh-secretkey';
 
         jwt.verify(refreshToken, refreshTokenSecret, async(err, decoded) => {
@@ -185,7 +178,12 @@ const refreshTokenEndpoint = async(req, res) => {
             const newAccessToken = jwt.sign({ id: user.id, role: user.role },
                 process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' }
             );
-            res.status(200).json({ success: true, message: "Token berhasil diperbarui", token: newAccessToken });
+
+            res.status(200).json({
+                success: true,
+                message: "Token berhasil diperbarui",
+                token: newAccessToken
+            });
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -196,10 +194,6 @@ const verifyOtp = async(req, res) => {
     const client = await db.connect();
     try {
         const { identifier, otp } = req.body;
-<<<<<<< HEAD
-        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
-        if (result.rows.length === 0 || result.rows[0].otp_code !== otp) return res.status(400).json({ success: false, message: "OTP Salah!" });
-=======
         
         if (!identifier || !otp) {
             return res.status(400).json({ success: false, message: "Data OTP tidak lengkap!" });
@@ -211,7 +205,6 @@ const verifyOtp = async(req, res) => {
             return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
         }
 
->>>>>>> 9de25f248e18c284127c581430f53d5e5baae65e
         const user = result.rows[0];
 
         if (!user.otp_code || String(user.otp_code).trim() !== String(otp).trim()) {
@@ -258,13 +251,9 @@ const forgotPassword = async(req, res) => {
 
         const user = result.rows[0];
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-<<<<<<< HEAD
-        await db.query("UPDATE users SET otp_code = $1 WHERE id = $2", [otpCode, user.id]);
-=======
         const expiredAt = new Date(Date.now() + 5 * 60000);
 
         await db.query("UPDATE users SET otp_code = $1, otp_expired_at = $2 WHERE id = $3", [otpCode, expiredAt, user.id]);
->>>>>>> 9de25f248e18c284127c581430f53d5e5baae65e
 
         if (user.phone_number) {
             await sendWhatsAppOTP(user.phone_number, otpCode);
@@ -284,16 +273,6 @@ const forgotPassword = async(req, res) => {
 const resetPassword = async(req, res) => {
     try {
         const { identifier, otp, newPassword } = req.body;
-<<<<<<< HEAD
-        const result = await db.query("SELECT * FROM users WHERE email = $1 OR phone_number = $1", [identifier.trim().toLowerCase()]);
-        if (result.rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
-        const user = result.rows[0];
-        if (user.otp_code !== otp || !otp) return res.status(400).json({ success: false, message: "OTP salah atau kadaluwarsa!" });
-        const isSamePassword = await bcrypt.compare(newPassword, user.password);
-        if (isSamePassword) return res.status(400).json({ success: false, message: "Password baru tidak boleh sama dengan password lama!" });
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await db.query("UPDATE users SET password = $1, otp_code = NULL WHERE id = $2", [hashedPassword, user.id]);
-=======
 
         if (!identifier || !otp || !newPassword) {
             return res.status(400).json({ success: false, message: "Data tidak lengkap!" });
@@ -332,7 +311,6 @@ const resetPassword = async(req, res) => {
             "UPDATE users SET password = $1, otp_code = NULL, otp_expired_at = NULL WHERE id = $2", [hashedPassword, user.id]
         );
 
->>>>>>> 9de25f248e18c284127c581430f53d5e5baae65e
         res.json({ success: true, message: "Password berhasil diperbarui!" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -374,9 +352,18 @@ const getProfile = async(req, res) => {
 const getAllUsers = async(req, res) => {
     try {
         const { role } = req.query;
-        const query = `SELECT id, name, email, phone_number, role, foto_profil, is_verified FROM users WHERE role = $1 ORDER BY id DESC`;
+        const query = `
+            SELECT id, name, email, phone_number, role, foto_profil, is_verified 
+            FROM users 
+            WHERE role = $1 
+            ORDER BY id DESC
+        `;
         const { rows } = await db.query(query, [role]);
-        res.status(200).json({ success: true, data: rows });
+
+        res.status(200).json({
+            success: true,
+            data: rows
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -396,9 +383,14 @@ const getUserProfile = async(req, res) => {
                 )
             ), 0) as total_listing
             FROM users u
-            WHERE u.id = $1`;
+            WHERE u.id = $1
+        `;
         const { rows } = await db.query(query, [id]);
-        if (rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+        }
+
         res.status(200).json({ success: true, data: rows[0] });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -411,8 +403,6 @@ const updateProfile = async(req, res) => {
         await client.query('BEGIN');
         const { name, email, phone_number } = req.body;
         const userId = req.user ? req.user.id : req.userId;
-<<<<<<< HEAD
-=======
 
         const checkDup = await client.query(
             "SELECT id FROM users WHERE ((email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)) AND id != $3",
@@ -424,19 +414,23 @@ const updateProfile = async(req, res) => {
             return res.status(400).json({ success: false, message: "Email atau Nomor WhatsApp sudah digunakan pengguna lain!" });
         }
 
->>>>>>> 9de25f248e18c284127c581430f53d5e5baae65e
         const oldUser = await client.query("SELECT email, phone_number FROM users WHERE id = $1", [userId]);
         if (oldUser.rows.length > 0) {
             const old = oldUser.rows[0];
-            await client.query("UPDATE agen SET nama_agen = $1, email = $2, no_whatsapp = $3 WHERE email = $4 OR no_whatsapp = $5", [name, email, phone_number, old.email, old.phone_number]);
+            await client.query(
+                "UPDATE agen SET nama_agen = $1, email = $2, no_whatsapp = $3 WHERE email = $4 OR no_whatsapp = $5", [name, email, phone_number, old.email, old.phone_number]
+            );
         }
+
         const result = await client.query("UPDATE users SET name = $1, email = $2, phone_number = $3 WHERE id = $4 RETURNING *", [name, email, phone_number, userId]);
         await client.query('COMMIT');
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ success: false, message: error.message });
-    } finally { client.release(); }
+    } finally {
+        client.release();
+    }
 };
 
 const updateAvatar = async(req, res) => {
@@ -446,20 +440,28 @@ const updateAvatar = async(req, res) => {
         const userId = req.user ? req.user.id : req.userId;
         const objectName = `avatar-${Date.now()}.webp`;
         const webpBuffer = await sharp(req.file.buffer).resize(300, 300).webp().toBuffer();
+
         await minioClient.putObject('propertikita', objectName, webpBuffer);
+
         const oldUser = await client.query("SELECT email, phone_number FROM users WHERE id = $1", [userId]);
         if (oldUser.rows.length > 0) {
             const old = oldUser.rows[0];
             const imageUrl = `http://127.0.0.1:9000/propertikita/${objectName}`;
-            await client.query("UPDATE agen SET foto_profil = $1 WHERE email = $2 OR no_whatsapp = $3", [imageUrl, old.email, old.phone_number]);
+            await client.query(
+                "UPDATE agen SET foto_profil = $1 WHERE email = $2 OR no_whatsapp = $3", [imageUrl, old.email, old.phone_number]
+            );
         }
+
         await client.query("UPDATE users SET foto_profil = $1 WHERE id = $2", [objectName, userId]);
         await client.query('COMMIT');
+
         res.json({ success: true, foto_profil: objectName });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ success: false, message: error.message });
-    } finally { client.release(); }
+    } finally {
+        client.release();
+    }
 };
 
 module.exports = {

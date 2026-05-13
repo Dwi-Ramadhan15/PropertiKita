@@ -21,6 +21,7 @@ export default function DashboardAdmin() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -102,7 +103,6 @@ export default function DashboardAdmin() {
     } catch (err) {}
   };
 
-  // Ambil Data Akun
   const fetchAccounts = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -160,7 +160,6 @@ export default function DashboardAdmin() {
     }
   };
 
-  // FUNGSI PUSAT UNTUK REFRESH SEMUA DATA
   const refreshAllData = useCallback(() => {
     if (activeTab === 'pending' || activeTab === 'approved') {
       fetchProperti();
@@ -168,7 +167,7 @@ export default function DashboardAdmin() {
     if (activeTab === 'accounts') {
       fetchAccounts();
     }
-    fetchAllPropertiForStats(); // Statistik selalu di-refresh
+    fetchAllPropertiForStats(); 
   }, [activeTab, page, subTabAccount]);
 
   useEffect(() => {
@@ -206,7 +205,7 @@ export default function DashboardAdmin() {
       }
 
       setSelectedProperty(null);
-      refreshAllData(); // Refresh tabel dan statistik kotak atas
+      refreshAllData(); 
       setToast(`Listing berhasil di-${newStatus === 'approved' ? 'terima' : 'tolak'}`);
     } catch (err) { 
       alert("Gagal update status"); 
@@ -398,6 +397,7 @@ export default function DashboardAdmin() {
                   ))}
                 </tbody>
               </table>
+              {accountsData.length === 0 && <div className="p-20 text-center text-gray-300 font-black italic uppercase tracking-widest">Data {subTabAccount} Kosong</div>}
             </div>
           </div>
         ) : (
