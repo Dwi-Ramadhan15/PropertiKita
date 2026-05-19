@@ -35,57 +35,6 @@ export default function DashboardAdmin() {
 
   const isPropertyTab = ['all', 'pending', 'approved', 'rejected'].includes(activeTab);
 
-  useEffect(() => {
-    socket.emit('join_room', 'admin_room');
-    const handleNotify = (data) => {
-      setToast(data.message);
-      
-      const newNotif = {
-        id: Date.now(),
-        message: data.message,
-        title: data.title || 'Informasi Sistem',
-        status: data.status || 'info',
-        created_at: data.created_at || new Date(),
-        is_read: false
-      };
-      
-      setNotifications(prev => [newNotif, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      
-      fetchData();
-      fetchAllPropertiForStats();
-      setTimeout(() => setToast(null), 5000);
-    };
-    
-    socket.on('notify_admin', handleNotify);
-    return () => socket.off('notify_admin', handleNotify);
-  }, []);
-
-  useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/login');
-    } else {
-      fetchData();
-      fetchAllPropertiForStats();
-      fetchNotifications(); 
-    }
-  }, [page, activeTab, subTabAccount, filterStatus]);
-
-  useEffect(() => {
-    let interval;
-    if (selectedProperty && selectedProperty.gallery && selectedProperty.gallery.length > 1) {
-      interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % selectedProperty.gallery.length);
-      }, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [selectedProperty]);
-
-  const fetchData = () => {
-    if (isPropertyTab) fetchProperti();
-    if (activeTab === 'accounts') fetchAccounts();
-  };
-
   const fetchProperti = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -122,6 +71,67 @@ export default function DashboardAdmin() {
       }
     } catch (err) {}
   };
+
+  const fetchData = () => {
+    if (isPropertyTab) fetchProperti();
+    if (activeTab === 'accounts') fetchAccounts();
+  };
+
+  const refreshAllData = useCallback(() => {
+    if (activeTab === 'pending' || activeTab === 'approved') {
+      fetchProperti();
+    }
+    if (activeTab === 'accounts') {
+      fetchAccounts();
+    }
+    fetchAllPropertiForStats(); 
+  }, [activeTab, page, subTabAccount]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      navigate('/login');
+    } else {
+      fetchData();
+      fetchAllPropertiForStats();
+      fetchNotifications(); 
+    }
+  }, [page, activeTab, subTabAccount, filterStatus]);
+
+  useEffect(() => {
+    let interval;
+    if (selectedProperty && selectedProperty.gallery && selectedProperty.gallery.length > 1) {
+      interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % selectedProperty.gallery.length);
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [selectedProperty]);
+
+  useEffect(() => {
+    socket.emit('join_room', 'admin_room');
+    
+    const handleNotify = (data) => {
+      setToast(data.message);
+      const newNotif = {
+        id: data.id || Date.now(),
+        title: data.title || 'Update Status Listing',
+        message: data.message,
+        status: data.status || 'info',
+        created_at: data.created_at || new Date().toISOString(),
+        is_read: false,
+        slug: data.slug || null 
+      };
+      
+      setNotifications(prev => [newNotif, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      
+      refreshAllData();
+      setTimeout(() => setToast(null), 5000);
+    };
+    
+    socket.on('notify_admin', handleNotify);
+    return () => socket.off('notify_admin', handleNotify);
+  }, [refreshAllData]);
 
   const markNotificationsAsRead = async () => {
     setShowNotifDropdown(!showNotifDropdown);
@@ -161,35 +171,6 @@ export default function DashboardAdmin() {
     }
   };
 
-  const refreshAllData = useCallback(() => {
-    if (activeTab === 'pending' || activeTab === 'approved') {
-      fetchProperti();
-    }
-    if (activeTab === 'accounts') {
-      fetchAccounts();
-    }
-    fetchAllPropertiForStats(); 
-  }, [activeTab, page, subTabAccount]);
-
-  useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/login');
-    } else {
-      refreshAllData();
-    }
-  }, [refreshAllData]);
-
-  useEffect(() => {
-    socket.emit('join_room', 'admin_room');
-    socket.on('notify_admin', (data) => {
-      setToast(data.message);
-      setNotifications(prev => [{ id: Date.now(), text: data.message, time: new Date().toLocaleTimeString() }, ...prev]);
-      refreshAllData();
-      setTimeout(() => setToast(null), 5000);
-    });
-    return () => socket.off('notify_admin');
-  }, [refreshAllData]);
-
   const handleUpdateStatus = async (id, newStatus) => {
     if (!window.confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
     try {
@@ -224,11 +205,25 @@ export default function DashboardAdmin() {
     }
   };
 
-  const handleNotificationClick = () => {
-    setActiveTab('pending');
-    setPage(1);
+  const handleNotificationClick = async (notif) => {
     setShowNotifDropdown(false);
-    fetchProperti();
+    
+    if (notif.slug) {
+      try {
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const res = await axios.get(`http://localhost:5000/api/properti/${notif.slug}`, config);
+        if (res.data.success) {
+          setSelectedProperty(res.data.data);
+          setCurrentImageIndex(0);
+        }
+      } catch (err) {
+        console.error("Gagal memuat detail properti dari notifikasi:", err);
+      }
+    } else {
+      setActiveTab('pending');
+      setPage(1);
+      fetchProperti();
+    }
   };
 
   const formatRupiah = (angka) => {
@@ -270,7 +265,6 @@ export default function DashboardAdmin() {
         ></div>
       )}
 
-      {/* SIDEBAR - Di sinilah perbaikan posisinya dilakukan */}
       <div className={`fixed top-0 left-0 h-full w-72 bg-slate-900 text-white flex flex-col z-50 lg:z-40 shadow-2xl overflow-y-auto custom-scrollbar transform transition-transform duration-300 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:top-[72px] lg:h-[calc(100vh-72px)]`}>
         <div className="p-6 lg:p-8 flex justify-between items-center">
           <div>
@@ -342,7 +336,7 @@ export default function DashboardAdmin() {
                     <div className="p-8 md:p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">Kosong</div>
                   ) : (
                     notifications.map(n => (
-                      <div key={n.id} onClick={handleNotificationClick} className={`p-4 md:p-5 border-b border-gray-50 flex gap-3 md:gap-4 transition-all cursor-pointer ${n.is_read ? 'bg-white' : 'bg-blue-50/30 hover:bg-blue-50'}`}>
+                      <div key={n.id} onClick={() => handleNotificationClick(n)} className={`p-4 md:p-5 border-b border-gray-50 flex gap-3 md:gap-4 transition-all cursor-pointer ${n.is_read ? 'bg-white' : 'bg-blue-50/30 hover:bg-blue-50'}`}>
                         <div className={`mt-1 ${n.status === 'info' || n.status === 'pending' ? 'text-blue-500' : 'text-[#D9AB7B]'}`}><FiInfo size={16} className="md:w-[18px] md:h-[18px]"/></div>
                         <div>
                           <p className="text-xs font-black text-gray-900 mb-1">{n.title || 'Informasi'}</p>
@@ -585,7 +579,7 @@ export default function DashboardAdmin() {
                     <span>Lng: {selectedProperty.longitude}</span>
                   </div>
 
-                  <a href={`https://www.google.com/maps?q=${selectedProperty.latitude},${selectedProperty.longitude}`} target="_blank" rel="noopener noreferrer" className="mt-4 md:mt-5 w-full flex items-center justify-center gap-1.5 md:gap-2 bg-blue-50 text-blue-600 py-2.5 md:py-3 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition">
+                  <a href={`https://www.google.com/maps?q=$${selectedProperty.latitude},${selectedProperty.longitude}`} target="_blank" rel="noopener noreferrer" className="mt-4 md:mt-5 w-full flex items-center justify-center gap-1.5 md:gap-2 bg-blue-50 text-blue-600 py-2.5 md:py-3 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition">
                     <FiExternalLink size={12} className="md:w-3.5 md:h-3.5"/> Maps
                   </a>
                 </div>

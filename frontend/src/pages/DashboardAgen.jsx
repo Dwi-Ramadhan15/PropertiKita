@@ -102,16 +102,6 @@ export default function DashboardAgen() {
     fetchProperti();
     fetchNotifications(); 
 
-    const fetchFasilitas = async () => {
-      try {
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const res = await axios.get(`http://localhost:5000/api/fasilitas?id_agen=${user.id}`, config);
-        const daftarUnik = [...new Set(res.data.map(item => item.nama_fasilitas))];
-        setFasilitasOptions(daftarUnik);
-      } catch (err) {}
-    };
-    fetchFasilitas();
-
     socket.emit('join_room', `agen_${user.id}`);
     
     const handleNotify = (data) => {
@@ -135,6 +125,20 @@ export default function DashboardAgen() {
     socket.on('notify_agen', handleNotify);
     return () => { socket.off('notify_agen', handleNotify); };
   }, []);
+
+  useEffect(() => {
+    if (showModal && user) {
+      const fetchFasilitas = async () => {
+        try {
+          const config = { headers: { Authorization: `Bearer ${token}` } };
+          const res = await axios.get(`http://localhost:5000/api/fasilitas?id_agen=${user.id}`, config);
+          const daftarUnik = [...new Set(res.data.map(item => item.nama_fasilitas))];
+          setFasilitasOptions(daftarUnik);
+        } catch (err) {}
+      };
+      fetchFasilitas();
+    }
+  }, [showModal]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -715,7 +719,7 @@ export default function DashboardAgen() {
                 <div className="col-span-4 space-y-3 md:space-y-4">
                   <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Pilih Fasilitas</label>
                   <div className="flex flex-wrap gap-2 p-4 md:p-6 bg-slate-50/50 rounded-2xl md:rounded-[2rem] border border-dashed border-slate-200 max-h-40 overflow-y-auto custom-scrollbar">
-                    {fasilitasOptions.length === 0 && <span className="text-xs text-gray-400 italic">Belum ada pilihan fasilitas, silakan ketik di bawah.</span>}
+                    {fasilitasOptions.length === 0 && <span className="text-xs text-gray-400">Belum ada pilihan fasilitas, silakan ketik di bawah.</span>}
                     {fasilitasOptions.map((item) => {
                       const active = formData.fasilitas.includes(item);
                       return (
