@@ -238,10 +238,11 @@ const createProperti = async(req, res) => {
 
             const adminRes = await db.query("SELECT id FROM users WHERE role = 'admin'");
             const msgAdmin = `Agen ${userName} menambahkan properti baru: "${title}". Menunggu verifikasi.`;
+            
             for (const admin of adminRes.rows) {
                 await db.query(
-                    "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
-                    [admin.id, "Listing Baru", msgAdmin, "pending"]
+                    "INSERT INTO notifications (id_agen, title, message, status, slug) VALUES ($1, $2, $3, $4, $5)",
+                    [admin.id, "Listing Baru", msgAdmin, "pending", slug]
                 );
             }
             
@@ -250,10 +251,13 @@ const createProperti = async(req, res) => {
                     title: "Listing Baru",
                     message: msgAdmin,
                     status: "pending",
+                    slug: slug,
                     created_at: new Date()
                 });
             }
-        } catch (notifError) {}
+        } catch (notifError) {
+            console.error(notifError);
+        }
 
         res.status(201).json({ success: true, message: "Properti berhasil dikirim dan menunggu tinjauan admin" });
     } catch (error) {

@@ -18,7 +18,7 @@ export default function useMapSearch() {
         const fetchProperties = async() => {
             try {
                 const res = await axios.get(
-                    "/_/backend/api/properti?limit=100"
+                    `${import.meta.env.VITE_API_URL}/properti?limit=100`
                 );
 
                 if (res.data.success) {

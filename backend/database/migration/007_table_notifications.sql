@@ -5,5 +5,8 @@ CREATE TABLE notifications (
     message TEXT NOT NULL,
     status VARCHAR(50) NOT NULL, -- (contoh: 'approved', 'rejected', 'info')
     is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    slug VARCHAR(255) NOT NULL
 );
+
+ALTER TABLE notifications ADD COLUMN slug VARCHAR(255) NOT NULL;

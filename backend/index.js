@@ -13,16 +13,26 @@ const { minioClient, setBucketPublic } = require('./utils/minio_client');
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://properti-kita-eight.vercel.app",
+    "https://properti-kita-p0l475d35-dwi-ramadhan15s-projects.vercel.app"
+];
+
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: allowedOrigins,
         methods: ["GET", "POST", "PUT", "DELETE"]
     }
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"]
+}));
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -79,7 +89,7 @@ const initMinio = async() => {
 server.listen(PORT, async() => {
     await initMinio();
     console.log(`=========================================`);
-    console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
-    console.log(`📖 Swagger UI tersedia di http://localhost:${PORT}/api-docs`);
+    console.log(`🚀 Server berjalan di port: ${PORT}`);
+    console.log(`📖 Swagger UI tersedia di /api-docs`);
     console.log(`=========================================`);
 });

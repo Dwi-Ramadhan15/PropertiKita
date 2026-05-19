@@ -19,7 +19,7 @@ export default function useAgenProperties(agenIdFromQuery) {
             try {
                 setLoading(true);
                 const isPublic = !!agenIdFromQuery;
-                const url = `/_/backend/api/properti?agen=${idToSearch}${!isPublic ? '&status=all' : ''}`;
+                const url = `${import.meta.env.VITE_API_URL}/properti?agen=${idToSearch}${!isPublic ? '&status=all' : ''}`;
 
                 const res = await axios.get(url);
 

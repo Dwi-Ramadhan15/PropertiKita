@@ -111,12 +111,12 @@ export default function PropertyList({ type = "all" }) {
   return (
     <div className="bg-[#F8FAFC] min-h-screen">
       {type !== "all" && (
-        <div className="bg-[#1E293B] py-20 px-6 text-center text-white">
+        <div className="bg-[#1E293B] py-12 md:py-20 px-6 text-center text-white">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl font-extrabold mb-4 tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-extrabold mb-3 md:mb-4 tracking-tight">
               {type === "dijual" ? "Properti Dijual" : "Properti Disewa"}
             </h1>
-            <p className="text-slate-300 text-xl font-medium">
+            <p className="text-slate-300 text-base md:text-xl font-medium">
               {type === "dijual"
                 ? "Temukan hunian terbaik dengan harga ideal."
                 : "Solusi hunian sementara yang nyaman dan strategis."}
@@ -125,15 +125,15 @@ export default function PropertyList({ type = "all" }) {
         </div>
       )}
 
-      <div className={`max-w-7xl mx-auto px-6 pb-20 ${type === "all" ? "-mt-20" : "-mt-10"}`}>
-        <div className="w-full flex justify-center mb-12 relative z-10">
+      <div className={`max-w-7xl mx-auto px-4 md:px-6 pb-20 ${type === "all" ? "-mt-10 md:-mt-20" : "-mt-8 md:-mt-10"}`}>
+        <div className="w-full flex justify-center mb-10 md:mb-12 relative z-10">
           <div className="bg-white p-4 md:p-5 rounded-2xl shadow-xl flex flex-col md:flex-row gap-3 items-center border border-gray-100 w-full max-w-4xl">
             <div className="flex-1 w-full relative">
               <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={22} />
               <input
                 type="text"
                 placeholder="Cari lokasi atau nama properti..."
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C9925F]"
+                className="w-full pl-11 pr-4 py-2.5 md:py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C9925F] text-sm md:text-base"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -142,7 +142,7 @@ export default function PropertyList({ type = "all" }) {
             <select
               value={harga}
               onChange={(e) => setHarga(e.target.value)}
-              className="w-full md:w-44 px-4 py-3 rounded-xl border border-gray-200 bg-white"
+              className="w-full md:w-44 px-4 py-2.5 md:py-3 rounded-xl border border-gray-200 bg-white text-sm md:text-base"
             >
               <option value="Semua">Semua Harga</option>
               <option value="0-500000000">Di bawah 500 Juta</option>
@@ -153,7 +153,7 @@ export default function PropertyList({ type = "all" }) {
             <select
               value={kamar}
               onChange={(e) => setKamar(e.target.value)}
-              className="w-full md:w-40 px-4 py-3 rounded-xl border border-gray-200 bg-white"
+              className="w-full md:w-40 px-4 py-2.5 md:py-3 rounded-xl border border-gray-200 bg-white text-sm md:text-base"
             >
               <option value="Semua">Semua Kamar</option>
               <option value="1">1 Kamar</option>
@@ -161,7 +161,7 @@ export default function PropertyList({ type = "all" }) {
               <option value="3">3 Kamar</option>
             </select>
 
-            <div className={`px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap ${
+            <div className={`w-full md:w-auto text-center px-5 py-2.5 md:py-3 rounded-xl font-bold text-sm whitespace-nowrap ${
               isSewa ? "bg-orange-100 text-orange-600" : "bg-blue-100 text-blue-600"
             }`}>
               {filteredProperties.length} Unit
@@ -173,7 +173,7 @@ export default function PropertyList({ type = "all" }) {
           <div className="text-center py-20 font-bold text-gray-400">Loading...</div>
         ) : (
           <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {currentItems.map((item) => {
               const kategori = item.properties.kategori ? item.properties.kategori.toLowerCase() : "";
               const isDijual = kategori === "dijual";
@@ -182,14 +182,13 @@ export default function PropertyList({ type = "all" }) {
                 <Link 
                   key={item.properties.id} 
                   to={`/properti/${item.properties.slug}`}
-                  className="bg-white rounded-3xl shadow-sm hover:shadow-2xl hover:scale-[1.01] transition-all duration-500 group overflow-hidden flex flex-col relative"
+                  className="bg-white rounded-2xl md:rounded-3xl shadow-sm hover:shadow-2xl hover:scale-[1.01] transition-all duration-500 group overflow-hidden flex flex-col relative"
                 >
                   
-                  <div className="h-60 overflow-hidden relative z-20">
+                  <div className="h-48 md:h-60 overflow-hidden relative z-20">
                     
-                    {/* LOGIKA: Hanya tampil jika type adalah "all" (Beranda) */}
                     {type === "all" && (
-                      <div className={`absolute top-4 left-4 z-30 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm ${
+                      <div className={`absolute top-4 left-4 z-30 px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wider shadow-sm ${
                         isDijual 
                           ? "bg-[#C9925F] text-white" 
                           : "bg-slate-800/80 text-white backdrop-blur-sm"
@@ -204,21 +203,21 @@ export default function PropertyList({ type = "all" }) {
                     />
                   </div>
 
-                  <div className="p-6 flex flex-col flex-grow">
-                    <h3 className="text-[#C9925F] font-bold text-xl mb-1">
+                  <div className="p-4 md:p-6 flex flex-col flex-grow">
+                    <h3 className="text-[#C9925F] font-bold text-lg md:text-xl mb-1">
                       {formatRupiah(item.properties.harga)}
                     </h3>
 
-                    <p className="font-bold text-slate-800 line-clamp-1 group-hover:text-[#C9925F] transition-colors">
+                    <p className="font-bold text-slate-800 text-sm md:text-base line-clamp-1 group-hover:text-[#C9925F] transition-colors">
                       {item.properties.title}
                     </p>
 
-                    <p className="text-gray-400 flex items-center text-sm mb-4">
-                      <MdLocationOn className="mr-1 text-red-400" />
-                      {item.properties.lokasi}
+                    <p className="text-gray-400 flex items-center text-xs md:text-sm mb-3 md:mb-4 mt-1">
+                      <MdLocationOn className="mr-1 text-red-400 flex-shrink-0" />
+                      <span className="line-clamp-1">{item.properties.lokasi}</span>
                     </p>
 
-                    <div className="flex justify-between text-sm text-slate-500 border-t pt-4 mt-auto">
+                    <div className="flex justify-between text-xs md:text-sm text-slate-500 border-t pt-3 md:pt-4 mt-auto">
                       <span className="flex items-center gap-1"><FaBed /> {item.properties.kamar_tidur || 0}</span>
                       <span className="flex items-center gap-1"><FaBath /> {item.properties.kamar_mandi || 0}</span>
                       <span className="flex items-center gap-1"><FaRulerCombined /> {item.properties.luas || 0}</span>
@@ -229,26 +228,28 @@ export default function PropertyList({ type = "all" }) {
             })}
           </div>
 
-            <div className="flex justify-center mt-12 gap-2 items-center">
-              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="text-gray-500 hover:text-black disabled:opacity-30">
+            <div className="flex justify-center mt-10 md:mt-12 gap-2 items-center">
+              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="text-gray-500 hover:text-black disabled:opacity-30 p-2">
                 <FiChevronLeft size={24} />
               </button>
 
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => paginate(i + 1)}
-                  className={`w-10 h-10 rounded-lg font-bold transition-all ${
-                    currentPage === i + 1
-                      ? "bg-[#1E293B] text-white shadow-md"
-                      : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              <div className="flex gap-1.5 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar py-2">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => paginate(i + 1)}
+                    className={`min-w-[36px] h-9 md:w-10 md:h-10 rounded-lg font-bold transition-all text-sm md:text-base flex-shrink-0 ${
+                      currentPage === i + 1
+                        ? "bg-[#1E293B] text-white shadow-md"
+                        : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
 
-              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="text-gray-500 hover:text-black disabled:opacity-30">
+              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="text-gray-500 hover:text-black disabled:opacity-30 p-2">
                 <FiChevronRight size={24} />
               </button>
             </div>
