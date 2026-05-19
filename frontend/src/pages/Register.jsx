@@ -28,11 +28,13 @@ export default function Register() {
       >
         <div className="absolute inset-0 bg-[#0A1A2E]/65"></div>
         <div className="relative z-20 flex items-center gap-6 translate-y-[-10%]"> 
-          <img 
-            src={logoPK} 
-            alt="Logo PK" 
-            className="h-40 w-auto object-contain drop-shadow-2xl" 
-          />
+          <div className="relative z-20 flex flex-col items-center">
+                    <img 
+                      src={logoPK} 
+                      alt="Logo PK" 
+                      className="w-80 h-auto drop-shadow-2xl" 
+                    />
+                  </div>
         </div>
       </div>
 
