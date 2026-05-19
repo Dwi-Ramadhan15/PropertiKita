@@ -10,3 +10,4 @@ CREATE TABLE notifications (
 );
 
 ALTER TABLE notifications ADD COLUMN slug VARCHAR(255) NOT NULL;
+ALTER TABLE notifications ADD COLUMN id_user INTEGER;
