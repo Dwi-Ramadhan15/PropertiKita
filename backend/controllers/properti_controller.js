@@ -241,7 +241,7 @@ const createProperti = async(req, res) => {
             
             for (const admin of adminRes.rows) {
                 await db.query(
-                    "INSERT INTO notifications (id_agen, title, message, status, slug) VALUES ($1, $2, $3, $4, $5)",
+                    "INSERT INTO notifications (id_user, title, message, status, slug) VALUES ($1, $2, $3, $4, $5)",
                     [admin.id, "Listing Baru", msgAdmin, "pending", slug]
                 );
             }
@@ -390,7 +390,7 @@ const updateStatusProperti = async(req, res) => {
                 const msgAdminLog = `Anda merubah status "${properti.title}" menjadi ${status.toUpperCase()}.`;
                 for (const admin of adminRes.rows) {
                     await db.query(
-                        "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", 
+                        "INSERT INTO notifications (id_user, title, message, status) VALUES ($1, $2, $3, $4)", 
                         [admin.id, "Riwayat Aktivitas", msgAdminLog, status]
                     );
                 }
@@ -552,19 +552,20 @@ const getNotifikasiAgen = async(req, res) => {
     try {
         const { id_agen } = req.params;
         const userCheck = await db.query("SELECT role FROM users WHERE id = $1", [id_agen]);
-        let targetId = id_agen;
-
+        
         if (userCheck.rows.length > 0 && userCheck.rows[0].role !== 'admin') {
             const realAgenId = await getRealAgenId(id_agen);
             if (!realAgenId) {
                 return res.status(200).json({ success: true, data: [] });
             }
-            targetId = realAgenId;
+            const query = "SELECT * FROM notifications WHERE id_agen = $1 ORDER BY id DESC";
+            const { rows } = await db.query(query, [realAgenId]);
+            return res.status(200).json({ success: true, data: rows });
+        } else {
+            const query = "SELECT * FROM notifications WHERE id_user = $1 ORDER BY id DESC";
+            const { rows } = await db.query(query, [id_agen]);
+            return res.status(200).json({ success: true, data: rows });
         }
-
-        const query = "SELECT * FROM notifications WHERE id_agen = $1 ORDER BY id DESC";
-        const { rows } = await db.query(query, [targetId]);
-        res.status(200).json({ success: true, data: rows });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -574,15 +575,19 @@ const tandaiNotifDibaca = async(req, res) => {
     try {
         const { id } = req.params;
         const userCheck = await db.query("SELECT role FROM users WHERE id = $1", [id]);
-        let targetId = id;
+        
+        let query = "";
+        let paramId = id;
 
         if (userCheck.rows.length > 0 && userCheck.rows[0].role !== 'admin') {
             const realAgenId = await getRealAgenId(id);
-            if (realAgenId) targetId = realAgenId;
+            if (realAgenId) paramId = realAgenId;
+            query = "UPDATE notifications SET is_read = true WHERE id_agen = $1 RETURNING *";
+        } else {
+            query = "UPDATE notifications SET is_read = true WHERE id_user = $1 RETURNING *";
         }
 
-        const query = "UPDATE notifications SET is_read = true WHERE id_agen = $1 RETURNING *";
-        const result = await db.query(query, [targetId]);
+        await db.query(query, [paramId]);
 
         res.status(200).json({ success: true, message: "Semua notifikasi ditandai telah dibaca" });
     } catch (error) {
@@ -594,14 +599,19 @@ const clearNotifications = async(req, res) => {
     try {
         const { id } = req.params;
         const userCheck = await db.query("SELECT role FROM users WHERE id = $1", [id]);
-        let targetId = id;
+        
+        let query = "";
+        let paramId = id;
 
         if (userCheck.rows.length > 0 && userCheck.rows[0].role !== 'admin') {
             const realAgenId = await getRealAgenId(id);
-            if (realAgenId) targetId = realAgenId;
+            if (realAgenId) paramId = realAgenId;
+            query = "DELETE FROM notifications WHERE id_agen = $1";
+        } else {
+            query = "DELETE FROM notifications WHERE id_user = $1";
         }
 
-        await db.query("DELETE FROM notifications WHERE id_agen = $1", [targetId]);
+        await db.query(query, [paramId]);
         res.status(200).json({ success: true, message: "Notifikasi dibersihkan" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
