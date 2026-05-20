@@ -3,7 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const propertiController = require('../controllers/properti_controller');
+const agenController = require('../controllers/agenController');
+const adminController = require('../controllers/adminController');
 const { verifyToken } = require('../middlewares/auth');
 
 const uploadPath = path.join(__dirname, '../uploads');
@@ -21,26 +22,22 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-router.get('/properti', propertiController.getProperti);
-router.get('/properti/:slug', propertiController.getPropertiBySlug);
-router.post('/properti', verifyToken, upload.array('images', 10), propertiController.createProperti);
-router.put('/properti/:id', verifyToken, upload.array('images', 10), propertiController.updateProperti);
-router.put('/properti/:id/status', verifyToken, propertiController.updateStatusProperti);
-router.delete('/properti/:id', verifyToken, propertiController.deleteProperti);
+router.get('/properti', adminController.getProperti);
+router.get('/properti/:slug', adminController.getPropertiBySlug);
+router.put('/properti/:id/status', verifyToken, adminController.updateStatusProperti);
+router.get('/agen', adminController.getAgen);
 
-router.get('/notifications/:id_agen', verifyToken, propertiController.getNotifikasiAgen);
-router.put('/notifications/:id/read', verifyToken, propertiController.tandaiNotifDibaca);
-router.delete('/notifications/:id/clear', verifyToken, propertiController.clearNotifications);
+router.post('/properti', verifyToken, upload.array('images', 10), agenController.createProperti);
+router.put('/properti/:id', verifyToken, upload.array('images', 10), agenController.updateProperti);
+router.delete('/properti/:id', verifyToken, agenController.deleteProperti);
 
-router.get('/fasilitas', verifyToken, propertiController.getAllFasilitas);
-router.post('/fasilitas', verifyToken, propertiController.createFasilitas);
-router.put('/fasilitas/:id', verifyToken, propertiController.updateFasilitas);
-router.delete('/fasilitas/:id', verifyToken, propertiController.deleteFasilitas);
+router.get('/fasilitas', verifyToken, agenController.getAllFasilitas);
+router.post('/fasilitas', verifyToken, agenController.createFasilitas);
+router.put('/fasilitas/:id', verifyToken, agenController.updateFasilitas);
+router.delete('/fasilitas/:id', verifyToken, agenController.deleteFasilitas);
 
-router.get('/agen', propertiController.getAgen);
-
-router.get('/notifications/:id_agen', verifyToken, propertiController.getNotifikasiAgen);
-router.put('/notifications/:id/read', verifyToken, propertiController.tandaiNotifDibaca);
-router.delete('/notifications/:id/clear', verifyToken, propertiController.clearNotifications);
+router.get('/notifications/:id_agen', verifyToken, agenController.getNotifikasiAgen);
+router.put('/notifications/:id/read', verifyToken, agenController.tandaiNotifDibaca);
+router.delete('/notifications/:id/clear', verifyToken, agenController.clearNotifications);
 
 module.exports = router;
