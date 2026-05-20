@@ -1,345 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { 
-  FiList, FiCheckSquare, FiPieChart, FiUser, FiTrash2, 
-  FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck, FiImage, 
+  FiList, FiCheckSquare, FiUser, FiTrash2, 
+  FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck,
   FiSettings, FiMapPin, FiMenu, FiLogOut 
 } from 'react-icons/fi';
 import ProfileAgen from '../pages/ProfileAgen'; 
-import { io } from 'socket.io-client';
 import FasilitasProperti from '../pages/FasilitasProperti';
-
-const socket = io('http://localhost:5000');
+import { useDashboardAgen } from './../hooks/useDashboardAgen';
 
 export default function DashboardAgen() {
-  const [properti, setProperti] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
-  const [activeTab, setActiveTab] = useState('daftar');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [propertyToDelete, setPropertyToDelete] = useState(null);
-  const [deleteReason, setDeleteReason] = useState('');
-  const [fasilitasOptions, setFasilitasOptions] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const [toast, setToast] = useState(null);
-  const [tempFasilitas, setTempFasilitas] = useState('');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  const navigate = useNavigate();
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
-  const token = localStorage.getItem('token');
-
-  const initialFormState = {
-    title: '', harga: '', lokasi: '', tipe: 'Rumah', id_kategori: 1,
-    kamar_tidur: 0, kamar_mandi: 0, luas: 0, deskripsi: '',
-    latitude: -5.3971, longitude: 105.2668,
-    fasilitas: [] 
-  };
-
-  const [formData, setFormData] = useState(initialFormState);
-
-  const deleteReasons = [
-    "Properti sudah laku terjual / tersewa",
-    "Pemilik batal menjual / menyewakan",
-    "Properti sedang dalam perbaikan / tidak layak",
-    "Pindah ke agen pemasaran lain",
-    "Lainnya"
-  ];
-
-  const getAvatar = () => {
-    if (!user?.foto_profil) return `https://ui-avatars.com/api/?name=${user?.name || 'Agen'}&background=1A314D&color=fff`;
-    if (user.foto_profil.startsWith('http')) return user.foto_profil;
-    return `http://127.0.0.1:9000/propertikita/${user.foto_profil}`;
-  };
-
-  const toggleFasilitas = (item) => {
-    setFormData(prev => {
-      const isExist = prev.fasilitas.includes(item);
-      return {
-        ...prev,
-        fasilitas: isExist 
-          ? prev.fasilitas.filter(f => f !== item) 
-          : [...prev.fasilitas, item]
-      };
-    });
-  };
-
-  const addFasilitasKustom = () => {
-    if (tempFasilitas.trim() !== '') {
-      if (!formData.fasilitas.includes(tempFasilitas.trim())) {
-        setFormData({
-          ...formData,
-          fasilitas: [...formData.fasilitas, tempFasilitas.trim()]
-        });
-      }
-      setTempFasilitas('');
-    }
-  };
-
-  const removeFasilitas = (indexToRemove) => {
-    setFormData({
-      ...formData,
-      fasilitas: formData.fasilitas.filter((_, index) => index !== indexToRemove)
-    });
-  };
-
-  useEffect(() => {
-    if (!user || user.role !== 'agen') {
-      navigate('/login');
-      return;
-    }
-    
-    fetchProperti();
-    fetchNotifications(); 
-
-    socket.emit('join_room', `agen_${user.id}`);
-    
-    const handleNotify = (data) => {
-      setToast(data.message);
-      
-      const newNotif = {
-        id: Date.now(),
-        message: data.message,
-        status: data.status,
-        created_at: data.created_at || new Date(),
-        is_read: false
-      };
-      
-      setNotifications(prev => [newNotif, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      fetchProperti(); 
-      
-      setTimeout(() => { setToast(null); }, 5000);
-    };
-
-    socket.on('notify_agen', handleNotify);
-    return () => { socket.off('notify_agen', handleNotify); };
-  }, []);
-
-  useEffect(() => {
-    if (showModal && user) {
-      const fetchFasilitas = async () => {
-        try {
-          const config = { headers: { Authorization: `Bearer ${token}` } };
-          const res = await axios.get(`http://localhost:5000/api/fasilitas?id_agen=${user.id}`, config);
-          const daftarUnik = [...new Set(res.data.map(item => item.nama_fasilitas))];
-          setFasilitasOptions(daftarUnik);
-        } catch (err) {}
-      };
-      fetchFasilitas();
-    }
-  }, [showModal]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
-
-  const fetchNotifications = async () => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, config);
-      if (res.data.success) {
-        setNotifications(res.data.data);
-        setUnreadCount(res.data.data.filter(n => !n.is_read).length);
-      }
-    } catch (err) {}
-  };
-
-  const markNotificationsAsRead = async () => {
-    setShowNotifDropdown(!showNotifDropdown);
-    if (unreadCount === 0) return;
-    
-    try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, config);
-      setUnreadCount(0);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    } catch (err) {}
-  };
-
-  const fetchProperti = async () => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/properti?agen=${user.id}&status=all`);
-      setProperti(res.data.data.features.map(f => f.properties) || []);
-    } catch (err) {}
-  };
-
-  const handleFileChange = (e) => { 
-    const files = Array.from(e.target.files);
-    setSelectedFiles(prev => [...prev, ...files]);
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    setPreviews(prev => [...prev, ...newPreviews]);
-  };
-
-  const removeImage = (index) => {
-    const urlToRemove = previews[index];
-    
-    if (urlToRemove.startsWith('blob:')) {
-      const fileIndex = selectedFiles.findIndex(file => URL.createObjectURL(file) === urlToRemove);
-      const updatedFiles = [...selectedFiles];
-      updatedFiles.splice(fileIndex, 1);
-      setSelectedFiles(updatedFiles);
-      URL.revokeObjectURL(urlToRemove);
-    }
-
-    const updatedPreviews = [...previews];
-    updatedPreviews.splice(index, 1);
-    setPreviews(updatedPreviews);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!editingId && selectedFiles.length < 2) {
-      alert("Wajib upload minimal 2 foto!");
-      return;
-    }
-
-    if (editingId && previews.length < 2) {
-      alert("Wajib memiliki minimal 2 foto unit!");
-      return;
-    }
-
-    const data = new FormData();
-    Object.keys(formData).forEach(key => {
-      if (['kamar_tidur', 'kamar_mandi', 'luas'].includes(key) && formData[key] === '') {
-        data.append(key, 0);
-      } else if (['latitude', 'longitude'].includes(key) && formData[key] === '') {
-        data.append(key, key === 'latitude' ? -5.3971 : 105.2668);
-      } else if (key === 'fasilitas') {
-        data.append(key, JSON.stringify(formData[key]));
-      } else {
-        data.append(key, formData[key]);
-      }
-    });
-    
-    data.append('id_agen', user.id);
-    
-    const existingImagesToKeep = previews.filter(url => !url.startsWith('blob:'));
-    data.append('existing_images', JSON.stringify(existingImagesToKeep));
-
-    selectedFiles.forEach((file) => { data.append('images', file); });
-
-    try {
-      const config = { 
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}` 
-        } 
-      };
-      
-      if (editingId) {
-        await axios.put(`http://localhost:5000/api/properti/${editingId}`, data, config);
-        setToast("Listing berhasil diupdate!");
-      } else {
-        await axios.post('http://localhost:5000/api/properti', data, config);
-        socket.emit('new_property_submitted', {
-          agenName: user.name,
-          title: formData.title,
-          message: `Agen ${user.name} menambahkan properti baru: ${formData.title}`
-        });
-        setToast("Berhasil ditambah! Menunggu persetujuan admin.");
-      }
-      
-      closeModal();
-      fetchProperti();
-      setTimeout(() => setToast(null), 5000);
-    } catch (err) {
-      alert(err.response?.data?.message || "Terjadi kesalahan pada server (Cek Backend).");
-    }
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingId(null);
-    setSelectedFiles([]);
-    previews.forEach(url => { if(url.startsWith('blob:')) URL.revokeObjectURL(url) });
-    setPreviews([]);
-    setFormData(initialFormState);
-    setTempFasilitas('');
-  };
-
-  const openEditModal = (p) => {
-    setEditingId(p.id);
-    let currentFasilitas = [];
-    try {
-      currentFasilitas = typeof p.fasilitas === 'string' ? JSON.parse(p.fasilitas) : (p.fasilitas || []);
-    } catch (e) {
-      currentFasilitas = [];
-    }
-
-    setFormData({
-      title: p.title, harga: p.harga, lokasi: p.lokasi, tipe: p.tipe, id_kategori: p.id_kategori || 1,
-      kamar_tidur: p.kamar_tidur || 0, kamar_mandi: p.kamar_mandi || 0, luas: p.luas || 0, 
-      deskripsi: p.deskripsi || '', latitude: p.latitude || -5.3971, longitude: p.longitude || 105.2668, 
-      fasilitas: currentFasilitas
-    });
-
-    let parsedImages = [];
-    if (p.images) {
-      if (typeof p.images === 'string') {
-        try { parsedImages = JSON.parse(p.images); } catch(e) {}
-      } else if (Array.isArray(p.images)) {
-        parsedImages = p.images;
-      }
-    }
-    
-    let allPreviews = [];
-    const mainImage = p.image_url || p.imageUrl;
-    if (mainImage) allPreviews.push(mainImage);
-    
-    parsedImages.forEach(img => {
-      const url = typeof img === 'object' ? (img.image_url || img.url || img.imageUrl) : img;
-      if (url && url !== mainImage && !allPreviews.includes(url)) {
-        allPreviews.push(url);
-      }
-    });
-    
-    setPreviews(allPreviews);
-    setShowModal(true);
-  };
-
-  const handleDeleteClick = (p) => {
-    setPropertyToDelete(p);
-    setDeleteReason('');
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteReason) {
-      alert("Silakan pilih alasan penghapusan terlebih dahulu.");
-      return;
-    }
-    try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      if (deleteReason === "Properti sudah laku terjual / tersewa") {
-        await axios.put(`http://localhost:5000/api/properti/${propertyToDelete.id}/status`, { status: 'sold' }, config);
-        setToast("Properti berhasil dipindahkan ke Riwayat Penjualan!");
-      } else {
-        await axios.delete(`http://localhost:5000/api/properti/${propertyToDelete.id}`, config);
-        setToast("Properti berhasil dihapus permanen.");
-      }
-      setShowDeleteModal(false);
-      fetchProperti();
-      setTimeout(() => setToast(null), 5000);
-    } catch (err) { 
-      alert("Gagal memproses permintaan: " + (err.response?.data?.message || "Akses Ditolak")); 
-    }
-  };
-
-  const formatRupiah = (angka) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-  };
+  const {
+    properti, showModal, setShowModal, editingId, previews,
+    activeTab, setActiveTab, showDeleteModal, setShowDeleteModal, deleteReason, setDeleteReason,
+    fasilitasOptions, currentPage, setCurrentPage, itemsPerPage, notifications,
+    showNotifDropdown, unreadCount, toast, setToast, tempFasilitas, setTempFasilitas,
+    isMobileSidebarOpen, setIsMobileSidebarOpen, formData, setFormData, user, deleteReasons,
+    getAvatar, toggleFasilitas, addFasilitasKustom, removeFasilitas, markNotificationsAsRead,
+    handleFileChange, removeImage, handleSubmit, closeModal, openEditModal, handleDeleteClick,
+    confirmDelete, formatRupiah, handleLogout
+  } = useDashboardAgen();
 
   const renderContent = () => {
     if (activeTab === 'profil') return <ProfileAgen />;
@@ -371,7 +50,11 @@ export default function DashboardAgen() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {currentItems.length === 0 ? (
-                <tr><td colSpan="5" className="p-16 md:p-20 text-center font-bold text-gray-300 uppercase text-xs md:text-sm">Belum ada data unit</td></tr>
+                <tr>
+                  <td colSpan="5" className="p-16 md:p-20 text-center font-bold text-gray-300 uppercase text-xs md:text-sm">
+                    Belum ada data unit
+                  </td>
+                </tr>
               ) : (
                 currentItems.map((p) => (
                   <tr key={p.id} className="hover:bg-blue-50/20 transition group text-xs md:text-sm">
@@ -463,6 +146,8 @@ export default function DashboardAgen() {
 
   return (
     <div className="min-h-screen bg-[#F1F3F6] flex pt-16 md:pt-20">
+      
+      {/* TOAST NOTIFICATION */}
       {toast && (
         <div className="fixed top-20 right-4 lg:right-10 bg-slate-900 text-white px-4 lg:px-6 py-3 lg:py-4 rounded-2xl shadow-2xl flex items-center gap-3 lg:gap-4 z-[200] animate-in slide-in-from-right duration-300 w-[90%] lg:w-auto">
           <div className="bg-[#1A314D] p-2 rounded-full text-white flex-shrink-0"><FiInfo size={16} className="md:w-5 md:h-5" /></div>
@@ -474,6 +159,7 @@ export default function DashboardAgen() {
         </div>
       )}
 
+      {/* MOBILE SIDEBAR OVERLAY */}
       {isMobileSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
@@ -481,6 +167,7 @@ export default function DashboardAgen() {
         ></div>
       )}
 
+      {/* SIDEBAR NAVIGATION */}
       <div className={`fixed top-16 md:top-20 left-0 h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] w-64 md:w-72 bg-white border-r border-blue-50 shadow-2xl md:shadow-sm flex flex-col z-50 md:z-40 overflow-y-auto custom-scrollbar transform transition-transform duration-300 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="p-4 md:p-6 flex justify-between items-center md:block">
           <div className="bg-[#EBF5FF] p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4 border border-white shadow-sm w-full">
@@ -513,12 +200,13 @@ export default function DashboardAgen() {
         </nav>
 
         <div className="p-6 md:p-8 border-t border-blue-50 mt-auto">
-          <button onClick={() => { localStorage.clear(); navigate('/login'); }} className="flex items-center justify-center md:justify-start gap-2 md:gap-3 text-red-400 font-black text-[10px] md:text-xs hover:text-red-600 transition uppercase tracking-widest w-full">
+          <button onClick={handleLogout} className="flex items-center justify-center md:justify-start gap-2 md:gap-3 text-red-400 font-black text-[10px] md:text-xs hover:text-red-600 transition uppercase tracking-widest w-full">
             <FiLogOut /> Logout Sistem
           </button>
         </div>
       </div>
 
+      {/* MAIN CONTENT AREA */}
       <div className="flex-1 ml-0 md:ml-72 p-4 md:p-12 overflow-x-hidden relative min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] w-full">
         <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 md:mb-10 gap-4 md:gap-6">
           <div className="flex items-center gap-3 md:gap-0">
@@ -588,6 +276,7 @@ export default function DashboardAgen() {
         {renderContent()}
       </div>
 
+      {/* MODAL PENGEHAPUSAN / SOLD */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4">
           <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 w-full max-w-lg shadow-2xl animate-in zoom-in duration-300">
@@ -611,6 +300,7 @@ export default function DashboardAgen() {
         </div>
       )}
 
+      {/* MODAL FORM TAMBAH / EDIT UNIT */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-2 md:p-4 transition-all duration-300">
           <div className="bg-white rounded-2xl md:rounded-[2.5rem] w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in duration-300">
@@ -630,178 +320,167 @@ export default function DashboardAgen() {
               </button>
             </div>
             
-            <div className="p-5 md:p-10 overflow-y-auto custom-scrollbar">
-              <form id="propertyForm" onSubmit={handleSubmit} className="grid grid-cols-4 gap-x-4 md:gap-x-6 gap-y-5 md:gap-y-8">
-                
-                <div className="col-span-4 md:col-span-3 space-y-1.5 md:space-y-2">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Judul Listing</label>
-                  <input 
-                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 border border-slate-100 transition-all shadow-sm" 
-                    placeholder="Contoh: Rumah Mewah..."
-                    value={formData.title} 
-                    onChange={e => setFormData({...formData, title: e.target.value})} 
-                    required 
-                  />
-                </div>
-                <div className="col-span-4 md:col-span-1 space-y-1.5 md:space-y-2">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Kategori</label>
-                  <select 
-                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
-                    value={formData.id_kategori} 
-                    onChange={e => setFormData({...formData, id_kategori: Number(e.target.value)})}
-                  >
-                    <option value={1}>Dijual</option>
-                    <option value={2}>Disewakan</option>
-                  </select>
-                </div>
-
-                <div className="col-span-4 md:col-span-2 space-y-1.5 md:space-y-2">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Harga (Rp)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xs md:text-sm">Rp</span>
-                    <input 
-                      type="number" 
-                      className="w-full p-3 md:p-4 pl-9 md:pl-12 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
-                      value={formData.harga} 
-                      onChange={e => setFormData({...formData, harga: e.target.value})} 
-                      required 
-                    />
-                  </div>
-                </div>
-                <div className="col-span-4 md:col-span-2 space-y-1.5 md:space-y-2">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Tipe Properti</label>
-                  <select 
-                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
-                    value={formData.tipe} 
-                    onChange={e => setFormData({...formData, tipe: e.target.value})}
-                  >
-                    <option>Rumah</option><option>Apartemen</option><option>Kos-kosan</option><option>Villa</option>
-                  </select>
-                </div>
-
-                <div className="col-span-4 grid grid-cols-3 gap-2 md:gap-4 bg-blue-50/50 p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-blue-100/50">
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest md:ml-1">K. Tidur</label>
-                    <input type="number" className="w-full p-2.5 md:p-4 bg-white rounded-lg md:rounded-xl font-bold text-sm md:text-base text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center md:text-left" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} />
-                  </div>
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest md:ml-1">K. Mandi</label>
-                    <input type="number" className="w-full p-2.5 md:p-4 bg-white rounded-lg md:rounded-xl font-bold text-sm md:text-base text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center md:text-left" value={formData.kamar_mandi} onChange={e => setFormData({...formData, kamar_mandi: e.target.value})} />
-                  </div>
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest md:ml-1">Luas (m²)</label>
-                    <input type="number" className="w-full p-2.5 md:p-4 bg-white rounded-lg md:rounded-xl font-bold text-sm md:text-base text-slate-700 outline-none border border-blue-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm text-center md:text-left" value={formData.luas} onChange={e => setFormData({...formData, luas: e.target.value})} />
-                  </div>
-                </div>
-
-                <div className="col-span-4 space-y-3 md:space-y-4">
-                  <div className="space-y-1.5 md:space-y-2">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Lokasi Lengkap</label>
-                    <input type="text" className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <div className="space-y-1.5 md:space-y-2">
-                      <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-1">Latitude</label>
-                      <input type="text" placeholder="-5.450000" className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})}/>
+            <div className="p-5 md:p-10 overflow-y-auto custom-scrollbar flex-1">
+              <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+                {/* --- SEKSI 1: INFORMASI DASAR --- */}
+                <div className="space-y-4">
+                  <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">1. Informasi Dasar</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Nama Properti / Judul Listing *</label>
+                      <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Contoh: Rumah Minimalis Modern Cluster A" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
                     </div>
-                    <div className="space-y-1.5 md:space-y-2">
-                      <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-1">Longitude</label>
-                      <input type="text" placeholder="105.266670" className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})}/>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Harga Unit (Rp) *</label>
+                      <input type="number" required value={formData.harga} onChange={e => setFormData({...formData, harga: e.target.value})} placeholder="Contoh: 500000000" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
                     </div>
                   </div>
-                </div>
-
-                <div className="col-span-4 space-y-1.5 md:space-y-2">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Deskripsi</label>
-                  <textarea className="w-full p-4 md:p-5 bg-slate-50 rounded-2xl md:rounded-[2rem] font-bold text-sm md:text-base text-slate-700 outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm h-24 md:h-32 resize-none" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})}></textarea>
-                </div>
-
-                <div className="col-span-4 space-y-3 md:space-y-4">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Pilih Fasilitas</label>
-                  <div className="flex flex-wrap gap-2 p-4 md:p-6 bg-slate-50/50 rounded-2xl md:rounded-[2rem] border border-dashed border-slate-200 max-h-40 overflow-y-auto custom-scrollbar">
-                    {fasilitasOptions.length === 0 && <span className="text-xs text-gray-400">Belum ada pilihan fasilitas, silakan ketik di bawah.</span>}
-                    {fasilitasOptions.map((item) => {
-                      const active = formData.fasilitas.includes(item);
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => toggleFasilitas(item)}
-                          className={`px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 border-2 ${
-                            active ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-blue-200'
-                          }`}
-                        >
-                          {active && <FiCheck className="inline mr-1" />} {item.toUpperCase()}
-                        </button>
-                      );
-                    })}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Tipe Properti</label>
+                      <select className="w-full p-2 border rounded-md">
+                        <option>Rumah</option>
+                        <option>Kost</option>
+                        <option>Apartemen</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Kategori Transaksi</label>
+                      <select className="w-full p-2 border rounded-md">
+                        <option>Di Jual</option>
+                        <option>Di Sewakan</option>
+                      </select>
+                    </div>
                   </div>
-                  
-                  <div className="flex gap-2 md:gap-3">
+
+                  {/* Baris Baru Khusus Alamat Lokasi (Lebar Penuh di Bawahnya) */}
+                  <div className="space-y-4">
+                    <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Alamat Lokasi *</label>
                     <input 
                       type="text" 
-                      className="flex-1 p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-sm md:text-base outline-none border border-slate-100 focus:ring-2 focus:ring-blue-500/20 shadow-sm" 
-                      placeholder="Tambah fasilitas kustom..." 
-                      value={tempFasilitas}
-                      onChange={(e) => setTempFasilitas(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFasilitasKustom())}
+                      placeholder="Nama jalan, kota, atau daerah lengkap..." 
+                      className="w-full p-2 border rounded-md"
                     />
-                    <button type="button" onClick={addFasilitasKustom} className="px-4 md:px-6 bg-slate-800 text-white rounded-xl md:rounded-2xl font-black hover:bg-black transition-all shadow-md active:scale-95"><FiPlus size={20}/></button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 md:gap-2">
-                    {formData.fasilitas.map((f, i) => (
-                      <div key={i} className="flex items-center gap-1.5 md:gap-2 bg-slate-800 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl font-bold text-[9px] md:text-[10px] shadow-sm animate-in slide-in-from-left-2 transition-all">
-                        {f.toUpperCase()} <FiX className="cursor-pointer hover:text-red-400 transition" onClick={() => removeFasilitas(i)} />
-                      </div>
-                    ))}
                   </div>
                 </div>
 
-                <div className="col-span-4 space-y-3 md:space-y-4">
-                  <label className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 block">Foto Unit <span className="text-blue-500 normal-case ml-1">(Minimal 2 Foto)</span></label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    {previews.map((url, index) => (
-                      <div key={index} className="relative group aspect-square">
-                        <img 
-                          src={url} 
-                          alt="preview" 
-                          className="w-full h-full object-cover rounded-xl md:rounded-[2rem] border-2 border-white shadow-md transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-[2rem]"></div>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 md:top-3 right-2 md:right-3 bg-white/90 backdrop-blur-md text-red-500 p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg hover:bg-red-500 hover:text-white transition-all scale-100 md:scale-0 group-hover:scale-100"
-                        >
-                          <FiX size={14} className="md:w-4 md:h-4" />
-                        </button>
-                      </div>
-                    ))}
-                    
-                    <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl md:rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all group overflow-hidden relative">
-                      <input type="file" multiple onChange={handleFileChange} className="hidden" accept="image/*" />
-                      <div className="flex flex-col items-center group-hover:-translate-y-1 transition-transform">
-                          <FiImage className="text-slate-300 text-2xl md:text-3xl mb-1.5 md:mb-2 group-hover:text-blue-400 transition-colors" />
-                          <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter group-hover:text-blue-500">Tambah Foto</span>
-                      </div>
-                    </label>
+                {/* --- SEKSI 2: SPESIFIKASI FISIK --- */}
+                <div className="space-y-4">
+                  <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">2. Spesifikasi Fisik</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Kamar Tidur</label>
+                      <input type="number" value={formData.kamar_tidur} onChange={e => setFormData({...formData, kamar_tidur: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Kamar Mandi</label>
+                      <input type="number" value={formData.kamar_mandi} onChange={e => setFormData({...formData, kamar_mandi: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Luas (M²)</label>
+                      <input type="number" value={formData.luas} onChange={e => setFormData({...formData, luas: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                    </div>
                   </div>
+                </div>
+
+                {/* --- SEKSI 3: DESKRIPSI & KOORDINAT --- */}
+                <div className="space-y-4">
+                  <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">3. Deskripsi & Koordinat Geografis</h4>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Deskripsi Lengkap *</label>
+                    <textarea required rows="4" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})} placeholder="Tulis spesifikasi mendalam, keunggulan, akses strategis dsb..." className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition resize-none"></textarea>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Latitude</label>
+                      <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Longitude</label>
+                      <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- SEKSI 4: KELOLA FASILITAS --- */}
+                <div className="space-y-4">
+                  <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">4. Fasilitas Internal Properti</h4>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Pilih dari Fasilitas Terdaftar Anda:</label>
+                    <div className="flex flex-wrap gap-2">
+                      {fasilitasOptions.length === 0 ? (
+                        <p className="text-xs text-gray-400 font-medium">Belum ada master fasilitas di tab menu Kelola Fasilitas.</p>
+                      ) : (
+                        fasilitasOptions.map((item, index) => {
+                          const aktif = formData.fasilitas.includes(item);
+                          return (
+                            <button key={index} type="button" onClick={() => toggleFasilitas(item)} className={`px-4 py-2 rounded-xl font-bold text-xs border uppercase tracking-wider transition ${aktif ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-gray-50 border-gray-100 text-slate-500 hover:bg-gray-100'}`}>
+                              {item}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Tambah Fasilitas Tambahan Kustom</label>
+                    <div className="flex gap-2">
+                      <input type="text" value={tempFasilitas} onChange={e => setTempFasilitas(e.target.value)} placeholder="Contoh: Smart Door Lock, Balkon Luas, Kolam Renang Anak" className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                      <button type="button" onClick={addFasilitasKustom} className="px-5 bg-slate-900 text-white font-black text-xs rounded-xl hover:bg-slate-800 uppercase tracking-wider transition">Tambah</button>
+                    </div>
+                  </div>
+                  {formData.fasilitas.length > 0 && (
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Fasilitas Terpilih untuk Unit Ini:</label>
+                      <div className="flex flex-wrap gap-1.5 p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                        {formData.fasilitas.map((f, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-700 uppercase">
+                            {f}
+                            <button type="button" onClick={() => removeFasilitas(idx)} className="text-red-400 hover:text-red-600 transition"><FiX size={12} /></button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* --- SEKSI 5: DOKUMENTASI / GAMBAR --- */}
+                <div className="space-y-4">
+                  <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">5. Galeri Foto Properti</h4>
+                  <div className="border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-2xl p-6 md:p-8 text-center transition cursor-pointer relative bg-gray-50/50">
+                    <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-slate-400"><FiPlus size={20} /></div>
+                      <p className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-tight">Upload Foto Unit Anda</p>
+                      <p className="text-[10px] text-gray-400 font-medium">Format JPEG/PNG. Wajib minimal 2 foto agar valid ditinjau admin.</p>
+                    </div>
+                  </div>
+
+                  {previews.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                      {previews.map((src, index) => (
+                        <div key={index} className="relative aspect-video rounded-xl overflow-hidden border bg-gray-100 group shadow-sm">
+                          <img src={src} className="w-full h-full object-cover" alt="Preview" />
+                          <button type="button" onClick={() => removeImage(index)} className="absolute top-1.5 right-1.5 p-1.5 bg-black/60 text-white rounded-lg hover:bg-red-600 transition opacity-0 group-hover:opacity-100 shadow-md"><FiTrash2 size={12}/></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* BUTTON SUBMIT MODAL */}
+                <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 flex-shrink-0">
+                  <button type="button" onClick={closeModal} className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-500 font-black text-xs rounded-xl uppercase tracking-widest transition">Batal</button>
+                  <button type="submit" className="w-full sm:w-auto px-10 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-lg shadow-blue-600/20 uppercase tracking-widest transition">Simpan Properti</button>
                 </div>
               </form>
             </div>
 
-            <div className="px-5 py-4 md:px-10 md:py-8 bg-white border-t border-gray-50 flex flex-col sm:flex-row gap-3 md:gap-4 flex-shrink-0">
-              <button form="propertyForm" type="submit" className="w-full sm:flex-[2] py-3 md:py-5 bg-[#1A314D] text-white rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-xl shadow-blue-900/20 hover:bg-black hover:-translate-y-0.5 transition-all active:scale-95 uppercase tracking-widest order-1 sm:order-2">
-                Simpan Data
-              </button>
-              <button type="button" onClick={closeModal} className="w-full sm:flex-1 py-3 md:py-5 bg-slate-50 text-slate-400 rounded-xl md:rounded-2xl font-black text-sm md:text-lg hover:bg-slate-100 transition-all active:scale-95 uppercase tracking-widest order-2 sm:order-1">
-                Batal
-              </button>
-            </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }

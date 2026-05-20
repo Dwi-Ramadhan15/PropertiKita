@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
 
-export default function useDashboardAdmin() {
+export function useDashboardAdmin() {
   const [activeTab, setActiveTab] = useState('pending');
   const [filterStatus, setFilterStatus] = useState('all');
   const [subTabAccount, setSubTabAccount] = useState('user');
@@ -16,7 +16,7 @@ export default function useDashboardAdmin() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
+  
   const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -24,19 +24,16 @@ export default function useDashboardAdmin() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const navigate = useNavigate();
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = JSON.parse(localStorage.getItem('user'));
+  const token = localStorage.getItem('token');
 
   const isPropertyTab = ['all', 'pending', 'approved', 'rejected'].includes(activeTab);
 
-  const getHeaders = () => {
-    return { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
-  };
-
   const fetchProperti = async () => {
     try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       const queryStatus = activeTab === 'all' ? filterStatus : activeTab;
-      const res = await axios.get(`http://localhost:5000/api/properti?status=${queryStatus}&page=${page}&limit=5`, getHeaders());
+      const res = await axios.get(`http://localhost:5000/api/properti?status=${queryStatus}&page=${page}&limit=5`, config);
       setPropertiData(res.data.data.features.map(f => f.properties) || []);
       setTotalPages(res.data.data.totalPages || 1);
     } catch (err) {}
@@ -44,22 +41,24 @@ export default function useDashboardAdmin() {
 
   const fetchAllPropertiForStats = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/properti?status=all&limit=1000`, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(`http://localhost:5000/api/properti?status=all&limit=1000`, config);
       setAllPropertiForStats(res.data.data.features.map(f => f.properties) || []);
     } catch (err) {}
   };
 
   const fetchAccounts = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/users?role=${subTabAccount}`, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(`http://localhost:5000/api/users?role=${subTabAccount}`, config);
       setAccountsData(res.data.data || []);
     } catch (err) {}
   };
 
   const fetchNotifications = async () => {
     try {
-      if (!user) return;
-      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, config);
       if (res.data.success) {
         setNotifications(res.data.data);
         setUnreadCount(res.data.data.filter(n => !n.is_read).length);
@@ -73,14 +72,14 @@ export default function useDashboardAdmin() {
   };
 
   const refreshAllData = useCallback(() => {
-    if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'rejected' || activeTab === 'all') {
+    if (activeTab === 'pending' || activeTab === 'approved') {
       fetchProperti();
     }
     if (activeTab === 'accounts') {
       fetchAccounts();
     }
     fetchAllPropertiForStats(); 
-  }, [activeTab, page, subTabAccount, filterStatus]);
+  }, [activeTab, page, subTabAccount]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -104,7 +103,7 @@ export default function useDashboardAdmin() {
 
   useEffect(() => {
     socket.emit('join_room', 'admin_room');
-
+    
     const handleNotify = (data) => {
       setToast(data.message);
       const newNotif = {
@@ -116,14 +115,14 @@ export default function useDashboardAdmin() {
         is_read: false,
         slug: data.slug || null 
       };
-
+      
       setNotifications(prev => [newNotif, ...prev]);
       setUnreadCount(prev => prev + 1);
-
+      
       refreshAllData();
       setTimeout(() => setToast(null), 5000);
     };
-
+    
     socket.on('notify_admin', handleNotify);
     return () => socket.off('notify_admin', handleNotify);
   }, [refreshAllData]);
@@ -131,9 +130,10 @@ export default function useDashboardAdmin() {
   const markNotificationsAsRead = async () => {
     setShowNotifDropdown(!showNotifDropdown);
     if (unreadCount === 0) return;
-
+    
     try {
-      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, config);
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {}
@@ -141,7 +141,8 @@ export default function useDashboardAdmin() {
 
   const handleClearNotifications = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/notifications/${user.id}/clear`, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.delete(`http://localhost:5000/api/notifications/${user.id}/clear`, config);
       setNotifications([]);
       setUnreadCount(0);
     } catch (err) {
@@ -152,7 +153,8 @@ export default function useDashboardAdmin() {
 
   const handleReviewClick = async (p) => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/properti/${p.slug}`, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(`http://localhost:5000/api/properti/${p.slug}`, config);
       if (res.data.success) {
         setSelectedProperty(res.data.data);
         setCurrentImageIndex(0);
@@ -166,8 +168,9 @@ export default function useDashboardAdmin() {
   const handleUpdateStatus = async (id, newStatus) => {
     if (!window.confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
     try {
-      await axios.put(`http://localhost:5000/api/properti/${id}/status`, { status: newStatus }, getHeaders());
-
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.put(`http://localhost:5000/api/properti/${id}/status`, { status: newStatus }, config);
+      
       if (selectedProperty) {
         socket.emit('property_status_changed', {
           agenId: selectedProperty.id_agen,
@@ -188,7 +191,8 @@ export default function useDashboardAdmin() {
   const handleDeleteAccount = async (id) => {
     if (!window.confirm("Hapus akun ini secara permanen?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/users/${id}`, getHeaders());
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.delete(`http://localhost:5000/api/users/${id}`, config);
       fetchAccounts();
     } catch (err) { 
       alert("Gagal menghapus akun"); 
@@ -197,10 +201,11 @@ export default function useDashboardAdmin() {
 
   const handleNotificationClick = async (notif) => {
     setShowNotifDropdown(false);
-
+    
     if (notif.slug) {
       try {
-        const res = await axios.get(`http://localhost:5000/api/properti/${notif.slug}`, getHeaders());
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const res = await axios.get(`http://localhost:5000/api/properti/${notif.slug}`, config);
         if (res.data.success) {
           setSelectedProperty(res.data.data);
           setCurrentImageIndex(0);
@@ -239,28 +244,21 @@ export default function useDashboardAdmin() {
   };
 
   return {
-    activeTab,
-    setActiveTab,
-    filterStatus,
-    setFilterStatus,
-    subTabAccount,
-    setSubTabAccount,
+    activeTab, setActiveTab,
+    filterStatus, setFilterStatus,
+    subTabAccount, setSubTabAccount,
     propertiData,
     allPropertiForStats,
     accountsData,
-    page,
-    setPage,
+    page, setPage,
     totalPages,
-    selectedProperty,
-    setSelectedProperty,
+    selectedProperty, setSelectedProperty,
     currentImageIndex,
     notifications,
-    showNotifDropdown,
+    showNotifDropdown, setShowNotifDropdown,
     unreadCount,
-    toast,
-    setToast,
-    isMobileSidebarOpen,
-    setIsMobileSidebarOpen,
+    toast, setToast,
+    isMobileSidebarOpen, setIsMobileSidebarOpen,
     user,
     isPropertyTab,
     markNotificationsAsRead,
