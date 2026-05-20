@@ -16,16 +16,13 @@ router.post('/verify-otp', userController.verifyOtp);
 
 router.post('/forgot-password', userController.forgotPassword);
 router.post('/reset-password', userController.resetPassword);
-
-router.get('/users', verifyToken, userController.getAllUsers);
-router.get('/users/:id', userController.getUserProfile);
-router.delete('/users/:id', verifyToken, userController.deleteUser);
-
+router.get('/', verifyToken, userController.getAllUsers);
 router.get('/agen/terverifikasi', userController.getVerifiedAgen);
-
 router.get('/profile', verifyToken, userController.getProfile);
 router.put('/profile', verifyToken, userController.updateProfile);
 router.put('/change-password', verifyToken, userController.changePassword);
 router.put('/avatar', verifyToken, upload.single('foto_profil'), userController.updateAvatar);
+router.get('/:id', userController.getUserProfile);
+router.delete('/:id', verifyToken, userController.deleteUser);
 
 module.exports = router;

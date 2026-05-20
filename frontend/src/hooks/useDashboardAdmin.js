@@ -24,16 +24,19 @@ export default function useDashboardAdmin() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
-  const token = localStorage.getItem('token');
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
 
   const isPropertyTab = ['all', 'pending', 'approved', 'rejected'].includes(activeTab);
 
+  const getHeaders = () => {
+    return { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+  };
+
   const fetchProperti = async () => {
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
       const queryStatus = activeTab === 'all' ? filterStatus : activeTab;
-      const res = await axios.get(`http://localhost:5000/api/properti?status=${queryStatus}&page=${page}&limit=5`, config);
+      const res = await axios.get(`http://localhost:5000/api/properti?status=${queryStatus}&page=${page}&limit=5`, getHeaders());
       setPropertiData(res.data.data.features.map(f => f.properties) || []);
       setTotalPages(res.data.data.totalPages || 1);
     } catch (err) {}
@@ -41,24 +44,22 @@ export default function useDashboardAdmin() {
 
   const fetchAllPropertiForStats = async () => {
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get(`http://localhost:5000/api/properti?status=all&limit=1000`, config);
+      const res = await axios.get(`http://localhost:5000/api/properti?status=all&limit=1000`, getHeaders());
       setAllPropertiForStats(res.data.data.features.map(f => f.properties) || []);
     } catch (err) {}
   };
 
   const fetchAccounts = async () => {
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get(`http://localhost:5000/api/users?role=${subTabAccount}`, config);
+      const res = await axios.get(`http://localhost:5000/api/users?role=${subTabAccount}`, getHeaders());
       setAccountsData(res.data.data || []);
     } catch (err) {}
   };
 
   const fetchNotifications = async () => {
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, config);
+      if (!user) return;
+      const res = await axios.get(`http://localhost:5000/api/notifications/${user.id}`, getHeaders());
       if (res.data.success) {
         setNotifications(res.data.data);
         setUnreadCount(res.data.data.filter(n => !n.is_read).length);
@@ -72,14 +73,14 @@ export default function useDashboardAdmin() {
   };
 
   const refreshAllData = useCallback(() => {
-    if (activeTab === 'pending' || activeTab === 'approved') {
+    if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'rejected' || activeTab === 'all') {
       fetchProperti();
     }
     if (activeTab === 'accounts') {
       fetchAccounts();
     }
     fetchAllPropertiForStats(); 
-  }, [activeTab, page, subTabAccount]);
+  }, [activeTab, page, subTabAccount, filterStatus]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -132,8 +133,7 @@ export default function useDashboardAdmin() {
     if (unreadCount === 0) return;
 
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, config);
+      await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, getHeaders());
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {}
@@ -141,8 +141,7 @@ export default function useDashboardAdmin() {
 
   const handleClearNotifications = async () => {
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.delete(`http://localhost:5000/api/notifications/${user.id}/clear`, config);
+      await axios.delete(`http://localhost:5000/api/notifications/${user.id}/clear`, getHeaders());
       setNotifications([]);
       setUnreadCount(0);
     } catch (err) {
@@ -153,8 +152,7 @@ export default function useDashboardAdmin() {
 
   const handleReviewClick = async (p) => {
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get(`http://localhost:5000/api/properti/${p.slug}`, config);
+      const res = await axios.get(`http://localhost:5000/api/properti/${p.slug}`, getHeaders());
       if (res.data.success) {
         setSelectedProperty(res.data.data);
         setCurrentImageIndex(0);
@@ -168,8 +166,7 @@ export default function useDashboardAdmin() {
   const handleUpdateStatus = async (id, newStatus) => {
     if (!window.confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.put(`http://localhost:5000/api/properti/${id}/status`, { status: newStatus }, config);
+      await axios.put(`http://localhost:5000/api/properti/${id}/status`, { status: newStatus }, getHeaders());
 
       if (selectedProperty) {
         socket.emit('property_status_changed', {
@@ -191,8 +188,7 @@ export default function useDashboardAdmin() {
   const handleDeleteAccount = async (id) => {
     if (!window.confirm("Hapus akun ini secara permanen?")) return;
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.delete(`http://localhost:5000/api/users/${id}`, config);
+      await axios.delete(`http://localhost:5000/api/users/${id}`, getHeaders());
       fetchAccounts();
     } catch (err) { 
       alert("Gagal menghapus akun"); 
@@ -204,8 +200,7 @@ export default function useDashboardAdmin() {
 
     if (notif.slug) {
       try {
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const res = await axios.get(`http://localhost:5000/api/properti/${notif.slug}`, config);
+        const res = await axios.get(`http://localhost:5000/api/properti/${notif.slug}`, getHeaders());
         if (res.data.success) {
           setSelectedProperty(res.data.data);
           setCurrentImageIndex(0);
