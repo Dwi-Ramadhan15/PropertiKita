@@ -5,7 +5,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 
-const userRoute = require('./routes/user_route');
+const userRoute = require('./routes/userRoute');
 const categoryRoutes = require('./routes/category_route');
 const propertiRoute = require('./routes/properti_route');
 const { swaggerUi, specs } = require('./utils/swagger');
@@ -90,6 +90,6 @@ server.listen(PORT, async() => {
     await initMinio();
     console.log(`=========================================`);
     console.log(`🚀 Server berjalan di port: ${PORT}`);
-    console.log(`📖 Swagger UI tersedia di /api-docs`);
+    console.log(`📖 Swagger UI tersedia di http://localhost:${PORT}/api-docs/#/`);
     console.log(`=========================================`);
 });

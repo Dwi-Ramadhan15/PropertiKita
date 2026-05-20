@@ -264,7 +264,6 @@ const forgotPassword = async(req, res) => {
         }
 
         return res.status(500).json({ success: false, message: "Gagal mengirim OTP, pengguna tidak memiliki email atau WA yang valid" });
-
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -464,6 +463,58 @@ const updateAvatar = async(req, res) => {
     }
 };
 
+const getVerifiedAgen = async(req, res) => {
+    try {
+        const query = `
+            SELECT a.id, a.nama_agen, a.no_whatsapp, a.foto_profil, 
+            COUNT(p.id) as total_properti
+            FROM agen a
+            JOIN users u ON a.email = u.email OR a.no_whatsapp = u.phone_number
+            LEFT JOIN properties p ON a.id = p.id_agen AND p.status = 'approved'
+            WHERE u.is_verified = true AND u.role = 'agen'
+            GROUP BY a.id
+            ORDER BY a.nama_agen ASC
+        `;
+        const { rows } = await db.query(query);
+        res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const deleteUser = async (req, res) => {
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+        const { id } = req.params;
+
+        const checkUser = await client.query("SELECT * FROM users WHERE id = $1", [id]);
+        if (checkUser.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+        }
+
+        const user = checkUser.rows[0];
+
+        if (user.role === 'agen') {
+            await client.query(
+                "DELETE FROM agen WHERE email = $1 OR no_whatsapp = $2",
+                [user.email, user.phone_number]
+            );
+        }
+
+        await client.query("DELETE FROM users WHERE id = $1", [id]);
+
+        await client.query('COMMIT');
+        res.status(200).json({ success: true, message: "Akun berhasil dihapus secara permanen" });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -472,9 +523,11 @@ module.exports = {
     forgotPassword,
     resetPassword,
     changePassword,
-    getAllUsers,
     getProfile,
+    getAllUsers,
     getUserProfile,
     updateProfile,
-    updateAvatar
+    updateAvatar,
+    getVerifiedAgen,
+    deleteUser
 };
