@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
 
-export function useDashboardAdmin() {
+export default function useDashboardAdmin() {
   const [activeTab, setActiveTab] = useState('pending');
   const [filterStatus, setFilterStatus] = useState('all');
   const [subTabAccount, setSubTabAccount] = useState('user');
@@ -16,7 +16,7 @@ export function useDashboardAdmin() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
+
   const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -103,7 +103,7 @@ export function useDashboardAdmin() {
 
   useEffect(() => {
     socket.emit('join_room', 'admin_room');
-    
+
     const handleNotify = (data) => {
       setToast(data.message);
       const newNotif = {
@@ -115,14 +115,14 @@ export function useDashboardAdmin() {
         is_read: false,
         slug: data.slug || null 
       };
-      
+
       setNotifications(prev => [newNotif, ...prev]);
       setUnreadCount(prev => prev + 1);
-      
+
       refreshAllData();
       setTimeout(() => setToast(null), 5000);
     };
-    
+
     socket.on('notify_admin', handleNotify);
     return () => socket.off('notify_admin', handleNotify);
   }, [refreshAllData]);
@@ -130,7 +130,7 @@ export function useDashboardAdmin() {
   const markNotificationsAsRead = async () => {
     setShowNotifDropdown(!showNotifDropdown);
     if (unreadCount === 0) return;
-    
+
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.put(`http://localhost:5000/api/notifications/${user.id}/read`, {}, config);
@@ -170,7 +170,7 @@ export function useDashboardAdmin() {
     try {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.put(`http://localhost:5000/api/properti/${id}/status`, { status: newStatus }, config);
-      
+
       if (selectedProperty) {
         socket.emit('property_status_changed', {
           agenId: selectedProperty.id_agen,
@@ -201,7 +201,7 @@ export function useDashboardAdmin() {
 
   const handleNotificationClick = async (notif) => {
     setShowNotifDropdown(false);
-    
+
     if (notif.slug) {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -244,21 +244,28 @@ export function useDashboardAdmin() {
   };
 
   return {
-    activeTab, setActiveTab,
-    filterStatus, setFilterStatus,
-    subTabAccount, setSubTabAccount,
+    activeTab,
+    setActiveTab,
+    filterStatus,
+    setFilterStatus,
+    subTabAccount,
+    setSubTabAccount,
     propertiData,
     allPropertiForStats,
     accountsData,
-    page, setPage,
+    page,
+    setPage,
     totalPages,
-    selectedProperty, setSelectedProperty,
+    selectedProperty,
+    setSelectedProperty,
     currentImageIndex,
     notifications,
-    showNotifDropdown, setShowNotifDropdown,
+    showNotifDropdown,
     unreadCount,
-    toast, setToast,
-    isMobileSidebarOpen, setIsMobileSidebarOpen,
+    toast,
+    setToast,
+    isMobileSidebarOpen,
+    setIsMobileSidebarOpen,
     user,
     isPropertyTab,
     markNotificationsAsRead,
