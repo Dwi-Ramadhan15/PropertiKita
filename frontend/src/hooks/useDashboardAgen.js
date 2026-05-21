@@ -32,14 +32,26 @@ export const useDashboardAgen = () => {
   const user = userStr ? JSON.parse(userStr) : null;
   const token = localStorage.getItem('token');
 
-  const initialFormState = {
+  const defaultFormState = {
     title: '', harga: '', lokasi: '', tipe: 'Rumah', id_kategori: 1,
     kamar_tidur: 0, kamar_mandi: 0, luas: 0, deskripsi: '',
     latitude: -5.3971, longitude: 105.2668,
     fasilitas: [] 
   };
 
-  const [formData, setFormData] = useState(initialFormState);
+  const getDraftOrDefault = () => {
+    const savedDraft = localStorage.getItem('properti_draft_formData');
+    if (savedDraft) {
+      try {
+        return JSON.parse(savedDraft);
+      } catch(e) {
+        return defaultFormState;
+      }
+    }
+    return defaultFormState;
+  };
+
+  const [formData, setFormData] = useState(getDraftOrDefault());
 
   const deleteReasons = [
     "Properti sudah laku terjual / tersewa",
@@ -85,6 +97,12 @@ export const useDashboardAgen = () => {
       fasilitas: formData.fasilitas.filter((_, index) => index !== indexToRemove)
     });
   };
+
+  useEffect(() => {
+    if (!editingId && showModal) {
+      localStorage.setItem('properti_draft_formData', JSON.stringify(formData));
+    }
+  }, [formData, editingId, showModal]);
 
   useEffect(() => {
     if (!user || user.role !== 'agen') {
@@ -241,6 +259,7 @@ export const useDashboardAgen = () => {
           title: formData.title,
           message: `Agen ${user.name} menambahkan properti baru: ${formData.title}`
         });
+        localStorage.removeItem('properti_draft_formData');
         setToast("Berhasil ditambah! Menunggu persetujuan admin.");
       }
       
@@ -258,7 +277,7 @@ export const useDashboardAgen = () => {
     setSelectedFiles([]);
     previews.forEach(url => { if(url.startsWith('blob:')) URL.revokeObjectURL(url) });
     setPreviews([]);
-    setFormData(initialFormState);
+    setFormData(getDraftOrDefault());
     setTempFasilitas('');
   };
 
