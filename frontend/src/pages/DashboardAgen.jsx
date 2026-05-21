@@ -87,15 +87,21 @@ export default function DashboardAgen() {
                     </td>
                     <td className="p-4 md:p-6 text-center">
                       <div className="flex justify-center gap-1.5 md:gap-2">
-                        {p.status !== 'sold' ? (
-                          <>
-                            <button onClick={() => openEditModal(p)} className="p-2 md:p-2.5 bg-gray-50 text-slate-400 rounded-lg md:rounded-xl hover:bg-[#1A314D] hover:text-white transition shadow-sm"><FiEdit3 size={14}/></button>
-                            <button onClick={() => handleDeleteClick(p)} className="p-2 md:p-2.5 bg-red-50 text-red-500 rounded-lg md:rounded-xl hover:bg-red-500 hover:text-white transition shadow-sm"><FiTrash2 size={14}/></button>
-                          </>
-                        ) : (
+                        {p.status === 'sold' ? (
                           <span className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase">
                             <FiCheck /> Selesai
                           </span>
+                        ) : (
+                          <>
+                            {p.status !== 'approved' && (
+                              <button onClick={() => openEditModal(p)} className="p-2 md:p-2.5 bg-gray-50 text-slate-400 rounded-lg md:rounded-xl hover:bg-[#1A314D] hover:text-white transition shadow-sm">
+                                <FiEdit3 size={14}/>
+                              </button>
+                            )}
+                            <button onClick={() => handleDeleteClick(p)} className="p-2 md:p-2.5 bg-red-50 text-red-500 rounded-lg md:rounded-xl hover:bg-red-500 hover:text-white transition shadow-sm">
+                              <FiTrash2 size={14}/>
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -147,7 +153,6 @@ export default function DashboardAgen() {
   return (
     <div className="min-h-screen bg-[#F1F3F6] flex pt-16 md:pt-20">
       
-      {/* TOAST NOTIFICATION */}
       {toast && (
         <div className="fixed top-20 right-4 lg:right-10 bg-slate-900 text-white px-4 lg:px-6 py-3 lg:py-4 rounded-2xl shadow-2xl flex items-center gap-3 lg:gap-4 z-[200] animate-in slide-in-from-right duration-300 w-[90%] lg:w-auto">
           <div className="bg-[#1A314D] p-2 rounded-full text-white flex-shrink-0"><FiInfo size={16} className="md:w-5 md:h-5" /></div>
@@ -159,7 +164,6 @@ export default function DashboardAgen() {
         </div>
       )}
 
-      {/* MOBILE SIDEBAR OVERLAY */}
       {isMobileSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
@@ -167,7 +171,6 @@ export default function DashboardAgen() {
         ></div>
       )}
 
-      {/* SIDEBAR NAVIGATION */}
       <div className={`fixed top-16 md:top-20 left-0 h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] w-64 md:w-72 bg-white border-r border-blue-50 shadow-2xl md:shadow-sm flex flex-col z-50 md:z-40 overflow-y-auto custom-scrollbar transform transition-transform duration-300 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="p-4 md:p-6 flex justify-between items-center md:block">
           <div className="bg-[#EBF5FF] p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4 border border-white shadow-sm w-full">
@@ -206,7 +209,6 @@ export default function DashboardAgen() {
         </div>
       </div>
 
-      {/* MAIN CONTENT AREA */}
       <div className="flex-1 ml-0 md:ml-72 p-4 md:p-12 overflow-x-hidden relative min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] w-full">
         <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 md:mb-10 gap-4 md:gap-6">
           <div className="flex items-center gap-3 md:gap-0">
@@ -276,7 +278,6 @@ export default function DashboardAgen() {
         {renderContent()}
       </div>
 
-      {/* MODAL PENGEHAPUSAN / SOLD */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-4">
           <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 w-full max-w-lg shadow-2xl animate-in zoom-in duration-300">
@@ -300,7 +301,6 @@ export default function DashboardAgen() {
         </div>
       )}
 
-      {/* MODAL FORM TAMBAH / EDIT UNIT */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[250] p-2 md:p-4 transition-all duration-300">
           <div className="bg-white rounded-2xl md:rounded-[2.5rem] w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in duration-300">
@@ -322,7 +322,6 @@ export default function DashboardAgen() {
             
             <div className="p-5 md:p-10 overflow-y-auto custom-scrollbar flex-1">
               <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-                {/* --- SEKSI 1: INFORMASI DASAR --- */}
                 <div className="space-y-4">
                   <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">1. Informasi Dasar</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -338,34 +337,36 @@ export default function DashboardAgen() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Tipe Properti</label>
-                      <select className="w-full p-2 border rounded-md">
-                        <option>Rumah</option>
-                        <option>Kost</option>
-                        <option>Apartemen</option>
+                      <select value={formData.tipe} onChange={e => setFormData({...formData, tipe: e.target.value})} className="w-full p-2 border rounded-md">
+                        <option value="Rumah">Rumah</option>
+                        <option value="Kost">Kost</option>
+                        <option value="Apartemen">Apartemen</option>
+                        <option value="Villa">Villa</option>
                       </select>
                     </div>
                     
                     <div>
                       <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Kategori Transaksi</label>
-                      <select className="w-full p-2 border rounded-md">
-                        <option>Di Jual</option>
-                        <option>Di Sewakan</option>
+                      <select value={formData.id_kategori} onChange={e => setFormData({...formData, id_kategori: Number(e.target.value)})} className="w-full p-2 border rounded-md">
+                        <option value={1}>Di Jual</option>
+                        <option value={2}>Di Sewakan</option>
                       </select>
                     </div>
                   </div>
 
-                  {/* Baris Baru Khusus Alamat Lokasi (Lebar Penuh di Bawahnya) */}
                   <div className="space-y-4">
                     <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Alamat Lokasi *</label>
                     <input 
                       type="text" 
+                      value={formData.lokasi} 
+                      onChange={e => setFormData({...formData, lokasi: e.target.value})} 
+                      required
                       placeholder="Nama jalan, kota, atau daerah lengkap..." 
                       className="w-full p-2 border rounded-md"
                     />
                   </div>
                 </div>
 
-                {/* --- SEKSI 2: SPESIFIKASI FISIK --- */}
                 <div className="space-y-4">
                   <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">2. Spesifikasi Fisik</h4>
                   <div className="grid grid-cols-3 gap-4">
@@ -384,7 +385,6 @@ export default function DashboardAgen() {
                   </div>
                 </div>
 
-                {/* --- SEKSI 3: DESKRIPSI & KOORDINAT --- */}
                 <div className="space-y-4">
                   <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">3. Deskripsi & Koordinat Geografis</h4>
                   <div>
@@ -403,7 +403,6 @@ export default function DashboardAgen() {
                   </div>
                 </div>
 
-                {/* --- SEKSI 4: KELOLA FASILITAS --- */}
                 <div className="space-y-4">
                   <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">4. Fasilitas Internal Properti</h4>
                   <div>
@@ -445,7 +444,6 @@ export default function DashboardAgen() {
                   )}
                 </div>
 
-                {/* --- SEKSI 5: DOKUMENTASI / GAMBAR --- */}
                 <div className="space-y-4">
                   <h4 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 border-gray-100">5. Galeri Foto Properti</h4>
                   <div className="border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-2xl p-6 md:p-8 text-center transition cursor-pointer relative bg-gray-50/50">
@@ -469,7 +467,6 @@ export default function DashboardAgen() {
                   )}
                 </div>
 
-                {/* BUTTON SUBMIT MODAL */}
                 <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 flex-shrink-0">
                   <button type="button" onClick={closeModal} className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-500 font-black text-xs rounded-xl uppercase tracking-widest transition">Batal</button>
                   <button type="submit" className="w-full sm:w-auto px-10 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-lg shadow-blue-600/20 uppercase tracking-widest transition">Simpan Properti</button>
