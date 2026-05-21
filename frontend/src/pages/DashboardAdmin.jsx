@@ -5,7 +5,7 @@ import {
   FiChevronRight, FiExternalLink, FiSearch, FiHome, FiList, FiMenu 
 } from 'react-icons/fi';
 import ProfileAdmin from './ProfileAdmin';
-import useDashboardAdmin from '../hooks/UseDashboardAdmin';
+import {useDashboardAdmin} from '../hooks/UseDashboardAdmin';
 
 export default function DashboardAdmin() {
   const {
