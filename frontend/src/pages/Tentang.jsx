@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaMapMarkedAlt, FaUserShield, FaUserTie } from 'react-icons/fa';
+import logo from '../assets/logo.png';
 
 export default function Tentang() {
   return (
@@ -27,9 +28,12 @@ export default function Tentang() {
             </p>
           </div>
           <div className="flex-1 w-full">
-             <div className="bg-slate-100 h-64 md:h-80 rounded-[2rem] flex items-center justify-center">
-                {/* Placeholder untuk gambar gedung/kantor */}
-                <FaMapMarkedAlt size={80} className="text-slate-300" />
+             <div className="h-64 md:h-80 rounded-[2rem] flex items-center justify-center">
+                <img 
+                src={logo} 
+                alt="PropertiKita Logo" 
+                className="h-8 lg:h-90 w-auto object-contain"
+                />
              </div>
           </div>
         </div>

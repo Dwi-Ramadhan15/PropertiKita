@@ -54,7 +54,7 @@ export default function HeroCarousel() {
           />
 
           {/* overlay */}
-          <div className="absolute inset-0 bg-blue-900/60"></div>
+          <div className="absolute inset-0"></div>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50"></div>
 
           {/* text */}
@@ -83,14 +83,14 @@ export default function HeroCarousel() {
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 p-3 rounded-full opacity-0 group-hover:opacity-100"
+            className="absolute left-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full opacity-0 group-hover:opacity-100"
           >
             <FiChevronLeft size={30} />
           </button>
 
           <button
             onClick={nextSlide}
-            className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 p-3 rounded-full opacity-0 group-hover:opacity-100"
+            className="absolute right-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full opacity-0 group-hover:opacity-100"
           >
             <FiChevronRight size={30} />
           </button>
