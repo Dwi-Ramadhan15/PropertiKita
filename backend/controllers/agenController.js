@@ -188,7 +188,7 @@ const updateProperti = async(req, res) => {
             }
         }
 
-        const finalImages = await client.query("SELECT image_url FROM property_images WHERE id_properti = $1 ORDER BY id ASC LIMIT 1", [id]);
+        const finalImages = await client.query("SELECT image_url FROM property_images WHERE id_properti = $1 ORDER BY id DESC LIMIT 1", [id]);
         if (finalImages.rows.length > 0) {
             await client.query("UPDATE properties SET image_url = $1 WHERE id = $2", [finalImages.rows[0].image_url, id]);
         } else {

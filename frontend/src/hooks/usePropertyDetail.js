@@ -78,9 +78,11 @@ export default function usePropertyDetail(slug) {
     const rawNumber = agen ?.no_wa || item ?.no_whatsapp || "";
     const waUrl = `https://wa.me/${rawNumber.replace(/^0/, "62")}`;
 
-    // HUBUNGI AGEN (Sudah diperbaiki)
+    // HUBUNGI AGEN 
     const handleHubungiAgen = () => {
         const token = localStorage.getItem("token");
+        const userStr = localStorage.getItem("user"); 
+
         if (!token) {
             const goLogin = window.confirm(
                 "Wajib login dulu. Mau ke halaman login sekarang?"
@@ -91,8 +93,24 @@ export default function usePropertyDetail(slug) {
             }
             return;
         }
+
         if (rawNumber) {
-            window.open(waUrl, "_blank");
+            let userName = "Calon Pembeli";
+            if (userStr) {
+                try {
+                    const userData = JSON.parse(userStr);
+                    if (userData && userData.name) {
+                        userName = userData.name;
+                    }
+                } catch (e) {
+                    console.error("Gagal membaca data user:", e);
+                }
+            }
+            const judulProperti = item?.title || "properti";
+            const pesanDefault = `Halo, nama saya *${userName}*. Saya tertarik dengan listing *"${judulProperti}"* yang Anda posting di platform PropertiKita. Boleh minta informasi lebih lanjut?`;
+            const finalWaUrl = `${waUrl}?text=${encodeURIComponent(pesanDefault)}`;
+
+            window.open(finalWaUrl, "_blank");
         } else {
             alert("Nomor WhatsApp agen tidak ditemukan.");
         }

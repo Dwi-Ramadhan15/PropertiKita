@@ -239,7 +239,7 @@ const getAgen = async(req, res) => {
             FROM agen a
             LEFT JOIN properties p ON a.id = p.id_agen AND p.status = 'approved'
             GROUP BY a.id
-            ORDER BY a.nama_agen ASC
+            ORDER BY a.nama_agen DESC
         `;
         const { rows } = await db.query(query);
         res.status(200).json({ success: true, data: rows });
