@@ -5,7 +5,7 @@ import {
   FiChevronRight, FiExternalLink, FiSearch, FiHome, FiList, FiMenu 
 } from 'react-icons/fi';
 import ProfileAdmin from './ProfileAdmin';
-import {useDashboardAdmin} from '../hooks/UseDashboardAdmin';
+import { useDashboardAdmin } from '../hooks/UseDashboardAdmin';
 
 export default function DashboardAdmin() {
   const {
@@ -376,26 +376,38 @@ export default function DashboardAdmin() {
                   <p className="text-gray-800 font-bold text-xs md:text-sm leading-relaxed mb-3 md:mb-4">{selectedProperty.lokasi}</p>
                   
                   <div className="pt-3 md:pt-4 border-t border-gray-200 flex flex-col gap-1 text-[8px] md:text-[10px] font-black uppercase text-gray-500">
-                    <span>Lat: {selectedProperty.latitude}</span>
-                    <span>Lng: {selectedProperty.longitude}</span>
+                    <span>Lat: {selectedProperty.latitude || '-'}</span>
+                    <span>Lng: {selectedProperty.longitude || '-'}</span>
                   </div>
 
-                  <a href={`https://www.google.com/maps?q=$${selectedProperty.latitude},${selectedProperty.longitude}`} target="_blank" rel="noopener noreferrer" className="mt-4 md:mt-5 w-full flex items-center justify-center gap-1.5 md:gap-2 bg-blue-50 text-blue-600 py-2.5 md:py-3 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition">
-                    <FiExternalLink size={12} className="md:w-3.5 md:h-3.5"/> Maps
-                  </a>
+                  {selectedProperty.latitude && selectedProperty.longitude ? (
+                    <a href={`https://maps.google.com/?q=${selectedProperty.latitude},${selectedProperty.longitude}`} target="_blank" rel="noopener noreferrer" className="mt-4 md:mt-5 w-full flex items-center justify-center gap-1.5 md:gap-2 bg-blue-50 text-blue-600 py-2.5 md:py-3 rounded-lg md:rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition">
+                      <FiExternalLink size={12} className="md:w-3.5 md:h-3.5"/> Buka Google Maps
+                    </a>
+                  ) : (
+                    <button disabled className="mt-4 md:mt-5 w-full flex items-center justify-center gap-1.5 bg-gray-200 text-gray-400 py-2.5 md:py-3 rounded-lg font-black text-[9px] uppercase tracking-widest cursor-not-allowed">
+                      Kordinat Tidak Valid
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex-1 bg-gray-200 rounded-xl md:rounded-[1.5rem] overflow-hidden min-h-[200px] md:min-h-[250px] relative shadow-inner">
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight="0" 
-                    marginWidth="0" 
-                    className="absolute inset-0"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(selectedProperty.longitude)-0.005},${parseFloat(selectedProperty.latitude)-0.005},${parseFloat(selectedProperty.longitude)+0.005},${parseFloat(selectedProperty.latitude)+0.005}&layer=mapnik&marker=${selectedProperty.latitude},${selectedProperty.longitude}`}
-                  ></iframe>
+                  {selectedProperty.latitude && selectedProperty.longitude ? (
+                    <iframe 
+                      width="100%" 
+                      height="100%" 
+                      frameBorder="0" 
+                      scrolling="no" 
+                      marginHeight="0" 
+                      marginWidth="0" 
+                      className="absolute inset-0"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(selectedProperty.longitude)-0.005},${parseFloat(selectedProperty.latitude)-0.005},${parseFloat(selectedProperty.longitude)+0.005},${parseFloat(selectedProperty.latitude)+0.005}&layer=mapnik&marker=${selectedProperty.latitude},${selectedProperty.longitude}`}
+                    ></iframe>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 font-bold text-xs uppercase tracking-widest">
+                      Peta Tidak Tersedia
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

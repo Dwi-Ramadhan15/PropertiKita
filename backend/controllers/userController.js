@@ -55,6 +55,13 @@ const register = async(req, res) => {
         const cleanEmail = email ? String(email).trim().toLowerCase() : null;
         const cleanWhatsapp = whatsapp ? String(whatsapp).trim() : null;
 
+        if (userRole === 'agen' && !cleanEmail) {
+            return res.status(400).json({ success: false, message: "Email wajib diisi untuk pendaftaran Agen!" });
+        }
+        if (userRole === 'user' && !cleanWhatsapp) {
+            return res.status(400).json({ success: false, message: "Nomor WhatsApp wajib diisi untuk pendaftaran User biasa!" });
+        }
+
         const checkDup = await db.query(
             "SELECT id FROM users WHERE (email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)",
             [cleanEmail, cleanWhatsapp]
@@ -81,10 +88,10 @@ const register = async(req, res) => {
             [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil, expiredAt]
         );
 
-        if (cleanWhatsapp) {
-            await sendWhatsAppOTP(cleanWhatsapp, otpCode);
-        } else if (cleanEmail) {
+        if (userRole === 'agen') {
             await sendEmailOTP(cleanEmail, otpCode);
+        } else if (userRole === 'user') {
+            await sendWhatsAppOTP(cleanWhatsapp, otpCode);
         }
 
         try {
@@ -107,7 +114,7 @@ const register = async(req, res) => {
             }
         } catch (notifErr) {}
 
-        res.status(201).json({ success: true, message: "Registrasi berhasil!" });
+        res.status(201).json({ success: true, message: "Registrasi berhasil! Silakan cek OTP Anda." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -10,8 +10,10 @@
  * tags:
  *   - name: Users & Auth
  *     description: Autentikasi, Profil, dan Manajemen User/Agen
- *   - name: Properti
- *     description: Manajemen Data Properti dan Pencarian
+ *   - name: Properti (Public & Admin)
+ *     description: Manajemen Data Properti dan Pencarian (Public & Admin Only)
+ *   - name: Properti (Agen)
+ *     description: Manajemen Listing Properti (Agen Only)
  *   - name: Fasilitas
  *     description: Manajemen Fasilitas Properti (Agen Only)
  *   - name: Notifications
@@ -25,6 +27,14 @@
  * /api/users/register:
  *   post:
  *     summary: Registrasi user/agen baru [PUBLIC]
+ *     description: |
+ *       Registrasi akun baru.
+ *
+ *       Ketentuan:
+ *       - Jika role = agen, OTP dikirim melalui email.
+ *       - Jika role = user, OTP dikirim melalui WhatsApp.
+ *       - Email wajib menggunakan domain @gmail.com.
+ *       - Email bersifat unique, sehingga email yang sudah terdaftar tidak dapat digunakan kembali.
  *     tags: [Users & Auth]
  *     requestBody:
  *       required: true
@@ -32,25 +42,48 @@
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - whatsapp
+ *               - password
+ *               - role
  *             properties:
  *               name:
  *                 type: string
+ *                 example: Diah
  *               email:
  *                 type: string
+ *                 format: email
+ *                 pattern: '^[a-zA-Z0-9._%+-]+@gmail\.com$'
+ *                 example: diah@gmail.com
+ *                 description: Email wajib menggunakan domain @gmail.com dan harus unique.
  *               whatsapp:
  *                 type: string
+ *                 example: "087891545344"
+ *                 description: Nomor WhatsApp aktif. Digunakan untuk OTP jika role user.
  *               password:
  *                 type: string
  *                 format: password
+ *                 example: "password123"
  *               role:
  *                 type: string
  *                 enum: [user, agen]
+ *                 example: agen
+ *                 description: |
+ *                   - agen: OTP dikirim melalui email.
+ *                   - user: OTP dikirim melalui WhatsApp.
  *               foto_profil:
  *                 type: string
  *                 format: binary
+ *                 description: Foto profil opsional.
  *     responses:
  *       201:
- *         description: Berhasil registrasi dan OTP terkirim
+ *         description: Berhasil registrasi dan OTP terkirim sesuai role.
+ *       400:
+ *         description: Validasi gagal, field wajib belum diisi, email bukan Gmail, atau role tidak valid.
+ *       409:
+ *         description: Email atau nomor WhatsApp sudah terdaftar.
  */
 
 /**
@@ -65,15 +98,24 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - identifier
+ *               - otp
  *             properties:
  *               identifier:
  *                 type: string
  *                 description: Email atau nomor WhatsApp
+ *                 example: diah@gmail.com
  *               otp:
  *                 type: string
+ *                 example: "123456"
  *     responses:
  *       200:
  *         description: Akun berhasil diverifikasi
+ *       400:
+ *         description: OTP salah atau sudah kadaluarsa
+ *       404:
+ *         description: User tidak ditemukan
  */
 
 /**
@@ -88,15 +130,26 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
+ *                 example: diah@gmail.com
  *               password:
  *                 type: string
  *                 format: password
+ *                 example: "password123"
  *     responses:
  *       200:
  *         description: Login berhasil, mengembalikan token
+ *       400:
+ *         description: Email dan password wajib diisi
+ *       401:
+ *         description: Belum verifikasi atau password salah
+ *       404:
+ *         description: User tidak ditemukan
  */
 
 /**
@@ -137,10 +190,14 @@
  *             properties:
  *               name:
  *                 type: string
+ *                 example: Diah
  *               email:
  *                 type: string
+ *                 format: email
+ *                 example: diah@gmail.com
  *               phone_number:
  *                 type: string
+ *                 example: "087891545344"
  *     responses:
  *       200:
  *         description: Profil berhasil diupdate
@@ -160,6 +217,8 @@
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - foto_profil
  *             properties:
  *               foto_profil:
  *                 type: string
@@ -174,7 +233,7 @@
  * /api/properti:
  *   get:
  *     summary: Pencarian properti dinamis (Format GeoJSON + Pagination) [PUBLIC]
- *     tags: [Properti]
+ *     tags: [Properti (Public & Admin)]
  *     parameters:
  *       - in: query
  *         name: minHarga
@@ -214,8 +273,8 @@
  *         description: Data properti berhasil diambil
  *
  *   post:
- *     summary: Menambah properti baru (Agen Only) [PRIVATE]
- *     tags: [Properti]
+ *     summary: Menambah properti baru (Minimal 2 Foto) (Agen Only) [PRIVATE]
+ *     tags: [Properti (Agen)]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -224,6 +283,18 @@
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
+ *               - harga
+ *               - id_kategori
+ *               - lokasi
+ *               - deskripsi
+ *               - kamar_tidur
+ *               - kamar_mandi
+ *               - luas
+ *               - longitude
+ *               - latitude
+ *               - images
  *             properties:
  *               title:
  *                 type: string
@@ -247,6 +318,7 @@
  *                 type: number
  *               images:
  *                 type: array
+ *                 description: Minimal unggah 2 file foto properti.
  *                 items:
  *                   type: string
  *                   format: binary
@@ -260,7 +332,7 @@
  * /api/properti/{slug}:
  *   get:
  *     summary: Mendapatkan detail lengkap properti + Gallery + Fasilitas [PUBLIC]
- *     tags: [Properti]
+ *     tags: [Properti (Public & Admin)]
  *     parameters:
  *       - in: path
  *         name: slug
@@ -277,7 +349,7 @@
  * /api/properti/{id}:
  *   put:
  *     summary: Mengupdate data properti (Agen Only) [PRIVATE]
- *     tags: [Properti]
+ *     tags: [Properti (Agen)]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -307,7 +379,7 @@
  *
  *   delete:
  *     summary: Menghapus properti permanen (Agen Only) [PRIVATE]
- *     tags: [Properti]
+ *     tags: [Properti (Agen)]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -326,7 +398,7 @@
  * /api/properti/{id}/status:
  *   put:
  *     summary: Update status properti (Admin Only) [PRIVATE]
- *     tags: [Properti]
+ *     tags: [Properti (Public & Admin)]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -341,6 +413,8 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: string
@@ -373,6 +447,8 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - nama_fasilitas
  *             properties:
  *               nama_fasilitas:
  *                 type: string
@@ -401,6 +477,8 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - nama_fasilitas
  *             properties:
  *               nama_fasilitas:
  *                 type: string
@@ -479,4 +557,81 @@
  *     responses:
  *       200:
  *         description: Notifikasi dibersihkan
+ */
+
+/**
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Mendapatkan semua daftar kategori [PUBLIC]
+ *     tags: [Categories]
+ *     responses:
+ *       200:
+ *         description: Berhasil
+ *
+ *   post:
+ *     summary: Menambah kategori baru (Admin Only) [PRIVATE]
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nama
+ *             properties:
+ *               nama:
+ *                 type: string
+ *                 example: Disewakan
+ *     responses:
+ *       201:
+ *         description: Berhasil dibuat
+ */
+
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   put:
+ *     summary: Mengupdate nama kategori (Admin Only) [PRIVATE]
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nama
+ *             properties:
+ *               nama:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Berhasil diupdate
+ *
+ *   delete:
+ *     summary: Menghapus kategori (Admin Only) [PRIVATE]
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Berhasil dihapus
  */
