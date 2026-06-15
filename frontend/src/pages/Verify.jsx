@@ -3,13 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import useVerify from '../hooks/useVerify';
 import backgroundRumah from '../assets/rumah-mewah-Armada.jpg';
 import logoPK from '../assets/logo.png';
+import { FiCheckCircle, FiXCircle, FiX } from 'react-icons/fi';
 
 export default function Verify() {
   const location = useLocation();
   const navigate = useNavigate();
   const { identifier } = location.state || {};
 
-  const { otp, setOtp, loading, resendLoading, handleVerify, handleResend } = useVerify(navigate, identifier);
+  const { otp, setOtp, loading, resendLoading, handleVerify, handleResend, toast, setToast } = useVerify(navigate, identifier);
   const inputRefs = useRef([]);
 
   const handleChange = (e, index) => {
@@ -37,6 +38,24 @@ export default function Verify() {
       style={{ backgroundImage: `url(${backgroundRumah})` }}
     >
       <div className="absolute inset-0 bg-[#0A1A2E]/80 z-10"></div>
+
+      {toast.show && (
+        <div className="fixed top-10 right-4 md:right-10 bg-white border-l-4 px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-right duration-300 w-[90%] md:w-auto"
+             style={{ borderColor: toast.type === 'success' ? '#10B981' : '#EF4444' }}>
+          <div className={`p-2 rounded-full flex-shrink-0 ${toast.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
+            {toast.type === 'success' ? <FiCheckCircle size={24} /> : <FiXCircle size={24} />}
+          </div>
+          <div className="flex-1">
+            <p className={`text-[10px] font-black uppercase tracking-widest ${toast.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                {toast.type === 'success' ? 'Berhasil' : 'Peringatan'}
+            </p>
+            <p className="font-bold text-gray-800 text-xs md:text-sm mt-0.5">{toast.message}</p>
+          </div>
+          <button onClick={() => setToast({ ...toast, show: false })} className="ml-3 text-gray-400 hover:text-gray-700 flex-shrink-0 transition">
+            <FiX size={20}/>
+          </button>
+        </div>
+      )}
 
       <div className="bg-white p-10 md:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-lg text-center relative z-20 animate-in zoom-in duration-300">
         <div className="flex items-center justify-center gap-4 mb-8">

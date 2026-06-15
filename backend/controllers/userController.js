@@ -3,6 +3,7 @@ const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const sharp = require('sharp');
+const path = require('path');
 const { minioClient } = require('../utils/minio_client');
 
 const transporter = nodemailer.createTransport({
@@ -31,14 +32,51 @@ const sendWhatsAppOTP = async(targetNumber, otpCode) => {
 const sendEmailOTP = async(targetEmail, otpCode) => {
     try {
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: `"PropertiKita" <${process.env.EMAIL_USER}>`,
             to: targetEmail,
             subject: 'Verifikasi Akun PropertiKita',
-            html: `<h3>Selamat Datang!</h3><p>Kode OTP Anda:</p><h2 style="color: blue;">${otpCode}</h2>`
+            html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; border-radius: 10px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="cid:logoPropertiKita" alt="Logo PropertiKita" style="max-width: 150px;" />
+                </div>
+                
+                <div style="background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center;">
+                    <h2 style="color: #1e293b; margin-bottom: 10px;">Selamat Datang!</h2>
+                    <p style="color: #64748b; font-size: 16px; line-height: 1.5;">
+                        Terima kasih telah bergabung. Untuk menyelesaikan proses pendaftaran Anda, silakan gunakan kode verifikasi di bawah ini:
+                    </p>
+                    
+                    <div style="margin: 30px 0;">
+                        <span style="font-size: 36px; font-weight: 900; color: #2563eb; letter-spacing: 8px; padding: 15px 30px; background-color: #eff6ff; border-radius: 10px; border: 1px dashed #bfdbfe;">
+                            ${otpCode}
+                        </span>
+                    </div>
+                    
+                    <p style="color: #ef4444; font-size: 14px; font-weight: 700;">
+                        ⏳ Kode ini hanya berlaku selama 5 menit.
+                    </p>
+                    
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
+                    
+                    <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">
+                        <strong>PENTING:</strong> Jangan berikan kode OTP ini kepada siapa pun. Pihak PropertiKita tidak akan pernah meminta kode verifikasi Anda.
+                        <br><br>
+                        Jika Anda tidak merasa melakukan pendaftaran, abaikan saja email ini.
+                    </p>
+                </div>
+            </div>
+            `,
+            attachments: [{
+                filename: 'logo.png',
+                path: path.join(__dirname, '../assets/logo.png'),
+                cid: 'logoPropertiKita'
+            }]
         };
+
         await transporter.sendMail(mailOptions);
     } catch (error) {
-        console.error(error);
+        console.error("Gagal mengirim email OTP:", error);
     }
 };
 
@@ -63,8 +101,7 @@ const register = async(req, res) => {
         }
 
         const checkDup = await db.query(
-            "SELECT id FROM users WHERE (email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)",
-            [cleanEmail, cleanWhatsapp]
+            "SELECT id FROM users WHERE (email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)", [cleanEmail, cleanWhatsapp]
         );
 
         if (checkDup.rows.length > 0) {
@@ -84,8 +121,7 @@ const register = async(req, res) => {
         const expiredAt = new Date(Date.now() + 5 * 60000);
 
         await db.query(
-            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil, otp_expired_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, 
-            [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil, expiredAt]
+            `INSERT INTO users (name, email, phone_number, password, role, otp_code, foto_profil, otp_expired_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [name, cleanEmail, cleanWhatsapp, hashedPassword, userRole, otpCode, foto_profil, expiredAt]
         );
 
         if (userRole === 'agen') {
@@ -99,11 +135,10 @@ const register = async(req, res) => {
             const msgAdmin = `Pengguna baru telah mendaftar: ${name} (${userRole})`;
             for (const admin of adminRes.rows) {
                 await db.query(
-                    "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)",
-                    [admin.id, "Registrasi Baru", msgAdmin, "info"]
+                    "INSERT INTO notifications (id_agen, title, message, status) VALUES ($1, $2, $3, $4)", [admin.id, "Registrasi Baru", msgAdmin, "info"]
                 );
             }
-            
+
             if (req.io) {
                 req.io.to('admin_room').emit('notify_admin', {
                     title: "Registrasi Baru",
@@ -201,7 +236,7 @@ const verifyOtp = async(req, res) => {
     const client = await db.connect();
     try {
         const { identifier, otp } = req.body;
-        
+
         if (!identifier || !otp) {
             return res.status(400).json({ success: false, message: "Data OTP tidak lengkap!" });
         }
@@ -234,8 +269,50 @@ const verifyOtp = async(req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ success: false, message: error.message });
-    } finally { 
-        client.release(); 
+    } finally {
+        client.release();
+    }
+};
+
+const resendOtp = async(req, res) => {
+    try {
+        const { identifier, email, whatsapp } = req.body;
+        const targetIdentifier = identifier || email || whatsapp;
+
+        if (!targetIdentifier) {
+            return res.status(400).json({ success: false, message: "Email atau Nomor WA wajib diisi!" });
+        }
+
+        const result = await db.query(
+            "SELECT * FROM users WHERE email = $1 OR phone_number = $1", [String(targetIdentifier).trim().toLowerCase()]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+        }
+
+        const user = result.rows[0];
+
+        if (user.is_verified) {
+            return res.status(400).json({ success: false, message: "Akun ini sudah diverifikasi. Silakan langsung login." });
+        }
+
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiredAt = new Date(Date.now() + 5 * 60000);
+
+        await db.query(
+            "UPDATE users SET otp_code = $1, otp_expired_at = $2 WHERE id = $3", [otpCode, expiredAt, user.id]
+        );
+
+        if (user.role === 'agen' && user.email) {
+            await sendEmailOTP(user.email, otpCode);
+        } else if (user.role === 'user' && user.phone_number) {
+            await sendWhatsAppOTP(user.phone_number, otpCode);
+        }
+
+        res.json({ success: true, message: "OTP baru berhasil dikirim ulang!" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -411,8 +488,7 @@ const updateProfile = async(req, res) => {
         const userId = req.user ? req.user.id : req.userId;
 
         const checkDup = await client.query(
-            "SELECT id FROM users WHERE ((email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)) AND id != $3",
-            [email ? String(email).trim().toLowerCase() : null, phone_number ? String(phone_number).trim() : null, userId]
+            "SELECT id FROM users WHERE ((email = $1 AND email IS NOT NULL) OR (phone_number = $2 AND phone_number IS NOT NULL)) AND id != $3", [email ? String(email).trim().toLowerCase() : null, phone_number ? String(phone_number).trim() : null, userId]
         );
 
         if (checkDup.rows.length > 0) {
@@ -489,7 +565,7 @@ const getVerifiedAgen = async(req, res) => {
     }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async(req, res) => {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
@@ -505,8 +581,7 @@ const deleteUser = async (req, res) => {
 
         if (user.role === 'agen') {
             await client.query(
-                "DELETE FROM agen WHERE email = $1 OR no_whatsapp = $2",
-                [user.email, user.phone_number]
+                "DELETE FROM agen WHERE email = $1 OR no_whatsapp = $2", [user.email, user.phone_number]
             );
         }
 
@@ -527,6 +602,7 @@ module.exports = {
     login,
     refreshTokenEndpoint,
     verifyOtp,
+    resendOtp,
     forgotPassword,
     resetPassword,
     changePassword,

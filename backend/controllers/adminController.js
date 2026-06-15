@@ -44,7 +44,13 @@ const getProperti = async(req, res) => {
             query += ` AND p.id_agen = $${queryParams.length}`;
         }
 
-        if (minHarga && maxHarga) {
+        if (minHarga && !maxHarga) {
+            queryParams.push(Number(minHarga));
+            query += ` AND p.harga >= $${queryParams.length}`;
+        } else if (!minHarga && maxHarga) {
+            queryParams.push(Number(maxHarga));
+            query += ` AND p.harga <= $${queryParams.length}`;
+        } else if (minHarga && maxHarga) {
             queryParams.push(Number(minHarga), Number(maxHarga));
             query += ` AND p.harga BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
         }

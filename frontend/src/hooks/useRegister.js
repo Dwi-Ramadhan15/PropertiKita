@@ -13,6 +13,14 @@ export default function useRegister(navigate) {
     const [profileImage, setProfileImage] = useState(null);
     const [preview, setPreview] = useState(null);
     const [loading, setLoading] = useState(false);
+    
+    // State baru untuk Toast Notification
+    const [toast, setToast] = useState({ show: false, message: "", type: "info" });
+
+    const showToast = (message, type = "info") => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: "", type: "info" }), 3500);
+    };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -42,19 +50,19 @@ export default function useRegister(navigate) {
             });
 
             const targetMedia = formData.role === 'agen' ? 'Email' : 'WhatsApp';
-            alert(`Registrasi Berhasil! Silahkan cek ${targetMedia} Anda untuk kode OTP.`);
-            
+            showToast(`Registrasi Berhasil! Mengalihkan... Silakan cek ${targetMedia} Anda untuk kode OTP.`, "success");
             const targetIdentifier = formData.role === 'user' ? formData.whatsapp : formData.email;
-            
-            navigate('/verify', { 
-                state: { 
-                    identifier: targetIdentifier, 
-                    role: formData.role 
-                } 
-            });
+            setTimeout(() => {
+                navigate('/verify', { 
+                    state: { 
+                        identifier: targetIdentifier, 
+                        role: formData.role 
+                    } 
+                });
+            }, 2500);
 
         } catch (err) {
-            alert("Gagal: " + (err.response?.data?.message || "Terjadi kesalahan koneksi"));
+            showToast(err.response?.data?.message || "Terjadi kesalahan koneksi server.", "error");
         } finally {
             setLoading(false);
         }
@@ -67,6 +75,8 @@ export default function useRegister(navigate) {
         preview,
         loading,
         handleImageChange,
-        handleRegister
+        handleRegister,
+        toast,         
+        setToast       
     };
 }

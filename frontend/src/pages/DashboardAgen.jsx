@@ -2,8 +2,22 @@ import React from 'react';
 import { 
   FiList, FiCheckSquare, FiUser, FiTrash2, 
   FiEdit3, FiPlus, FiX, FiBell, FiInfo, FiCheck,
-  FiSettings, FiMapPin, FiMenu, FiLogOut 
+  FiSettings, FiMapPin, FiMenu, FiLogOut, FiExternalLink
 } from 'react-icons/fi';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: iconRetinaUrl,
+  iconUrl: iconUrl,
+  shadowUrl: shadowUrl,
+});
+
 import ProfileAgen from '../pages/ProfileAgen'; 
 import FasilitasProperti from '../pages/FasilitasProperti';
 import { useDashboardAgen } from './../hooks/useDashboardAgen';
@@ -19,6 +33,22 @@ export default function DashboardAgen() {
     handleFileChange, removeImage, handleSubmit, closeModal, openEditModal, handleDeleteClick,
     confirmDelete, formatRupiah, handleLogout
   } = useDashboardAgen();
+
+  const LocationMarker = () => {
+    useMapEvents({
+      click(e) {
+        setFormData({
+          ...formData,
+          latitude: parseFloat(e.latlng.lat.toFixed(6)),
+          longitude: parseFloat(e.latlng.lng.toFixed(6)),
+        });
+      },
+    });
+
+    return formData.latitude && formData.longitude ? (
+      <Marker position={[formData.latitude, formData.longitude]}></Marker>
+    ) : null;
+  };
 
   const renderContent = () => {
     if (activeTab === 'profil') return <ProfileAgen />;
@@ -391,14 +421,40 @@ export default function DashboardAgen() {
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Deskripsi Lengkap *</label>
                     <textarea required rows="4" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})} placeholder="Tulis spesifikasi mendalam, keunggulan, akses strategis dsb..." className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition resize-none"></textarea>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Tentukan Lokasi di Peta (Klik untuk memindahkan pin)</label>
+                      {formData.latitude && formData.longitude && (
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${formData.latitude},${formData.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-500 hover:text-blue-700 uppercase tracking-widest flex items-center gap-1 transition-colors">
+                          Buka di Google Maps <FiExternalLink />
+                        </a>
+                      )}
+                    </div>
+                    <div className="h-[250px] w-full rounded-xl overflow-hidden shadow-sm border border-gray-200 relative z-0">
+                      <MapContainer 
+                        center={formData.latitude ? [formData.latitude, formData.longitude] : [-5.3971, 105.2668]} 
+                        zoom={13} 
+                        scrollWheelZoom={true} 
+                        style={{ height: '100%', width: '100%' }}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <LocationMarker />
+                      </MapContainer>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <div>
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Latitude</label>
-                      <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                      <input type="number" step="any" value={formData.latitude} readOnly className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-xs md:text-sm font-semibold text-gray-500 cursor-not-allowed" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Longitude</label>
-                      <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                      <input type="number" step="any" value={formData.longitude} readOnly className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-xs md:text-sm font-semibold text-gray-500 cursor-not-allowed" />
                     </div>
                   </div>
                 </div>

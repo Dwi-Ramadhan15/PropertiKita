@@ -1,26 +1,46 @@
-import React, { useState } from 'react'; // Tambahkan useState di sini
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useRegister from '../hooks/useRegister'; 
 import backgroundRumah from '../assets/rumah.megah.jpg';
 import logoPK from '../assets/logo.png'; 
-import { FiUser, FiMail, FiLock, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi'; // Tambahkan icon mata
+import { FiUser, FiMail, FiLock, FiPhone, FiEye, FiEyeOff, FiCheckCircle, FiXCircle, FiX } from 'react-icons/fi';
 
 export default function Register() {
   const navigate = useNavigate();
   
-  // State lokal untuk toggle password
   const [showPassword, setShowPassword] = useState(false);
   
   const {
     formData,
     setFormData,
     loading,
-    handleRegister
+    handleRegister,
+    toast,
+    setToast
   } = useRegister(navigate);
 
   return (
-    <div className="min-h-screen flex bg-white font-sans overflow-hidden">
+    <div className="min-h-screen flex bg-white font-sans overflow-hidden relative">
       
+      {/* --- KOMPONEN TOAST NOTIFICATION --- */}
+      {toast.show && (
+        <div className="fixed top-10 right-4 md:right-10 bg-white border-l-4 px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-right duration-300 w-[90%] md:w-auto"
+             style={{ borderColor: toast.type === 'success' ? '#10B981' : '#EF4444' }}>
+          <div className={`p-2 rounded-full flex-shrink-0 ${toast.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
+            {toast.type === 'success' ? <FiCheckCircle size={24} /> : <FiXCircle size={24} />}
+          </div>
+          <div className="flex-1">
+            <p className={`text-[10px] font-black uppercase tracking-widest ${toast.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                {toast.type === 'success' ? 'Berhasil' : 'Peringatan'}
+            </p>
+            <p className="font-bold text-gray-800 text-xs md:text-sm mt-0.5">{toast.message}</p>
+          </div>
+          <button onClick={() => setToast({ ...toast, show: false })} className="ml-3 text-gray-400 hover:text-gray-700 flex-shrink-0 transition">
+            <FiX size={20}/>
+          </button>
+        </div>
+      )}
+
       {/* --- BAGIAN KIRI: HERO SECTION --- */}
       <div 
         className="hidden lg:flex w-1/2 bg-cover bg-center relative items-center justify-center" 
@@ -109,7 +129,7 @@ export default function Register() {
                   <FiLock size={18} />
                 </span>
                 <input 
-                  type={showPassword ? "text" : "password"} // Dinamis berdasarkan state
+                  type={showPassword ? "text" : "password"} 
                   placeholder="Enter Your Password"
                   className="w-full p-4 pl-12 pr-12 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-4 focus:ring-[#C6A265]/10 outline-none text-sm transition-all shadow-sm"
                   value={formData.password}

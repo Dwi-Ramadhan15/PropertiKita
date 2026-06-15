@@ -35,7 +35,8 @@
  *       - Jika role = user, OTP dikirim melalui WhatsApp.
  *       - Email wajib menggunakan domain @gmail.com.
  *       - Email bersifat unique, sehingga email yang sudah terdaftar tidak dapat digunakan kembali.
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     requestBody:
  *       required: true
  *       content:
@@ -68,7 +69,9 @@
  *                 example: "password123"
  *               role:
  *                 type: string
- *                 enum: [user, agen]
+ *                 enum:
+ *                   - user
+ *                   - agen
  *                 example: agen
  *                 description: |
  *                   - agen: OTP dikirim melalui email.
@@ -91,7 +94,8 @@
  * /api/users/verify-otp:
  *   post:
  *     summary: Verifikasi akun menggunakan kode OTP [PUBLIC]
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     requestBody:
  *       required: true
  *       content:
@@ -111,11 +115,11 @@
  *                 example: "123456"
  *     responses:
  *       200:
- *         description: Akun berhasil diverifikasi
+ *         description: Akun berhasil diverifikasi.
  *       400:
- *         description: OTP salah atau sudah kadaluarsa
+ *         description: OTP salah atau sudah kadaluarsa.
  *       404:
- *         description: User tidak ditemukan
+ *         description: User tidak ditemukan.
  */
 
 /**
@@ -123,7 +127,8 @@
  * /api/users/login:
  *   post:
  *     summary: Login untuk mendapatkan Token JWT [PUBLIC]
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     requestBody:
  *       required: true
  *       content:
@@ -136,6 +141,7 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
  *                 example: diah@gmail.com
  *               password:
  *                 type: string
@@ -143,13 +149,13 @@
  *                 example: "password123"
  *     responses:
  *       200:
- *         description: Login berhasil, mengembalikan token
+ *         description: Login berhasil, mengembalikan token.
  *       400:
- *         description: Email dan password wajib diisi
+ *         description: Email dan password wajib diisi.
  *       401:
- *         description: Belum verifikasi atau password salah
+ *         description: Belum verifikasi atau password salah.
  *       404:
- *         description: User tidak ditemukan
+ *         description: User tidak ditemukan.
  */
 
 /**
@@ -158,10 +164,11 @@
  *   get:
  *     summary: Mendapatkan daftar agen yang sudah terverifikasi OTP [PUBLIC]
  *     description: Rute khusus untuk menampilkan daftar agen di halaman public/user.
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     responses:
  *       200:
- *         description: Berhasil menarik data agen
+ *         description: Berhasil menarik data agen.
  */
 
 /**
@@ -169,16 +176,18 @@
  * /api/users/profile:
  *   get:
  *     summary: Mendapatkan data profil user yang sedang login [PRIVATE]
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Berhasil menarik profil
+ *         description: Berhasil menarik profil.
  *
  *   put:
  *     summary: Mengupdate data profil (Nama, Email, WA) [PRIVATE]
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -194,13 +203,19 @@
  *               email:
  *                 type: string
  *                 format: email
+ *                 pattern: '^[a-zA-Z0-9._%+-]+@gmail\.com$'
  *                 example: diah@gmail.com
+ *                 description: Email wajib menggunakan domain @gmail.com.
  *               phone_number:
  *                 type: string
  *                 example: "087891545344"
  *     responses:
  *       200:
- *         description: Profil berhasil diupdate
+ *         description: Profil berhasil diupdate.
+ *       400:
+ *         description: Validasi gagal atau email bukan Gmail.
+ *       409:
+ *         description: Email sudah digunakan user lain.
  */
 
 /**
@@ -208,7 +223,8 @@
  * /api/users/avatar:
  *   put:
  *     summary: Update foto profil [PRIVATE]
- *     tags: [Users & Auth]
+ *     tags:
+ *       - Users & Auth
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -225,7 +241,7 @@
  *                 format: binary
  *     responses:
  *       200:
- *         description: Foto profil berhasil diupdate
+ *         description: Foto profil berhasil diupdate.
  */
 
 /**
@@ -233,7 +249,8 @@
  * /api/properti:
  *   get:
  *     summary: Pencarian properti dinamis (Format GeoJSON + Pagination) [PUBLIC]
- *     tags: [Properti (Public & Admin)]
+ *     tags:
+ *       - Properti (Public & Admin)
  *     parameters:
  *       - in: query
  *         name: minHarga
@@ -263,18 +280,31 @@
  *         name: status
  *         schema:
  *           type: string
+ *           enum:
+ *             - all
+ *             - approved
+ *             - pending
+ *             - rejected
+ *             - sold
+ *         description: Pilih 'all' untuk melihat semua status. Berguna untuk admin mengambil data pending/approved secara bersamaan.
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
- *         description: Data properti berhasil diambil
+ *         description: Data properti berhasil diambil.
  *
  *   post:
  *     summary: Menambah properti baru (Minimal 2 Foto) (Agen Only) [PRIVATE]
- *     tags: [Properti (Agen)]
+ *     tags:
+ *       - Properti (Agen)
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -298,24 +328,36 @@
  *             properties:
  *               title:
  *                 type: string
+ *                 example: Rumah Minimalis Rajabasa
  *               harga:
  *                 type: integer
+ *                 example: 250000000
  *               id_kategori:
  *                 type: integer
+ *                 example: 1
  *               lokasi:
  *                 type: string
+ *                 example: Rajabasa, Bandar Lampung
  *               deskripsi:
  *                 type: string
+ *                 example: Rumah nyaman dekat kampus dan fasilitas umum.
  *               kamar_tidur:
  *                 type: integer
+ *                 example: 3
  *               kamar_mandi:
  *                 type: integer
+ *                 example: 2
  *               luas:
  *                 type: integer
+ *                 example: 120
  *               longitude:
  *                 type: number
+ *                 format: double
+ *                 example: 105.25803
  *               latitude:
  *                 type: number
+ *                 format: double
+ *                 example: -5.37710
  *               images:
  *                 type: array
  *                 description: Minimal unggah 2 file foto properti.
@@ -324,7 +366,9 @@
  *                   format: binary
  *     responses:
  *       201:
- *         description: Properti berhasil dikirim
+ *         description: Properti berhasil dikirim.
+ *       400:
+ *         description: Validasi gagal atau foto kurang dari 2.
  */
 
 /**
@@ -332,16 +376,20 @@
  * /api/properti/{slug}:
  *   get:
  *     summary: Mendapatkan detail lengkap properti + Gallery + Fasilitas [PUBLIC]
- *     tags: [Properti (Public & Admin)]
+ *     tags:
+ *       - Properti (Public & Admin)
  *     parameters:
  *       - in: path
  *         name: slug
  *         required: true
  *         schema:
  *           type: string
+ *         example: rumah-minimalis-rajabasa
  *     responses:
  *       200:
- *         description: Detail properti ditemukan
+ *         description: Detail properti ditemukan.
+ *       404:
+ *         description: Properti tidak ditemukan.
  */
 
 /**
@@ -349,7 +397,8 @@
  * /api/properti/{id}:
  *   put:
  *     summary: Mengupdate data properti (Agen Only) [PRIVATE]
- *     tags: [Properti (Agen)]
+ *     tags:
+ *       - Properti (Agen)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -366,8 +415,29 @@
  *             properties:
  *               title:
  *                 type: string
+ *               harga:
+ *                 type: integer
+ *               id_kategori:
+ *                 type: integer
+ *               lokasi:
+ *                 type: string
+ *               deskripsi:
+ *                 type: string
+ *               kamar_tidur:
+ *                 type: integer
+ *               kamar_mandi:
+ *                 type: integer
+ *               luas:
+ *                 type: integer
+ *               longitude:
+ *                 type: number
+ *                 format: double
+ *               latitude:
+ *                 type: number
+ *                 format: double
  *               existing_images:
  *                 type: string
+ *                 description: Data gambar lama yang tetap dipakai.
  *               images:
  *                 type: array
  *                 items:
@@ -375,11 +445,12 @@
  *                   format: binary
  *     responses:
  *       200:
- *         description: Berhasil update data
+ *         description: Berhasil update data.
  *
  *   delete:
  *     summary: Menghapus properti permanen (Agen Only) [PRIVATE]
- *     tags: [Properti (Agen)]
+ *     tags:
+ *       - Properti (Agen)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -390,7 +461,7 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Properti dihapus
+ *         description: Properti dihapus.
  */
 
 /**
@@ -398,7 +469,8 @@
  * /api/properti/{id}/status:
  *   put:
  *     summary: Update status properti (Admin Only) [PRIVATE]
- *     tags: [Properti (Public & Admin)]
+ *     tags:
+ *       - Properti (Public & Admin)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -418,10 +490,15 @@
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [approved, rejected, pending, sold]
+ *                 enum:
+ *                   - approved
+ *                   - rejected
+ *                   - pending
+ *                   - sold
+ *                 example: approved
  *     responses:
  *       200:
- *         description: Status berhasil diubah
+ *         description: Status berhasil diubah.
  */
 
 /**
@@ -429,16 +506,18 @@
  * /api/fasilitas:
  *   get:
  *     summary: Mendapatkan semua fasilitas agen [PRIVATE]
- *     tags: [Fasilitas]
+ *     tags:
+ *       - Fasilitas
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Berhasil mengambil fasilitas
+ *         description: Berhasil mengambil fasilitas.
  *
  *   post:
  *     summary: Menambah master fasilitas (Agen Only) [PRIVATE]
- *     tags: [Fasilitas]
+ *     tags:
+ *       - Fasilitas
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -452,9 +531,10 @@
  *             properties:
  *               nama_fasilitas:
  *                 type: string
+ *                 example: Kolam Renang
  *     responses:
  *       201:
- *         description: Fasilitas ditambahkan
+ *         description: Fasilitas ditambahkan.
  */
 
 /**
@@ -462,7 +542,8 @@
  * /api/fasilitas/{id}:
  *   put:
  *     summary: Mengupdate nama fasilitas [PRIVATE]
- *     tags: [Fasilitas]
+ *     tags:
+ *       - Fasilitas
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -482,13 +563,15 @@
  *             properties:
  *               nama_fasilitas:
  *                 type: string
+ *                 example: Garasi Mobil
  *     responses:
  *       200:
- *         description: Fasilitas diupdate
+ *         description: Fasilitas diupdate.
  *
  *   delete:
  *     summary: Menghapus fasilitas [PRIVATE]
- *     tags: [Fasilitas]
+ *     tags:
+ *       - Fasilitas
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -499,7 +582,7 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Fasilitas dihapus
+ *         description: Fasilitas dihapus.
  */
 
 /**
@@ -507,7 +590,8 @@
  * /api/notifications/{id_agen}:
  *   get:
  *     summary: Mengambil riwayat notifikasi [PRIVATE]
- *     tags: [Notifications]
+ *     tags:
+ *       - Notifications
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -518,7 +602,7 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Berhasil menarik data notifikasi
+ *         description: Berhasil menarik data notifikasi.
  */
 
 /**
@@ -526,7 +610,8 @@
  * /api/notifications/{id}/read:
  *   put:
  *     summary: Menandai semua notifikasi telah dibaca [PRIVATE]
- *     tags: [Notifications]
+ *     tags:
+ *       - Notifications
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -537,7 +622,7 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Notifikasi ditandai dibaca
+ *         description: Notifikasi ditandai dibaca.
  */
 
 /**
@@ -545,7 +630,8 @@
  * /api/notifications/{id}/clear:
  *   delete:
  *     summary: Menghapus semua riwayat notifikasi [PRIVATE]
- *     tags: [Notifications]
+ *     tags:
+ *       - Notifications
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -556,7 +642,7 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Notifikasi dibersihkan
+ *         description: Notifikasi dibersihkan.
  */
 
 /**
@@ -564,14 +650,16 @@
  * /api/categories:
  *   get:
  *     summary: Mendapatkan semua daftar kategori [PUBLIC]
- *     tags: [Categories]
+ *     tags:
+ *       - Categories
  *     responses:
  *       200:
- *         description: Berhasil
+ *         description: Berhasil mengambil kategori.
  *
  *   post:
  *     summary: Menambah kategori baru (Admin Only) [PRIVATE]
- *     tags: [Categories]
+ *     tags:
+ *       - Categories
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -588,7 +676,7 @@
  *                 example: Disewakan
  *     responses:
  *       201:
- *         description: Berhasil dibuat
+ *         description: Berhasil dibuat.
  */
 
 /**
@@ -596,7 +684,8 @@
  * /api/categories/{id}:
  *   put:
  *     summary: Mengupdate nama kategori (Admin Only) [PRIVATE]
- *     tags: [Categories]
+ *     tags:
+ *       - Categories
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -616,13 +705,15 @@
  *             properties:
  *               nama:
  *                 type: string
+ *                 example: Dijual
  *     responses:
  *       200:
- *         description: Berhasil diupdate
+ *         description: Berhasil diupdate.
  *
  *   delete:
  *     summary: Menghapus kategori (Admin Only) [PRIVATE]
- *     tags: [Categories]
+ *     tags:
+ *       - Categories
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -633,5 +724,5 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Berhasil dihapus
+ *         description: Berhasil dihapus.
  */

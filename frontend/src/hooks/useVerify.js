@@ -5,10 +5,16 @@ export default function useVerify(navigate, identifier) {
     const [otp, setOtp] = useState(new Array(6).fill(""));
     const [loading, setLoading] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: "", type: "info" });
+
+    const showToast = (message, type = "info") => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: "", type: "info" }), 3500);
+    };
 
     const handleVerify = async (e) => {
         e.preventDefault();
-        if (!identifier) return alert("Data hilang, silakan register ulang.");
+        if (!identifier) return showToast("Data hilang, silakan register ulang.", "error");
         
         setLoading(true);
         const finalOtp = otp.join('');
@@ -21,11 +27,14 @@ export default function useVerify(navigate, identifier) {
                 otp: finalOtp
             });
 
-            alert("Akun Anda Berhasil Aktif! Silahkan Login.");
-            navigate('/login');
+            showToast("Akun Anda Berhasil Aktif! Mengalihkan ke halaman Login...", "success");
+            
+            setTimeout(() => {
+                navigate('/login');
+            }, 2500);
 
         } catch (err) {
-            alert(err.response?.data?.message || "Kode OTP Salah atau sudah kedaluwarsa!");
+            showToast(err.response?.data?.message || "Kode OTP Salah atau sudah kedaluwarsa!", "error");
         } finally {
             setLoading(false);
         }
@@ -36,13 +45,12 @@ export default function useVerify(navigate, identifier) {
         
         setResendLoading(true);
         try {
-            await axios.post('http://localhost:5000/api/users/forgot-password', {
-                email: identifier,
-                whatsapp: identifier
+            await axios.post('http://localhost:5000/api/users/resend-otp', {
+                identifier: identifier
             });
-            alert("OTP baru telah dikirim ke " + identifier);
+            showToast("OTP baru telah dikirim ke " + identifier, "success");
         } catch (err) {
-            alert("Gagal kirim ulang: " + (err.response?.data?.message || "Terjadi kesalahan server"));
+            showToast("Gagal kirim ulang: " + (err.response?.data?.message || "Terjadi kesalahan server"), "error");
         } finally {
             setResendLoading(false);
         }
@@ -54,6 +62,8 @@ export default function useVerify(navigate, identifier) {
         loading,
         resendLoading,
         handleVerify,
-        handleResend
+        handleResend,
+        toast,
+        setToast
     };
 }

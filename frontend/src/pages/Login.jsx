@@ -1,20 +1,36 @@
-import React, { useState } from 'react'; // Tambah useState di sini
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useLogin from '../hooks/useLogin'; 
 import backgroundRumah from '../assets/rumah.megah.jpg';
 import logoPK from '../assets/logo.png';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'; // Tambah ikon mata
+import { FiMail, FiLock, FiEye, FiEyeOff, FiCheckCircle, FiXCircle, FiX } from 'react-icons/fi';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { email, setEmail, password, setPassword, loading, handleLogin } = useLogin(navigate);
-  
-  // State lokal untuk toggle liat password
+  const { email, setEmail, password, setPassword, loading, handleLogin, toast, setToast } = useLogin(navigate);
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-white font-sans">
-      {/* --- BAGIAN KIRI: GAMBAR + LOGO (Gede & Mewah) --- */}
+    <div className="min-h-screen flex bg-white font-sans relative overflow-hidden">
+      
+      {toast.show && (
+        <div className="fixed top-10 right-4 md:right-10 bg-white border-l-4 px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-right duration-300 w-[90%] md:w-auto"
+             style={{ borderColor: toast.type === 'success' ? '#10B981' : '#EF4444' }}>
+          <div className={`p-2 rounded-full flex-shrink-0 ${toast.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
+            {toast.type === 'success' ? <FiCheckCircle size={24} /> : <FiXCircle size={24} />}
+          </div>
+          <div className="flex-1">
+            <p className={`text-[10px] font-black uppercase tracking-widest ${toast.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                {toast.type === 'success' ? 'Berhasil' : 'Peringatan'}
+            </p>
+            <p className="font-bold text-gray-800 text-xs md:text-sm mt-0.5">{toast.message}</p>
+          </div>
+          <button onClick={() => setToast({ ...toast, show: false })} className="ml-3 text-gray-400 hover:text-gray-700 flex-shrink-0 transition">
+            <FiX size={20}/>
+          </button>
+        </div>
+      )}
+
       <div 
         className="hidden lg:flex lg:w-1/2 bg-cover bg-center relative items-center justify-center"
         style={{ backgroundImage: `url(${backgroundRumah})` }}
@@ -30,7 +46,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* --- BAGIAN KANAN: FORM LOGIN --- */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16">
         <div className="w-full max-w-[400px]">
           
@@ -40,7 +55,6 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Input Email */}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 ml-1">Email</label>
               <div className="relative group">
@@ -58,17 +72,15 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Input Password dengan Fitur Intip (Show/Hide) */}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 ml-1">Password</label>
               <div className="relative group">
-                {/* Ikon Gembok Kiri */}
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#C6A265]">
                   <FiLock size={18} />
                 </span>
                 
                 <input 
-                  type={showPassword ? "text" : "password"} // Dinamis: text atau password
+                  type={showPassword ? "text" : "password"} 
                   placeholder="Enter Your Password"
                   className="w-full p-4 pl-12 pr-12 bg-white rounded-xl border border-gray-200 focus:border-[#C6A265] focus:ring-2 focus:ring-[#C6A265]/20 outline-none transition-all text-sm"
                   value={password}
@@ -76,7 +88,6 @@ export default function Login() {
                   required
                 />
 
-                {/* Tombol Mata di Kanan */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -87,18 +98,16 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between px-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 accent-[#C6A265]" />
                 <span className="text-[11px] text-gray-500 font-bold">Ingat Saya</span>
               </label>
-              <Link to="/lupa-password" internal className="text-[11px] font-bold text-[#C6A265] hover:underline">
+              <Link to="/lupa-password" className="text-[11px] font-bold text-[#C6A265] hover:underline">
                 Lupa Password?
               </Link>
             </div>
 
-            {/* Submit Button */}
             <button 
               type="submit" 
               disabled={loading}
@@ -109,7 +118,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Register Link */}
           <div className="mt-8 text-center">
             <p className="text-gray-500 text-sm font-medium">
               Belum punya akun?{' '}

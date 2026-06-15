@@ -13,6 +13,7 @@ router.post('/register', upload.single('foto_profil'), userController.register);
 router.post('/login', userController.login);
 router.post('/refresh-token', userController.refreshTokenEndpoint);
 router.post('/verify-otp', userController.verifyOtp);
+router.post('/resend-otp', userController.resendOtp);
 
 router.post('/forgot-password', userController.forgotPassword);
 router.post('/reset-password', userController.resetPassword);
