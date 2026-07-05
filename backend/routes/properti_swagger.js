@@ -52,12 +52,12 @@
  *             properties:
  *               name:
  *                 type: string
- *                 example: Diah
+ *                 example: Dwi
  *               email:
  *                 type: string
  *                 format: email
  *                 pattern: '^[a-zA-Z0-9._%+-]+@gmail\.com$'
- *                 example: diah@gmail.com
+ *                 example: dwir57017@gmail.com
  *                 description: Email wajib menggunakan domain @gmail.com dan harus unique.
  *               whatsapp:
  *                 type: string
@@ -109,7 +109,7 @@
  *               identifier:
  *                 type: string
  *                 description: Email atau nomor WhatsApp
- *                 example: diah@gmail.com
+ *                 example: dwir57017@gmail.com
  *               otp:
  *                 type: string
  *                 example: "123456"
@@ -142,11 +142,11 @@
  *               email:
  *                 type: string
  *                 format: email
- *                 example: diah@gmail.com
+ *                 example: dwir57017@gmail.com
  *               password:
  *                 type: string
  *                 format: password
- *                 example: "password123"
+ *                 example: "123123123"
  *     responses:
  *       200:
  *         description: Login berhasil, mengembalikan token.
@@ -154,6 +154,77 @@
  *         description: Email dan password wajib diisi.
  *       401:
  *         description: Belum verifikasi atau password salah.
+ *       404:
+ *         description: User tidak ditemukan.
+ */
+
+/**
+ * @swagger
+ * /api/users/forgot-password:
+ *   post:
+ *     summary: Meminta OTP untuk reset password [PUBLIC]
+ *     description: Mengirimkan kode OTP ke WhatsApp untuk proses lupa sandi (baik untuk role user maupun agen).
+ *     tags:
+ *       - Users & Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - identifier
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *                 description: Nomor WhatsApp pengguna yang sudah terdaftar.
+ *                 example: "087891545344"
+ *     responses:
+ *       200:
+ *         description: OTP berhasil dikirim ke WhatsApp.
+ *       400:
+ *         description: Identifier tidak valid atau kosong.
+ *       404:
+ *         description: User tidak ditemukan di sistem.
+ */
+
+/**
+ * @swagger
+ * /api/users/reset-password:
+ *   post:
+ *     summary: Reset password menggunakan kode OTP [PUBLIC]
+ *     description: Mengatur ulang kata sandi pengguna dengan memvalidasi OTP yang telah dikirimkan sebelumnya melalui WhatsApp.
+ *     tags:
+ *       - Users & Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - identifier
+ *               - otp
+ *               - new_password
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *                 description: Nomor WhatsApp.
+ *                 example: "087891545344"
+ *               otp:
+ *                 type: string
+ *                 description: Kode OTP yang diterima dari WhatsApp.
+ *                 example: "123456"
+ *               new_password:
+ *                 type: string
+ *                 format: password
+ *                 description: Kata sandi baru yang ingin digunakan.
+ *                 example: "passwordBaru123"
+ *     responses:
+ *       200:
+ *         description: Kata sandi berhasil diubah, silakan login dengan sandi baru.
+ *       400:
+ *         description: OTP salah, sudah kadaluarsa, atau format password tidak valid.
  *       404:
  *         description: User tidak ditemukan.
  */
@@ -199,12 +270,12 @@
  *             properties:
  *               name:
  *                 type: string
- *                 example: Diah
+ *                 example: Dwi
  *               email:
  *                 type: string
  *                 format: email
  *                 pattern: '^[a-zA-Z0-9._%+-]+@gmail\.com$'
- *                 example: diah@gmail.com
+ *                 example: dwir57017@gmail.com
  *                 description: Email wajib menggunakan domain @gmail.com.
  *               phone_number:
  *                 type: string
@@ -316,6 +387,7 @@
  *             required:
  *               - title
  *               - harga
+ *               - tipe
  *               - id_kategori
  *               - lokasi
  *               - deskripsi
@@ -332,6 +404,14 @@
  *               harga:
  *                 type: integer
  *                 example: 250000000
+ *               tipe:
+ *                 type: string
+ *                 enum:
+ *                   - Rumah
+ *                   - Kost
+ *                   - Apartemen
+ *                   - Villa
+ *                 example: Rumah
  *               id_kategori:
  *                 type: integer
  *                 example: 1
@@ -369,6 +449,10 @@
  *         description: Properti berhasil dikirim.
  *       400:
  *         description: Validasi gagal atau foto kurang dari 2.
+ *       401:
+ *         description: Token tidak ditemukan atau belum login.
+ *       403:
+ *         description: Hanya agen yang boleh menambahkan properti.
  */
 
 /**
